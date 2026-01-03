@@ -1,0 +1,14 @@
+= FormDB Tools
+:toc:
+
+Utilities for working with FormDB databases.
+
+== Planned Tools
+
+* `formdb-render` - Render blocks and journal entries to human-readable format
+* `formdb-inspect` - Inspect database structure and integrity
+* `formdb-doctor` - Diagnose and repair database issues
+
+== Status
+
+Tools will be implemented after core is functional.

@@ -1,0 +1,149 @@
+= FormDB Roadmap
+:toc:
+:icons: font
+
+[.lead]
+Development phases from concept to production.
+
+== Phase 0: Specification (Current)
+
+*Goal*: Complete specifications for all core components.
+
+=== Deliverables
+
+* [x] `formdb.scm` - Unified specification
+* [x] Repository structure
+* [ ] `spec/blocks.adoc` - Block format spec
+* [ ] `spec/journal.adoc` - Journal format spec
+* [ ] `spec/rendering.adoc` - Canonical rendering rules
+* [ ] `spec/fql.adoc` - FQL grammar
+
+=== Open Questions to Resolve
+
+* Q-BLOCK-HEADER-001: Block header layout
+* Q-JOURNAL-ENTRY-001: Journal entry schema
+* Q-ABI-BLOBS-001: ABI blob encoding
+* Q-FQL-POC-001: FQL grammar
+
+== Phase 1: Form.Blocks PoC
+
+*Goal*: Working storage layer with journal and reversibility.
+
+=== Deliverables
+
+* [ ] Fixed-size block implementation
+* [ ] Append-only journal
+* [ ] Crash recovery
+* [ ] Integrity checks
+* [ ] Repair guidance
+* [ ] Golden test vectors
+
+=== Acceptance Criteria
+
+* All block operations journaled
+* Crash recovery restores consistent state
+* Deterministic text rendering for all blocks
+* Test vectors pass
+
+== Phase 2: Form.Model PoC
+
+*Goal*: Multi-model layer on top of blocks.
+
+=== Deliverables
+
+* [ ] Document collections
+* [ ] Edge collections
+* [ ] Schema metadata storage
+* [ ] Constraint enforcement
+* [ ] Migration artefacts
+
+=== Acceptance Criteria
+
+* Documents insertable/queryable
+* Edges create graph relationships
+* Constraints produce explainable rejections
+* Migrations are reversible
+
+== Phase 3: Form.Bridge
+
+*Goal*: Stable C ABI for runtime integration.
+
+=== Deliverables
+
+* [ ] Zig ABI implementation
+* [ ] Error blob handling
+* [ ] Introspection surfaces
+* [ ] Render surfaces
+
+=== Acceptance Criteria
+
+* FFI callable from Factor
+* All errors are renderable
+* Introspection returns usable data
+* No memory leaks across boundary
+
+== Phase 4: Form.Runtime PoC
+
+*Goal*: FQL parser/planner/executor.
+
+=== Deliverables
+
+* [ ] FQL parser
+* [ ] Query planner
+* [ ] Executor
+* [ ] EXPLAIN functionality
+* [ ] Provenance output
+
+=== Acceptance Criteria
+
+* FQL PoC subset fully functional
+* EXPLAIN returns readable plans
+* Provenance tracks to journal entries
+* Constraint rejections explained
+
+== Phase 5: Integration & Polish
+
+*Goal*: Complete PoC with all seam checks passing.
+
+=== Deliverables
+
+* [ ] Seam check automation
+* [ ] End-to-end test suite
+* [ ] Documentation polish
+* [ ] Example narratives
+
+=== Acceptance Criteria
+
+* All seam checks (B↔M, M↔R, B↔R) pass
+* Golden test vectors complete
+* Stories demonstrate target use cases
+
+== Future Phases (Post-PoC)
+
+=== Form.ControlPlane
+
+* Elixir/OTP session management
+* Cluster coordination
+* Production supervision
+
+=== Distribution
+
+* Multi-node replication
+* Consensus protocol selection
+* Network protocol design
+
+=== Ecosystem
+
+* Language bindings (Rust, Python, etc.)
+* IDE integration
+* Visualization tools
+
+== Non-Goals (Explicitly Deferred)
+
+* SQL compatibility layer
+* OLAP optimizations
+* Full-text search
+* Time-series optimizations
+* Real-time subscriptions
+
+These may be addressed post-PoC based on community needs.

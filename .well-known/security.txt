@@ -1,0 +1,7 @@
+# Security contact for FormDB
+# See https://securitytxt.org/
+
+Contact: https://github.com/hyperpolymath/formdb/security/advisories/new
+Preferred-Languages: en
+Canonical: https://github.com/hyperpolymath/formdb/.well-known/security.txt
+Policy: https://github.com/hyperpolymath/formdb/blob/main/SECURITY.md

@@ -1,0 +1,235 @@
+= FormDB Architecture
+:toc: macro
+:toc-title: Contents
+:toclevels: 3
+:icons: font
+
+[.lead]
+Technical deep-dive into FormDB's layered architecture.
+
+toc::[]
+
+== Overview
+
+FormDB is structured as a stack of layers, each with a specific responsibility and language choice.
+
+[source,text]
+----
+┌─────────────────────────────────────────────────────────────┐
+│                    User Applications                        │
+├─────────────────────────────────────────────────────────────┤
+│  Form.ControlPlane (Elixir/OTP)                             │
+│  ├── Session management                                     │
+│  ├── Cluster coordination                                   │
+│  └── Port communication with core                           │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Runtime (Factor)                                      │
+│  ├── FQL parser                                             │
+│  ├── Query planner                                          │
+│  ├── Executor                                               │
+│  └── Introspection surfaces                                 │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Bridge (Zig)                                          │
+│  ├── C ABI surface                                          │
+│  ├── Safety governor                                        │
+│  └── Marshalling                                            │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Model (Forth)                                         │
+│  ├── Document collections                                   │
+│  ├── Edge collections                                       │
+│  ├── Schema metadata                                        │
+│  └── Migration artefacts                                    │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Blocks (Forth)                                        │
+│  ├── Fixed-size blocks                                      │
+│  ├── Append-only journal                                    │
+│  ├── Crash recovery                                         │
+│  └── Integrity checks                                       │
+├─────────────────────────────────────────────────────────────┤
+│                    File System                              │
+└─────────────────────────────────────────────────────────────┘
+----
+
+== Layer Details
+
+=== Form.Blocks (Truth Core - Storage)
+
+The lowest layer, responsible for durable storage.
+
+==== Responsibilities
+
+* **Block Management**: Fixed-size blocks with symbolic headers
+* **Journal**: Append-only log of all mutations
+* **Recovery**: Crash recovery from journal
+* **Integrity**: Checksums and repair guidance
+
+==== Key Invariants
+
+* Journal entries are written before block mutations
+* All blocks have deterministic text rendering
+* No hidden state or implicit behavior
+
+==== Data Structures
+
+[source,text]
+----
+Block:
+┌─────────────────────────────────────────┐
+│ Header (versioned, fixed layout)        │
+├─────────────────────────────────────────┤
+│ Payload (block-type specific)           │
+└─────────────────────────────────────────┘
+
+Journal Entry:
+┌─────────────────────────────────────────┐
+│ Sequence number                         │
+├─────────────────────────────────────────┤
+│ Operation type                          │
+├─────────────────────────────────────────┤
+│ Forward payload (what was done)         │
+├─────────────────────────────────────────┤
+│ Inverse payload (how to undo)           │
+├─────────────────────────────────────────┤
+│ Provenance IDs                          │
+└─────────────────────────────────────────┘
+----
+
+=== Form.Model (Truth Core - Logical)
+
+Multi-model logical layer built on blocks.
+
+==== Responsibilities
+
+* **Documents**: JSON-like document storage
+* **Edges**: Graph relationships between documents
+* **Schemas**: Type and constraint definitions
+* **Migrations**: Schema evolution artefacts
+
+==== Key Invariants
+
+* All operations translate to journaled block operations
+* Every operation has a defined inverse
+* Constraints produce explainable rejections
+
+=== Form.Bridge (Interop)
+
+Stable ABI boundary between core and runtimes.
+
+==== Responsibilities
+
+* **C ABI**: Platform-independent interface
+* **Safety Governor**: Validation at boundary
+* **Marshalling**: Data format translation
+
+==== API Design
+
+[source,c]
+----
+// All functions return status + optional error blob
+typedef struct {
+    int32_t code;
+    const uint8_t* error_blob;
+    size_t error_len;
+} fdb_status;
+
+// Handles are opaque pointers
+typedef struct fdb_db* fdb_db_t;
+typedef struct fdb_txn* fdb_txn_t;
+typedef struct fdb_cursor* fdb_cursor_t;
+----
+
+=== Form.Runtime (Query Layer)
+
+FQL parser, planner, and executor.
+
+==== Responsibilities
+
+* **Parser**: FQL syntax → AST
+* **Planner**: AST → execution plan
+* **Executor**: Plan → results
+* **Introspection**: Schema and constraint queries
+
+==== FQL Design
+
+FQL is not SQL. Key differences:
+
+|===
+| SQL | FQL
+
+| `SELECT * FROM t` | `SELECT FROM collection`
+| Implicit joins | Explicit edge traversal
+| `EXPLAIN` shows plan | `EXPLAIN` shows plan + rationale
+| No provenance | Optional provenance output
+|===
+
+=== Form.ControlPlane (Optional)
+
+Session and cluster management.
+
+==== Responsibilities
+
+* **Sessions**: User session lifecycle
+* **Supervision**: OTP supervisors for reliability
+* **Clustering**: Multi-node coordination
+
+==== Integration
+
+Control plane communicates with core via Erlang ports:
+
+[source,elixir]
+----
+# Simplified example
+defmodule FormDB.Core do
+  use GenServer
+
+  def init(_) do
+    port = Port.open({:spawn, "formdb-core"}, [:binary])
+    {:ok, %{port: port}}
+  end
+end
+----
+
+== Seam Checks
+
+Cross-layer invariants verified at stage freezes:
+
+=== B↔M (Blocks ↔ Model)
+
+* Every Model op maps to journaled Block ops
+* Every Model op has inverse mapping or classification
+
+=== M↔R (Model ↔ Runtime)
+
+* Constraints enforced identically via FQL or direct API
+* Introspection returns reason graphs + provenance
+
+=== B↔R (Blocks ↔ Runtime)
+
+* Runtime cannot commit without journal-first acknowledgement
+* Render tools work without Factor runtime
+
+== Blob Encoding
+
+For PoC, we use CBOR for ABI blobs:
+
+* Compact binary format
+* Schema-optional
+* Wide language support
+
+Regardless of encoding, all blobs have deterministic text rendering for audit purposes.
+
+== Concurrency Model
+
+* **Single-writer**: One transaction modifies at a time
+* **Multi-reader**: Concurrent read transactions
+* **MVCC**: (future) Multi-version concurrency control
+
+== Failure Modes
+
+|===
+| Failure | Recovery
+
+| Process crash during write | Replay journal from last checkpoint
+| Corruption detected | Integrity check → repair guidance
+| Constraint violation | Explainable rejection, no state change
+|===

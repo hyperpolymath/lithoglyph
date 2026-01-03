@@ -1,0 +1,176 @@
+= FormDB
+:toc: macro
+:toc-title: Contents
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+[.lead]
+*The database where the database is part of the story.*
+
+image:https://img.shields.io/badge/version-0.0.1-blue[Version]
+image:https://img.shields.io/badge/stage-conceptual%20%2B%20PoC-orange[Stage]
+image:https://img.shields.io/badge/license-AGPL--3.0-green[License]
+
+toc::[]
+
+== Overview
+
+FormDB is a *narrative-first, reversible, audit-grade database core*. It treats schemas, constraints, migrations, blocks, and journals as narrative artefacts—the database is part of the story, not an opaque substrate.
+
+=== Core Thesis
+
+> Schemas, constraints, migrations, blocks, and journals are narrative artefacts.
+> The database is part of the story, not an opaque substrate.
+
+=== Primary Values
+
+[cols="2,1"]
+|===
+| Principle | Priority
+
+| Auditability | > Performance
+| Meaning | > Features
+| Reversibility | > Throughput
+| Agent Understanding | Required
+|===
+
+== Target Domains
+
+* Investigative journalism
+* Governance/compliance
+* Agentic ecosystems + multi-repo handover
+* Long-term cultural/institutional archives
+
+== Architecture
+
+FormDB is structured in layers, each with a specific language and responsibility:
+
+[source,text]
+----
+┌─────────────────────────────────────────────────────────────┐
+│  Form.ControlPlane (Elixir/OTP - optional)                  │
+│  Sessions, supervision, cluster edge                        │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Runtime (Factor)                                      │
+│  FQL parse/plan/exec, explain, introspection                │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Bridge (Zig)                                          │
+│  Stable C ABI boundary, safety governor                     │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Model (Forth)                                         │
+│  Multi-model logical layer: documents, edges, schemas       │
+├─────────────────────────────────────────────────────────────┤
+│  Form.Blocks (Forth)                                        │
+│  Deterministic storage, journal, reversibility primitives   │
+└─────────────────────────────────────────────────────────────┘
+----
+
+=== Layer Details
+
+==== Form.Blocks (Forth)
+* Fixed-size blocks with symbolic headers
+* Append-only journal
+* Crash recovery and integrity checks
+* Repair guidance
+
+==== Form.Model (Forth)
+* Document collections
+* Edge collections
+* Schema + constraint metadata
+* Migration artefacts
+
+==== Form.Bridge (Zig)
+* Narrow C ABI for runtimes
+* Opaque handles + byte buffers + explicit error codes
+* Marshalling only; no business logic duplication
+
+==== Form.Runtime (Factor)
+* FQL minimal subset for PoC
+* Planner steps introspection
+* Constraint explanation surfaces
+* Provenance surfaces
+
+==== Form.ControlPlane (Elixir/OTP, optional)
+* Out-of-process core engine via port
+* Sessions and supervision
+* Cluster edge coordination
+
+== Core Invariants
+
+These are *non-negotiable* guarantees:
+
+[horizontal]
+Truth Ownership:: On-disk truth is owned by the block/journal layer; higher layers do not bypass it.
+Journal-First:: Every mutating operation is journaled before being considered committed.
+Reversibility:: Every committed operation MUST have a defined inverse OR be explicitly marked irreversible-with-story.
+Renderability:: Blocks and journal entries MUST be renderable deterministically into human/agent-readable form.
+Provenance:: All query results can optionally include provenance pointers to journal and blocks.
+Constraints as Ethics:: Constraints are explainable: rejections must return reasons + pointers + narrative rationale.
+
+== FQL (Form Query Language)
+
+PoC subset capabilities:
+
+* `INSERT` document into collection
+* `INSERT` edge (from, to, type, props)
+* `SELECT` with simple predicates
+* `EXPLAIN` (returns plan + reasons)
+* `INTROSPECT` schema/constraints
+* Optional provenance output
+
+== Non-Goals
+
+* Be a drop-in Postgres replacement
+* Win microbenchmarks
+* Ship full distributed consensus in the first PoC
+
+== Repository Structure
+
+[source,text]
+----
+formdb/
+├── spec/              # Format specs + rationale (AsciiDoc)
+├── core-forth/        # Form.Blocks + Form.Model (truth core)
+├── core-zig/          # Form.Bridge (ABI + port framing)
+├── core-factor/       # Form.Runtime (FQL + introspection)
+├── control-plane/     # Elixir/OTP gateway (optional)
+├── tools/             # Render/inspect/doctor utilities
+├── test-vectors/      # Golden bytes + golden renders
+└── stories/           # Narrative examples + onboarding artefacts
+----
+
+== PoC Acceptance Criteria
+
+* Single-node db open/close
+* Append-only journal with deterministic rendering
+* Document + edge insert/select
+* Constraint rejection returns explain payload
+* Migration artefact recorded + reversible
+* Golden test vectors pass
+* Seam checks (B↔M, M↔R, B↔R) pass at freeze
+
+== Open Questions
+
+See link:formdb.scm[formdb.scm] for structured open questions with acceptance criteria:
+
+* `Q-BLOCK-HEADER-001`: Minimal block header layout
+* `Q-JOURNAL-ENTRY-001`: Minimal journal entry schema
+* `Q-ABI-BLOBS-001`: ABI blob encoding choice
+* `Q-FQL-POC-001`: FQL PoC grammar
+* `Q-CTRL-PLANE-001`: Elixir/OTP introduction timing
+
+== Documentation
+
+* link:ARCHITECTURE.adoc[ARCHITECTURE.adoc] - Technical architecture deep-dive
+* link:ROADMAP.adoc[ROADMAP.adoc] - Development roadmap
+* link:PHILOSOPHY.adoc[PHILOSOPHY.adoc] - Design philosophy and principles
+* link:formdb.scm[formdb.scm] - Machine-readable specification
+
+== License
+
+AGPL-3.0-or-later
+
+== Contributing
+
+See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] for guidelines.
