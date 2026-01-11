@@ -197,7 +197,8 @@ See link:formdb.scm[formdb.scm] for structured open questions with acceptance cr
 
 * https://github.com/hyperpolymath/fqldt[FQLdt] - Dependently-typed FQL (same database, compile-time proofs)
 * https://github.com/hyperpolymath/formdb-studio[FormDB Studio] - Zero-friction GUI for non-technical users
-* https://github.com/hyperpolymath/bofig[BoFIG] - Binary-Origami Figuration (journalism use case)
+* https://github.com/hyperpolymath/bofig[BoFIG] - Evidence graph for investigative journalism
+* https://github.com/hyperpolymath/zotero-formdb[Zotero-FormDB] - Post-truth reference manager with PROMPT scores
 
 == License
 
