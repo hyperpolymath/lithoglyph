@@ -3,7 +3,7 @@
 
 (state
   (metadata
-    (version "0.0.2")
+    (version "0.0.3")
     (schema-version "1.0")
     (created "2026-01-03")
     (updated "2026-01-11")
@@ -20,29 +20,33 @@
       (control-plane "Elixir/OTP (optional)")))
 
   (current-position
-    (phase "conceptual")
-    (overall-completion 5)
+    (phase "specification-complete")
+    (overall-completion 15)
     (components
-      (Form.Blocks (status "not-started") (completion 0))
+      (Form.Blocks (status "specified") (completion 10))
       (Form.Model (status "not-started") (completion 0))
-      (Form.Bridge (status "not-started") (completion 0))
-      (Form.Runtime (status "not-started") (completion 0))
+      (Form.Bridge (status "specified") (completion 10))
+      (Form.Runtime (status "specified") (completion 10))
       (Form.ControlPlane (status "deferred") (completion 0)))
     (working-features
       "specification document (formdb.scm)"
       "repository structure"
-      "self-normalizing database spec (spec/self-normalizing.adoc)"))
+      "self-normalizing database spec (spec/self-normalizing.adoc)"
+      "block storage format spec (spec/blocks.adoc)"
+      "journal format spec (spec/journal.adoc)"
+      "blob encoding spec (spec/encoding.adoc)"
+      "FQL grammar + 10 examples (spec/fql.adoc)"))
 
   (route-to-mvp
     (milestone (id "M1") (name "Specification Complete")
-      (status "in-progress")
+      (status "complete")
       (items
-        (item "Define block header format" (status "open") (question "Q-BLOCK-HEADER-001"))
-        (item "Define journal entry schema" (status "open") (question "Q-JOURNAL-ENTRY-001"))
-        (item "Choose ABI blob encoding" (status "open") (question "Q-ABI-BLOBS-001"))
-        (item "Define FQL PoC grammar" (status "open") (question "Q-FQL-POC-001"))))
+        (item "Define block header format" (status "complete") (decision "D-BLOCK-HEADER-001"))
+        (item "Define journal entry schema" (status "complete") (decision "D-JOURNAL-ENTRY-001"))
+        (item "Choose ABI blob encoding" (status "complete") (decision "D-ABI-BLOBS-001"))
+        (item "Define FQL PoC grammar" (status "complete") (decision "D-FQL-POC-001"))))
     (milestone (id "M2") (name "Form.Blocks PoC")
-      (status "pending")
+      (status "in-progress")
       (items
         (item "Implement fixed-size blocks" (status "pending"))
         (item "Implement append-only journal" (status "pending"))
@@ -85,21 +89,21 @@
 
   (blockers-and-issues
     (critical)
-    (high
-      (issue "Open questions need decisions before implementation can begin"))
-    (medium)
+    (high)
+    (medium
+      (issue "Need Forth development environment setup"))
     (low))
 
   (critical-next-actions
     (immediate
-      "Decide on block header layout (Q-BLOCK-HEADER-001)"
-      "Decide on journal entry schema (Q-JOURNAL-ENTRY-001)")
+      "Set up Forth development environment (gforth)"
+      "Create test-vectors/blocks/ golden files")
     (this-week
-      "Choose ABI blob encoding (Q-ABI-BLOBS-001)"
-      "Draft FQL grammar (Q-FQL-POC-001)")
+      "Implement Form.Blocks fixed-size block primitives"
+      "Implement basic journal append")
     (this-month
-      "Begin Form.Blocks implementation"
-      "Create initial test vectors"))
+      "Complete Form.Blocks PoC (M2)"
+      "Begin Form.Model implementation"))
 
   (session-history
     (snapshot (date "2026-01-03") (session "initial-setup")
@@ -116,4 +120,14 @@
         "Specified normal form coverage (1NF-BCNF full, 4NF+ partial)"
         "Designed FQL-dt type encoding for functional dependencies"
         "Added Form.Normalizer milestone (M6)"
-        "Added 5 open questions (Q-NORM-001 through Q-NORM-005)"))))
+        "Added 5 open questions (Q-NORM-001 through Q-NORM-005)"))
+    (snapshot (date "2026-01-11") (session "core-specifications")
+      (accomplishments
+        "Created spec/blocks.adoc - 4096-byte blocks, 64-byte header, CRC32C integrity"
+        "Created spec/journal.adoc - 48-byte entry header, CBOR payloads, provenance tracking"
+        "Created spec/encoding.adoc - CBOR (RFC 8949) with deterministic encoding, FormDB tags 39001-39008"
+        "Created spec/fql.adoc - Full EBNF grammar, 10 canonical examples with expected output"
+        "Resolved Q-BLOCK-HEADER-001, Q-JOURNAL-ENTRY-001, Q-ABI-BLOBS-001, Q-FQL-POC-001"
+        "Added decisions D-BLOCK-HEADER-001 through D-FQL-POC-001 to formdb.scm"
+        "Completed Milestone M1 (Specification Complete)"
+        "Project ready for Form.Blocks implementation (M2)"))))

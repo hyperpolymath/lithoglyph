@@ -251,33 +251,37 @@ The database is part of the story, not an opaque substrate.")
     ;; 10. Open questions (structured)
     ;; ------------------------------------------------------------
     (open-questions
-      (q (id "Q-BLOCK-HEADER-001") (area storage) (status open)
+      (q (id "Q-BLOCK-HEADER-001") (area storage) (status resolved)
          (text "What is the minimal block header layout (fields + sizes) that supports renderability, integrity, and forward compatibility?")
          (acceptance
            "fields enumerated + fixed sizes"
            "versioning + reserved bits defined"
            "canonical rendering rules defined")
-         (impacts "spec/blocks.adoc" "core-forth/Form.Blocks/*"))
-      (q (id "Q-JOURNAL-ENTRY-001") (area storage) (status open)
+         (impacts "spec/blocks.adoc" "core-forth/Form.Blocks/*")
+         (resolved-by "D-BLOCK-HEADER-001"))
+      (q (id "Q-JOURNAL-ENTRY-001") (area storage) (status resolved)
          (text "What is the minimal journal entry schema to guarantee reversibility and provenance pointers?")
          (acceptance
            "forward+inverse payload representation chosen"
            "provenance ids defined"
            "crash recovery rules defined")
-         (impacts "spec/journal.adoc" "core-forth/Form.Blocks/*"))
-      (q (id "Q-ABI-BLOBS-001") (area interop) (status open)
+         (impacts "spec/journal.adoc" "core-forth/Form.Blocks/*")
+         (resolved-by "D-JOURNAL-ENTRY-001"))
+      (q (id "Q-ABI-BLOBS-001") (area interop) (status resolved)
          (text "Choose ABI blob encoding: Cap'n Proto vs Protobuf vs CBOR/MsgPack for PoC.")
          (acceptance
            "one chosen for PoC"
            "deterministic text render defined independent of blob encoding")
-         (impacts "core-zig/Form.Bridge/*" "core-factor/Form.Runtime/*"))
-      (q (id "Q-FQL-POC-001") (area fql) (status open)
+         (impacts "core-zig/Form.Bridge/*" "core-factor/Form.Runtime/*")
+         (resolved-by "D-ABI-BLOBS-001"))
+      (q (id "Q-FQL-POC-001") (area fql) (status resolved)
          (text "Define the exact PoC grammar + canonical examples for FQL.")
          (acceptance
            "grammar documented"
            "10 example queries + expected outputs"
            "EXPLAIN/INTROSPECT included")
-         (impacts "spec/fql.adoc" "core-factor/Form.Runtime/*"))
+         (impacts "spec/fql.adoc" "core-factor/Form.Runtime/*")
+         (resolved-by "D-FQL-POC-001"))
       (q (id "Q-CTRL-PLANE-001") (area control-plane) (status open)
          (text "Is Elixir/OTP introduced at PoC time (gateway only), or deferred until after the core is stable?")
          (acceptance
@@ -326,6 +330,26 @@ The database is part of the story, not an opaque substrate.")
     ;; ------------------------------------------------------------
     (decisions
       ;; (d (id "D-...") (date "YYYY-MM-DD") (closes "Q-...") (decision "...") (rationale "...") (impacts "..."))
+
+      (d (id "D-BLOCK-HEADER-001") (date "2026-01-11") (closes "Q-BLOCK-HEADER-001")
+         (decision "4096-byte blocks with 64-byte fixed header")
+         (rationale "Matches filesystem/SSD page sizes. Header provides: magic (4), version (2), type (2), block_id (8), sequence (8), timestamps (16), payload_len (4), checksum (4), prev_block (8), flags (4), reserved (4). CRC32C for integrity. Full spec in spec/blocks.adoc.")
+         (impacts "spec/blocks.adoc"))
+
+      (d (id "D-JOURNAL-ENTRY-001") (date "2026-01-11") (closes "Q-JOURNAL-ENTRY-001")
+         (decision "48-byte entry header with CBOR payloads for forward/inverse/provenance")
+         (rationale "Header includes: sequence (8), timestamp (8), op_type (2), flags (2), lengths (12), affected_block (8), checksum (4), entry_len (4). Variable-length CBOR payloads for forward operation, inverse operation, and provenance (actor + rationale required). Crash recovery via journal replay. Full spec in spec/journal.adoc.")
+         (impacts "spec/journal.adoc"))
+
+      (d (id "D-ABI-BLOBS-001") (date "2026-01-11") (closes "Q-ABI-BLOBS-001")
+         (decision "CBOR (RFC 8949) with deterministic encoding")
+         (rationale "Schema-optional, self-describing, wide language support (Zig, Factor, Forth, Lean 4, Elixir). Deterministic encoding via RFC 8949 §4.2 rules. FormDB-specific tags 39001-39008 for block refs, doc IDs, provenance, PROMPT scores, proofs. LZ4 compression for large payloads. Full spec in spec/encoding.adoc.")
+         (impacts "spec/encoding.adoc" "core-zig/Form.Bridge/*"))
+
+      (d (id "D-FQL-POC-001") (date "2026-01-11") (closes "Q-FQL-POC-001")
+         (decision "FQL PoC grammar with 10 canonical examples")
+         (rationale "Covers INSERT/SELECT/UPDATE/DELETE for documents and edges. CREATE/DROP for collections. TRAVERSE for edge traversal. EXPLAIN shows plan + rationale. INTROSPECT for schema/constraints/journal. WITH PROVENANCE for audit output. All errors include rationale + suggestions. Full grammar and 10 examples in spec/fql.adoc.")
+         (impacts "spec/fql.adoc" "core-factor/Form.Runtime/*"))
       )
 
     ;; ------------------------------------------------------------
