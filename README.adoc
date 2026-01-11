@@ -55,6 +55,9 @@ FormDB is structured in layers, each with a specific language and responsibility
 │  Form.ControlPlane (Elixir/OTP - optional)                  │
 │  Sessions, supervision, cluster edge                        │
 ├─────────────────────────────────────────────────────────────┤
+│  Form.Normalizer (Factor + Lean 4)                          │
+│  FD discovery, type encoding, proof-carrying normalization  │
+├─────────────────────────────────────────────────────────────┤
 │  Form.Runtime (Factor)                                      │
 │  FQL parse/plan/exec, explain, introspection                │
 ├─────────────────────────────────────────────────────────────┤
@@ -94,6 +97,14 @@ FormDB is structured in layers, each with a specific language and responsibility
 * Planner steps introspection
 * Constraint explanation surfaces
 * Provenance surfaces
+
+==== Form.Normalizer (Factor + Lean 4)
+* Automatic functional dependency discovery (DFD/TANE/FDHits)
+* Type encoding of FDs in FQL-dt
+* Normal form predicates (1NF through BCNF)
+* Proof-carrying schema evolution
+* Narrative explanations for all normalization decisions
+* See link:spec/self-normalizing.adoc[Self-Normalizing Specification]
 
 ==== Form.ControlPlane (Elixir/OTP, optional)
 * Out-of-process core engine via port
@@ -158,11 +169,19 @@ formdb/
 
 See link:formdb.scm[formdb.scm] for structured open questions with acceptance criteria:
 
+=== Core PoC
 * `Q-BLOCK-HEADER-001`: Minimal block header layout
 * `Q-JOURNAL-ENTRY-001`: Minimal journal entry schema
 * `Q-ABI-BLOBS-001`: ABI blob encoding choice
 * `Q-FQL-POC-001`: FQL PoC grammar
 * `Q-CTRL-PLANE-001`: Elixir/OTP introduction timing
+
+=== Self-Normalizing (Form.Normalizer)
+* `Q-NORM-001`: Default FD discovery algorithm (DFD vs TANE vs FDHits)
+* `Q-NORM-002`: Approximate FD handling policy
+* `Q-NORM-003`: Denormalization support scope
+* `Q-NORM-004`: FQL-dt proof integration interface
+* `Q-NORM-005`: Query rewriting for affected queries
 
 == Documentation
 
@@ -170,6 +189,7 @@ See link:formdb.scm[formdb.scm] for structured open questions with acceptance cr
 * link:ROADMAP.adoc[ROADMAP.adoc] - Development roadmap
 * link:PHILOSOPHY.adoc[PHILOSOPHY.adoc] - Design philosophy and principles
 * link:formdb.scm[formdb.scm] - Machine-readable specification
+* link:spec/self-normalizing.adoc[Self-Normalizing Database] - Automatic FD discovery, type-encoded normal forms, proof-carrying schema evolution
 * link:docs/WP05_interactive_documentary.md[WP05] - FormDB for Interactive Documentary/Journalism
 * link:spec/fql-dependent-types.md[FQL Dependent Types] - Compile-time verified query language (see also https://github.com/hyperpolymath/fqldt[fqldt repo])
 

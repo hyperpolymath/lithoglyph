@@ -121,7 +121,19 @@ The database is part of the story, not an opaque substrate.")
           (purpose "dependable sessions/supervision/edge clustering")
           (rules
             "Prefer out-of-process core engine (port) over in-VM native calls"
-            "Control plane must not redefine truth semantics"))))
+            "Control plane must not redefine truth semantics"))
+        (Form.Normalizer
+          (language "Factor + Lean 4 (via FQL-dt)")
+          (purpose "self-normalizing database: FD discovery, type encoding, proof-carrying schema evolution")
+          (must-provide
+            "functional dependency discovery (DFD/TANE/FDHits algorithms)"
+            "type encoding of FDs in FQL-dt"
+            "normal form predicates (1NF through BCNF)"
+            "proposal generation with equivalence proofs"
+            "narrative templates for normalization decisions"
+            "DISCOVER DEPENDENCIES command"
+            "APPLY NORMALIZATION command with rollback")
+          (spec "spec/self-normalizing.adoc"))))
 
     ;; ------------------------------------------------------------
     ;; 4. Cross-layer seam checks (must run at stage freezes)
@@ -271,7 +283,43 @@ The database is part of the story, not an opaque substrate.")
          (acceptance
            "decision recorded with rationale"
            "if yes: port protocol defined; if no: deferral rationale documented")
-         (impacts "control-plane/*" "docs/ARCHITECTURE.adoc")))
+         (impacts "control-plane/*" "docs/ARCHITECTURE.adoc"))
+      ;; Self-Normalizing Database Questions
+      (q (id "Q-NORM-001") (area normalizer) (status open)
+         (text "Which FD discovery algorithm should be the default: DFD, TANE, or FDHits?")
+         (acceptance
+           "benchmark on representative datasets completed"
+           "accuracy/speed tradeoff documented"
+           "default chosen with rationale")
+         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc"))
+      (q (id "Q-NORM-002") (area normalizer) (status open)
+         (text "How should approximate FDs (confidence < 1.0) be handled?")
+         (acceptance
+           "policy for near-FDs defined"
+           "data quality implications documented"
+           "threshold configuration supported")
+         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc"))
+      (q (id "Q-NORM-003") (area normalizer) (status open)
+         (text "Should denormalization be supported with the same rigor as normalization?")
+         (acceptance
+           "if yes: DenormalizationStep type defined with proofs"
+           "performance optimization use cases documented"
+           "reversibility guarantees specified")
+         (impacts "spec/self-normalizing.adoc" "core-factor/Form.Normalizer/*"))
+      (q (id "Q-NORM-004") (area normalizer) (status open)
+         (text "How to integrate Form.Normalizer with FQL-dt's existing proof system?")
+         (acceptance
+           "interface between Lean 4 proofs and Form.Normalizer defined"
+           "proof verification flow documented"
+           "bidirectional FFI via Form.Bridge specified")
+         (impacts "core-zig/Form.Bridge/*" "fqldt/*" "spec/self-normalizing.adoc"))
+      (q (id "Q-NORM-005") (area normalizer) (status open)
+         (text "What happens when normalization would break existing queries?")
+         (acceptance
+           "query rewriting strategy defined"
+           "migration period policy documented"
+           "backward compatibility guarantees specified")
+         (impacts "core-factor/Form.Runtime/*" "spec/self-normalizing.adoc")))
 
     ;; ------------------------------------------------------------
     ;; 11. Decisions log (append-only)

@@ -118,6 +118,39 @@ Development phases from concept to production.
 * Golden test vectors complete
 * Stories demonstrate target use cases
 
+== Phase 6: Form.Normalizer (Self-Normalizing)
+
+*Goal*: Automatic functional dependency discovery, type-encoded normal forms, and proof-carrying schema evolution.
+
+=== Deliverables
+
+* [ ] FD discovery algorithm (DFD/TANE/FDHits)
+* [ ] `DISCOVER DEPENDENCIES` FQL command
+* [ ] Type encoding in Lean 4 (FQL-dt integration)
+* [ ] Normal form predicates (1NF through BCNF)
+* [ ] Proposal generation with equivalence proofs
+* [ ] Narrative templates for all normalization decisions
+* [ ] `APPLY NORMALIZATION` command with rollback
+
+=== Acceptance Criteria
+
+* Discover FDs from sample data with configurable confidence threshold
+* Encode discovered FDs as dependent types in FQL-dt
+* Prove schema satisfies target normal form (1NF-BCNF)
+* Generate human/agent-readable proposals
+* Apply transformations with journaled reversibility
+* All normalization decisions produce narrative artefacts
+
+=== Open Questions
+
+* Q-NORM-001: Default FD discovery algorithm
+* Q-NORM-002: Approximate FD handling policy
+* Q-NORM-003: Denormalization support scope
+* Q-NORM-004: FQL-dt proof integration interface
+* Q-NORM-005: Query rewriting for affected queries
+
+See link:spec/self-normalizing.adoc[Self-Normalizing Specification] for full details.
+
 == Future Phases (Post-PoC)
 
 === Form.ControlPlane
