@@ -123,7 +123,9 @@ Renderability:: Blocks and journal entries MUST be renderable deterministically 
 Provenance:: All query results can optionally include provenance pointers to journal and blocks.
 Constraints as Ethics:: Constraints are explainable: rejections must return reasons + pointers + narrative rationale.
 
-== FQL (Form Query Language)
+== FQL (FormDB Query Language)
+
+FQL is the query language for FormDB—not a "forms" query language, but the native query interface for this narrative-first database.
 
 PoC subset capabilities:
 
