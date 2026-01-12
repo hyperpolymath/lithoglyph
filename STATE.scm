@@ -36,13 +36,13 @@
       "block storage format spec (spec/blocks.adoc)"
       "journal format spec (spec/journal.adoc)"
       "blob encoding spec (spec/encoding.adoc)"
-      "FQL grammar + 10 examples (spec/fql.adoc)"
+      "FDQL grammar + 10 examples (spec/fql.adoc)"
       "Form.Blocks implementation (core-forth/src/blocks.fs)"
       "Journal implementation (core-forth/src/journal.fs)"
       "Form.Model implementation (core-forth/src/model.fs)"
       "Form.Bridge Zig ABI (core-zig/src/bridge.zig)"
       "CBOR encoding (core-zig/src/cbor.zig)"
-      "FQL parser (core-factor/fql/fql.factor)"
+      "FDQL parser (core-factor/fdql/fdql.factor)"
       "FD discovery scaffolding (normalizer/factor/fd-discovery.factor)"
       "Lean 4 FD types (normalizer/lean/FunDep.lean)"))
 
@@ -53,7 +53,7 @@
         (item "Define block header format" (status "complete") (decision "D-BLOCK-HEADER-001"))
         (item "Define journal entry schema" (status "complete") (decision "D-JOURNAL-ENTRY-001"))
         (item "Choose ABI blob encoding" (status "complete") (decision "D-ABI-BLOBS-001"))
-        (item "Define FQL PoC grammar" (status "complete") (decision "D-FQL-POC-001"))))
+        (item "Define FDQL PoC grammar" (status "complete") (decision "D-FQL-POC-001"))))
     (milestone (id "M2") (name "Form.Blocks PoC")
       (status "complete")
       (items
@@ -77,7 +77,7 @@
     (milestone (id "M5") (name "Form.Runtime PoC")
       (status "complete")
       (items
-        (item "FQL parser" (status "complete"))
+        (item "FDQL parser" (status "complete"))
         (item "Query planner" (status "partial"))
         (item "EXPLAIN functionality" (status "complete"))
         (item "Provenance surfaces" (status "partial"))))
@@ -87,7 +87,7 @@
         (item "FD discovery algorithm selection" (status "open") (question "Q-NORM-001"))
         (item "Approximate FD policy" (status "open") (question "Q-NORM-002"))
         (item "Denormalization support" (status "open") (question "Q-NORM-003"))
-        (item "FQL-dt integration" (status "open") (question "Q-NORM-004"))
+        (item "FDQL-dt integration" (status "open") (question "Q-NORM-004"))
         (item "Query rewriting strategy" (status "open") (question "Q-NORM-005"))
         (item "Implement DFD algorithm" (status "scaffolded"))
         (item "DISCOVER DEPENDENCIES command" (status "scaffolded"))
