@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Lean 4 project configuration for Form.Normalizer
+
+name = "FormNormalizer"
+version = "0.0.4"
+defaultTargets = ["FormNormalizer"]
+
+[[lean_lib]]
+name = "FormNormalizer"
+roots = ["FunDep", "Bridge", "Proofs"]
+
+# Link to the Zig bridge library for FFI
+# The bridge is built as libformdb_bridge.so/dylib/dll
+# [lean_exe.FormNormalizerCLI]
+# root = "Main"
+# moreLinkArgs = ["-L../../../core-zig/zig-out/lib", "-lformdb_bridge"]

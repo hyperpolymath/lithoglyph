@@ -282,48 +282,54 @@ The database is part of the story, not an opaque substrate.")
            "EXPLAIN/INTROSPECT included")
          (impacts "spec/fql.adoc" "core-factor/Form.Runtime/*")
          (resolved-by "D-FQL-POC-001"))
-      (q (id "Q-CTRL-PLANE-001") (area control-plane) (status open)
+      (q (id "Q-CTRL-PLANE-001") (area control-plane) (status resolved)
          (text "Is Elixir/OTP introduced at PoC time (gateway only), or deferred until after the core is stable?")
          (acceptance
            "decision recorded with rationale"
            "if yes: port protocol defined; if no: deferral rationale documented")
-         (impacts "control-plane/*" "docs/ARCHITECTURE.adoc"))
+         (impacts "control-plane/*" "docs/ARCHITECTURE.adoc")
+         (resolved-by "D-CTRL-PLANE-001"))
       ;; Self-Normalizing Database Questions
-      (q (id "Q-NORM-001") (area normalizer) (status open)
+      (q (id "Q-NORM-001") (area normalizer) (status resolved)
          (text "Which FD discovery algorithm should be the default: DFD, TANE, or FDHits?")
          (acceptance
            "benchmark on representative datasets completed"
            "accuracy/speed tradeoff documented"
            "default chosen with rationale")
-         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc"))
-      (q (id "Q-NORM-002") (area normalizer) (status open)
+         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc")
+         (resolved-by "D-NORM-001"))
+      (q (id "Q-NORM-002") (area normalizer) (status resolved)
          (text "How should approximate FDs (confidence < 1.0) be handled?")
          (acceptance
            "policy for near-FDs defined"
            "data quality implications documented"
            "threshold configuration supported")
-         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc"))
-      (q (id "Q-NORM-003") (area normalizer) (status open)
+         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc")
+         (resolved-by "D-NORM-002"))
+      (q (id "Q-NORM-003") (area normalizer) (status resolved)
          (text "Should denormalization be supported with the same rigor as normalization?")
          (acceptance
            "if yes: DenormalizationStep type defined with proofs"
            "performance optimization use cases documented"
            "reversibility guarantees specified")
-         (impacts "spec/self-normalizing.adoc" "core-factor/Form.Normalizer/*"))
-      (q (id "Q-NORM-004") (area normalizer) (status open)
+         (impacts "spec/self-normalizing.adoc" "core-factor/Form.Normalizer/*")
+         (resolved-by "D-NORM-003"))
+      (q (id "Q-NORM-004") (area normalizer) (status resolved)
          (text "How to integrate Form.Normalizer with FQL-dt's existing proof system?")
          (acceptance
            "interface between Lean 4 proofs and Form.Normalizer defined"
            "proof verification flow documented"
            "bidirectional FFI via Form.Bridge specified")
-         (impacts "core-zig/Form.Bridge/*" "fqldt/*" "spec/self-normalizing.adoc"))
-      (q (id "Q-NORM-005") (area normalizer) (status open)
+         (impacts "core-zig/Form.Bridge/*" "fqldt/*" "spec/self-normalizing.adoc")
+         (resolved-by "D-NORM-004"))
+      (q (id "Q-NORM-005") (area normalizer) (status resolved)
          (text "What happens when normalization would break existing queries?")
          (acceptance
            "query rewriting strategy defined"
            "migration period policy documented"
            "backward compatibility guarantees specified")
-         (impacts "core-factor/Form.Runtime/*" "spec/self-normalizing.adoc")))
+         (impacts "core-factor/Form.Runtime/*" "spec/self-normalizing.adoc")
+         (resolved-by "D-NORM-005")))
 
     ;; ------------------------------------------------------------
     ;; 11. Decisions log (append-only)
@@ -350,6 +356,36 @@ The database is part of the story, not an opaque substrate.")
          (decision "FQL PoC grammar with 10 canonical examples")
          (rationale "Covers INSERT/SELECT/UPDATE/DELETE for documents and edges. CREATE/DROP for collections. TRAVERSE for edge traversal. EXPLAIN shows plan + rationale. INTROSPECT for schema/constraints/journal. WITH PROVENANCE for audit output. All errors include rationale + suggestions. Full grammar and 10 examples in spec/fql.adoc.")
          (impacts "spec/fql.adoc" "core-factor/Form.Runtime/*"))
+
+      (d (id "D-CTRL-PLANE-001") (date "2026-01-12") (closes "Q-CTRL-PLANE-001")
+         (decision "Defer Elixir/OTP control plane until after core is stable")
+         (rationale "PoC goal is proving narrative-first, reversible database concept. Control plane doesn't own truth semantics (per architecture). Form.Bridge provides sufficient ABI for external orchestration. Adding Elixir/OTP adds complexity without proving core thesis. Can integrate after Form.Runtime is complete and tested. Port protocol will be defined when needed.")
+         (impacts "docs/ARCHITECTURE.adoc" "ROADMAP.adoc"))
+
+      (d (id "D-NORM-001") (date "2026-01-12") (closes "Q-NORM-001")
+         (decision "DFD (Depth-First Discovery) as default FD discovery algorithm")
+         (rationale "DFD is sample-based, making it practical for large datasets without loading entire relations into memory. More memory-efficient than TANE (no full lattice needed). Already scaffolded in fd-discovery.factor. FDHits is newer (2024) but less battle-tested. For FormDB's target use cases (journalism, governance, archives), accuracy matters more than microsecond-level speed. Can add TANE (--algorithm tane) and FDHits (--algorithm fdhits) as alternatives later. DFD's depth-first approach finds minimal FDs efficiently.")
+         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc"))
+
+      (d (id "D-NORM-002") (date "2026-01-12") (closes "Q-NORM-002")
+         (decision "Three-tier policy for approximate FDs based on confidence thresholds")
+         (rationale "Policy: (1) Exact FDs (conf >= 0.99): treat as true FDs, can trigger normalization proposals. (2) Strong approximate FDs (0.95 <= conf < 0.99): report as 'probable FDs', require human confirmation before normalization. (3) Weak approximate FDs (conf < 0.95): report as 'data quality warnings', never trigger normalization. Approximate FDs often indicate data quality issues (typos, legacy data, duplicate records). Surfacing them as warnings supports FormDB's audit mission. Requiring confirmation prevents false positives from driving schema changes. Threshold configurable via confidence-threshold setting (default 0.95).")
+         (impacts "core-factor/Form.Normalizer/*" "spec/self-normalizing.adoc"))
+
+      (d (id "D-NORM-003") (date "2026-01-12") (closes "Q-NORM-003")
+         (decision "Yes, support denormalization with same rigor as normalization")
+         (rationale "Define DenormalizationStep type parallel to NormalizationStep in Lean 4. Require performance justification narrative (explaining read optimization goals). Store equivalence proof (same as normalization - join of denormalized is lossless). Journal with explicit 'intentional-denormalization' classification and CBOR tag. Real workloads sometimes need denormalization for read performance. FormDB's 'reversibility' invariant means denormalization must be undoable. 'Constraints as ethics' means denormalization must explain trade-offs. Without rigorous denormalization support, users would work around the system.")
+         (impacts "spec/self-normalizing.adoc" "core-factor/Form.Normalizer/*" "normalizer/lean/FunDep.lean"))
+
+      (d (id "D-NORM-004") (date "2026-01-12") (closes "Q-NORM-004")
+         (decision "Form.Bridge exports proof verification FFI with external Lean 4 verifiers")
+         (rationale "Interface: (1) Form.Bridge exports fdb_proof_verify(proof_blob, len) -> (valid, err_blob) and fdb_proof_register_verifier(type, callback) -> status. (2) Lean 4 proofs compile to standalone C-ABI-compatible verifiers via lake build. (3) Proof references in journal entries use CBOR tag 39006. (4) Flow: Form.Normalizer (Factor) -> Form.Bridge (Zig) -> Lean 4 verifier -> result. This keeps proofs external to truth core (maintains 'truth core doesn't own semantics'). Form.Bridge already provides ABI boundary; proof verification is another FFI call. Lean 4's native compilation to C makes this practical. FQL-dt proofs become verifiable artefacts, not just documentation.")
+         (impacts "core-zig/Form.Bridge/*" "normalizer/lean/*" "spec/self-normalizing.adoc"))
+
+      (d (id "D-NORM-005") (date "2026-01-12") (closes "Q-NORM-005")
+         (decision "Three-phase migration with query rewriting: Announce -> Shadow -> Commit")
+         (rationale "Phase 1 Announce (configurable, default 24h): Normalization proposal journaled; affected queries identified via Form.Runtime query log analysis; applications warned via INTROSPECT warnings. Phase 2 Shadow (configurable, default 7 days): Both old and new schemas exist; queries auto-rewritten to equivalent joins on new schema; compatibility views created automatically; performance metrics collected to validate no regression. Phase 3 Commit: Old schema removed; rewrite rules made permanent; compatibility views removed. Query rewriting rules: SELECT FROM old_table -> SELECT FROM (JOIN new_tables ON split_key). FormDB's audience (journalism, governance, archives) needs high availability. Breaking changes must be phased, not abrupt. Shadow phase allows testing before commit. Provenance tracking identifies all affected queries.")
+         (impacts "core-factor/Form.Runtime/*" "spec/self-normalizing.adoc"))
       )
 
     ;; ------------------------------------------------------------

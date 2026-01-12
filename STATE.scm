@@ -6,7 +6,7 @@
     (version "0.0.3")
     (schema-version "1.0")
     (created "2026-01-03")
-    (updated "2026-01-12")
+    (updated "2026-01-13")
     (project "formdb")
     (repo "github.com/hyperpolymath/formdb"))
 
@@ -21,14 +21,14 @@
 
   (current-position
     (phase "poc-implementation")
-    (overall-completion 65)
+    (overall-completion 70)
     (components
       (Form.Blocks (status "implemented") (completion 90))
       (Form.Model (status "implemented") (completion 85))
       (Form.Bridge (status "implemented") (completion 80))
       (Form.Runtime (status "implemented") (completion 70))
-      (Form.Normalizer (status "scaffolded") (completion 40))
-      (Form.ControlPlane (status "deferred") (completion 0)))
+      (Form.Normalizer (status "design-complete") (completion 55))
+      (Form.ControlPlane (status "deferred-by-decision") (completion 0)))
     (working-features
       "specification document (formdb.scm)"
       "repository structure"
@@ -82,37 +82,41 @@
         (item "EXPLAIN functionality" (status "complete"))
         (item "Provenance surfaces" (status "partial"))))
     (milestone (id "M6") (name "Form.Normalizer")
-      (status "scaffolded")
+      (status "design-complete")
       (items
-        (item "FD discovery algorithm selection" (status "open") (question "Q-NORM-001"))
-        (item "Approximate FD policy" (status "open") (question "Q-NORM-002"))
-        (item "Denormalization support" (status "open") (question "Q-NORM-003"))
-        (item "FDQL-dt integration" (status "open") (question "Q-NORM-004"))
-        (item "Query rewriting strategy" (status "open") (question "Q-NORM-005"))
+        (item "FD discovery algorithm selection" (status "complete") (decision "D-NORM-001"))
+        (item "Approximate FD policy" (status "complete") (decision "D-NORM-002"))
+        (item "Denormalization support" (status "complete") (decision "D-NORM-003"))
+        (item "FDQL-dt integration" (status "complete") (decision "D-NORM-004"))
+        (item "Query rewriting strategy" (status "complete") (decision "D-NORM-005"))
         (item "Implement DFD algorithm" (status "scaffolded"))
         (item "DISCOVER DEPENDENCIES command" (status "scaffolded"))
         (item "Type encoding in Lean 4" (status "complete"))
         (item "Normal form predicates" (status "complete"))
         (item "Proposal generation" (status "scaffolded"))
-        (item "Narrative templates" (status "pending")))))
+        (item "Narrative templates" (status "pending"))
+        (item "DenormalizationStep type in Lean 4" (status "pending"))
+        (item "Proof verification FFI in Form.Bridge" (status "pending"))
+        (item "Three-phase migration implementation" (status "pending")))))
 
   (blockers-and-issues
     (critical)
     (high)
-    (medium
-      (issue "Need Forth development environment setup"))
+    (medium)
     (low))
 
   (critical-next-actions
     (immediate
-      "Set up Forth development environment (gforth)"
-      "Create test-vectors/blocks/ golden files")
+      "Complete Form.Runtime query planner"
+      "Implement Form.Runtime executor")
     (this-week
-      "Implement Form.Blocks fixed-size block primitives"
-      "Implement basic journal append")
+      "Implement DFD algorithm in fd-discovery.factor"
+      "Add proof verification FFI to Form.Bridge"
+      "Add DenormalizationStep type to FunDep.lean")
     (this-month
-      "Complete Form.Blocks PoC (M2)"
-      "Begin Form.Model implementation"))
+      "Complete Form.Runtime PoC (M5 full completion)"
+      "Implement DISCOVER DEPENDENCIES command"
+      "Implement three-phase migration framework"))
 
   (session-history
     (snapshot (date "2026-01-03") (session "initial-setup")
@@ -161,4 +165,16 @@
         "Fixed try-consume branch effects to match properly"
         "Fixed argument ordering in :: functions (tokens before keywords)"
         "All 10 FDQL statement types now parse correctly"
-        "SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, EXPLAIN, INTROSPECT all working"))))
+        "SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, EXPLAIN, INTROSPECT all working"))
+    (snapshot (date "2026-01-13") (session "resolve-design-blockers")
+      (accomplishments
+        "Resolved Q-CTRL-PLANE-001: Defer Elixir/OTP until core stable (D-CTRL-PLANE-001)"
+        "Resolved Q-NORM-001: DFD as default FD discovery algorithm (D-NORM-001)"
+        "Resolved Q-NORM-002: Three-tier approximate FD policy (D-NORM-002)"
+        "Resolved Q-NORM-003: Support denormalization with same rigor (D-NORM-003)"
+        "Resolved Q-NORM-004: Form.Bridge exports proof verification FFI (D-NORM-004)"
+        "Resolved Q-NORM-005: Three-phase migration (Announce/Shadow/Commit) (D-NORM-005)"
+        "All 6 open design questions now have documented decisions"
+        "Form.Normalizer advanced from 'scaffolded' to 'design-complete' status"
+        "Overall project completion: 65% -> 70%"
+        "No remaining design blockers - ready for implementation"))))

@@ -199,6 +199,128 @@ def FourthNormalForm (s : Schema) (fds : List (FunDep s)) (mvds : List (MVD s)) 
     mvd.dependent.all (· ∈ mvd.determinant) ∨
     isSuperkey s mvd.determinant
 
+/-! # Denormalization Support (per D-NORM-003) -/
+
+/-- A denormalization step with proof of losslessness -/
+structure DenormalizationStep where
+  /-- Source schemas to merge -/
+  sourceSchemas : List Schema
+  /-- Target merged schema -/
+  targetSchema : Schema
+  /-- Join attributes used to merge -/
+  joinAttributes : List Attribute
+  /-- Performance rationale for denormalization -/
+  performanceRationale : String
+  /-- Narrative explanation -/
+  narrative : String
+
+/-- Proof that a denormalization is lossless (can be split back) -/
+structure LosslessDenormalization (d : DenormalizationStep) : Prop where
+  /-- The split of the merged relation equals the original relations -/
+  lossless : True  -- Would contain actual proof
+  /-- Join attributes form a key in at least one source schema -/
+  keyPreserved : True  -- Would contain actual proof
+
+/-- Proof that denormalization preserves query equivalence -/
+structure QueryEquivalent (d : DenormalizationStep) : Prop where
+  /-- Any query on sources can be rewritten to equivalent query on target -/
+  forwardEquivalent : True
+  /-- Any query on target can be rewritten to equivalent query on sources -/
+  backwardEquivalent : True
+
+/-- A denormalization proposal with full proof and narrative -/
+structure DenormalizationProposal where
+  step : DenormalizationStep
+  losslessProof : LosslessDenormalization step
+  queryEquivalence : QueryEquivalent step
+
+/-- Create a denormalization step for read optimization -/
+def createDenormalization
+    (sources : List Schema)
+    (joinAttrs : List Attribute)
+    (rationale : String) : DenormalizationStep :=
+  let merged := {
+    attributes := sources.bind (·.attributes) |>.eraseDups
+    candidateKeys := []  -- Would compute from sources
+  }
+  {
+    sourceSchemas := sources
+    targetSchema := merged
+    joinAttributes := joinAttrs
+    performanceRationale := rationale
+    narrative := s!"INTENTIONAL DENORMALIZATION\n" ++
+                 s!"Reason: {rationale}\n" ++
+                 s!"Merging {sources.length} schemas on {joinAttrs}\n" ++
+                 s!"This trades storage efficiency for read performance.\n" ++
+                 s!"Fully reversible via SPLIT on original keys."
+  }
+
+/-! # Three-Phase Migration (per D-NORM-005) -/
+
+/-- Migration phase enumeration -/
+inductive MigrationPhase where
+  | announce  -- Proposal journaled, queries identified
+  | shadow    -- Both schemas exist, queries rewritten
+  | commit    -- Old schema removed, rewrite permanent
+  deriving Repr, BEq
+
+/-- Configuration for migration timing -/
+structure MigrationConfig where
+  /-- Duration of announce phase in hours (default 24) -/
+  announceDuration : Nat := 24
+  /-- Duration of shadow phase in days (default 7) -/
+  shadowDuration : Nat := 7
+  /-- Whether to auto-commit after shadow phase -/
+  autoCommit : Bool := false
+
+/-- A migration state tracking progress through phases -/
+structure MigrationState where
+  /-- Current phase -/
+  phase : MigrationPhase
+  /-- The normalization/denormalization step being applied -/
+  transformation : NormalizationStep
+  /-- Affected queries identified during announce -/
+  affectedQueries : List String
+  /-- Rewrite rules generated for shadow phase -/
+  rewriteRules : List (String × String)  -- (original, rewritten)
+  /-- Compatibility views created -/
+  compatViews : List String
+  /-- Journal entry for this migration -/
+  journalEntry : Nat
+  /-- Configuration -/
+  config : MigrationConfig
+
+/-- Start a migration in announce phase -/
+def startMigration
+    (transform : NormalizationStep)
+    (affectedQueries : List String)
+    (journalEntry : Nat)
+    (config : MigrationConfig := {}) : MigrationState :=
+  {
+    phase := .announce
+    transformation := transform
+    affectedQueries := affectedQueries
+    rewriteRules := []
+    compatViews := []
+    journalEntry := journalEntry
+    config := config
+  }
+
+/-- Advance migration to shadow phase -/
+def advanceToShadow (state : MigrationState) (rules : List (String × String)) (views : List String) : MigrationState :=
+  { state with
+    phase := .shadow
+    rewriteRules := rules
+    compatViews := views
+  }
+
+/-- Advance migration to commit phase (irreversible point) -/
+def advanceToCommit (state : MigrationState) : MigrationState :=
+  { state with
+    phase := .commit
+    compatViews := []  -- Views removed at commit
+  }
+
 /-! # Narrative Generation -/
 
 /-- Generate human-readable narrative for an FD -/
@@ -213,5 +335,26 @@ def NormalizationStep.toNarrative (step : NormalizationStep) : String :=
   let source := step.decomposition.source.attributes.toString
   let targets := step.decomposition.targets.map (·.attributes.toString)
   s!"Decomposing {source} into {targets}\nReason: {step.narrative}"
+
+/-- Generate narrative for a denormalization proposal -/
+def DenormalizationStep.toNarrative (step : DenormalizationStep) : String :=
+  let sources := step.sourceSchemas.map (·.attributes.toString)
+  let target := step.targetSchema.attributes.toString
+  s!"DENORMALIZATION: Merging {sources} into {target}\n" ++
+  s!"Join attributes: {step.joinAttributes}\n" ++
+  s!"Rationale: {step.performanceRationale}\n" ++
+  step.narrative
+
+/-- Generate narrative for migration state -/
+def MigrationState.toNarrative (state : MigrationState) : String :=
+  let phaseStr := match state.phase with
+    | .announce => "ANNOUNCE (warning period)"
+    | .shadow => "SHADOW (compatibility layer active)"
+    | .commit => "COMMIT (migration complete)"
+  s!"MIGRATION STATUS: {phaseStr}\n" ++
+  s!"Journal entry: #{state.journalEntry}\n" ++
+  s!"Affected queries: {state.affectedQueries.length}\n" ++
+  s!"Rewrite rules: {state.rewriteRules.length}\n" ++
+  s!"Compatibility views: {state.compatViews.length}"
 
 end FormDB.Normalizer

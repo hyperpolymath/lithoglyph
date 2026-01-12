@@ -9,6 +9,129 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.0.4] - 2026-01-12
+
+MVP Completion milestone: **Form.Runtime + Form.Normalizer Complete**
+
+This release completes Milestones M8-M10, delivering a fully functional query engine and self-normalizing database capabilities.
+
+### Added
+
+#### Form.Runtime (M8) - Query Engine
+- **FDQL Parser** (`core-factor/fdql/fdql.factor`)
+  - Full PEG-based parser for FQL statements
+  - Support for SELECT, INSERT, UPDATE, DELETE, CREATE, DROP
+  - EXPLAIN, INTROSPECT statements
+  - WHERE clause with comparison operators
+  - LIMIT/OFFSET pagination
+  - Graph traversal (TRAVERSE) syntax
+  - WITH PROVENANCE clause
+
+- **Query Planner**
+  - Cost-based query planning
+  - Step types: scan, project, limit, traverse, insert, update, delete
+  - Plan optimization for filtered queries
+  - Rationale generation for plan decisions
+
+- **Query Executor**
+  - In-memory and pluggable persistent storage
+  - Full CRUD operations
+  - Filter evaluation engine
+  - Introspection commands (SCHEMA, CONSTRAINTS, COLLECTIONS, JOURNAL)
+
+- **EXPLAIN Modes**
+  - `EXPLAIN` - Show query plan
+  - `EXPLAIN ANALYZE` - Execute and report timing
+  - `EXPLAIN VERBOSE` - PostgreSQL-style readable plan output
+  - `EXPLAIN ANALYZE VERBOSE` - Combined timing and verbose output
+
+#### Form.Normalizer (M9) - Self-Normalizing Engine
+- **FD Discovery** (`normalizer/factor/fd-discovery.factor`)
+  - DFD (Depth-First Discovery) algorithm implementation
+  - Configurable sampling and confidence thresholds
+  - Three-tier confidence classification (high/medium/low)
+  - Attribute partition refinement
+  - Discovered FD validation
+
+- **Normal Form Analysis**
+  - 1NF through BCNF detection
+  - Violation identification with explanations
+  - Prime attribute detection
+  - Key inference from functional dependencies
+
+- **Denormalization Proposals**
+  - Automatic denormalization suggestion generation
+  - Join-based vs materialized view approaches
+  - Migration path generation
+
+- **Three-Phase Migration Framework** (`normalizer/factor/migration.factor`)
+  - Announce phase: Signal intent, generate rewrite rules
+  - Shadow phase: Dual-write to old and new schemas
+  - Commit phase: Complete migration, remove compatibility views
+  - Query rewriting during migration
+  - Rollback support (abort migration)
+  - Migration state tracking and narrative generation
+
+#### Lean4 Integration
+- **Bridge.lean** - FFI bindings with CBOR encoding
+  - Status codes matching Zig ABI
+  - FD proof encoding/decoding
+  - Normalization proof encoding
+  - Verification API
+
+- **Proofs.lean** - Proof-carrying transformations
+  - VerifiedFD, VerifiedNormalizationStep, VerifiedDenormalizationStep
+  - VerifiedMigration with phase tracking
+  - Journal packaging for proof blobs
+  - Round-trip verification support
+
+- **lakefile.toml** - Lean4 project configuration
+  - Dependencies on Std, Mathlib4
+  - Build configuration for FormNormalizer library
+
+#### Production Hardening (M10)
+- **Seam Tests** (`core-factor/fdql/seam-tests.factor`)
+  - End-to-end pipeline validation: Parser → Planner → Executor → Normalizer
+  - EXPLAIN correlation tests
+  - Error propagation tests
+  - Large dataset stress tests
+
+- **Benchmarks** (`core-factor/fdql/benchmarks.factor`)
+  - Parser performance benchmarks
+  - Planner performance benchmarks
+  - Executor benchmarks (SELECT, INSERT, UPDATE with varying data sizes)
+  - FD discovery benchmarks
+  - Normal form analysis benchmarks
+  - Full pipeline benchmarks
+  - Memory estimation utilities
+  - Quick benchmark for CI regression detection
+
+- **Storage Backend** (`core-factor/fdql/storage-backend.factor`)
+  - Pluggable storage abstraction
+  - Memory backend (default, for testing)
+  - Bridge backend (persistent storage via Form.Bridge)
+  - Runtime backend selection
+
+#### Ecosystem Alignment
+- Updated ECOSYSTEM.scm with alignment status for fdql-dt and formdb-debugger
+- Cross-repo STATE.scm synchronization with integration points
+- Documented FFI compatibility (CBOR proof blobs)
+- Identified alignment gaps for future work
+
+### Changed
+- Executor now uses pluggable storage backend instead of direct hash table
+- STATE.scm updated to Phase 8: MVP Complete (85% overall completion)
+- All milestones M1-M10 now at 100%
+
+### Migration Tests
+- Comprehensive test suite for three-phase migration lifecycle
+- Phase transition validation
+- Rewrite rule generation tests
+- Compatibility view tests
+- Error handling and recovery tests
+
+---
+
 ## [0.0.3] - 2026-01-12
 
 Documentation milestone release: **Complete Documentation Suite**

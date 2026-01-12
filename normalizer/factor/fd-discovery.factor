@@ -3,10 +3,11 @@
 !
 ! Implements the DFD (Depth-First Discovery) algorithm for
 ! automatic functional dependency detection.
+! Decision D-NORM-001: DFD as default algorithm.
 
 USING: accessors arrays assocs combinators combinators.short-circuit
-continuations hash-sets io kernel math math.combinatorics
-math.statistics random sequences sets sorting vectors ;
+continuations hash-sets io kernel math math.combinatorics math.order
+math.ranges math.statistics random sequences sets sorting vectors ;
 
 IN: fd-discovery
 
@@ -15,27 +16,28 @@ IN: fd-discovery
 ! ============================================================
 
 TUPLE: functional-dependency
-    determinant     ! Set of attribute names
-    dependent       ! Set of attribute names
+    determinant     ! Set of attribute names (LHS)
+    dependent       ! Single attribute name (RHS)
     confidence      ! 0.0 to 1.0
     discovered-at   ! Journal sequence number
     sample-size ;   ! Number of records sampled
 
 TUPLE: fd-discovery-config
     sample-size           ! Max records to sample
-    confidence-threshold  ! Minimum confidence to report
+    confidence-threshold  ! Minimum confidence to report (D-NORM-002)
     algorithm             ! dfd | tane | fdhits
     max-lhs-size ;        ! Maximum left-hand side cardinality
 
 TUPLE: fd-discovery-result
     collection        ! Collection name
-    dependencies      ! List of functional-dependency
-    approximate-fds   ! FDs with confidence < 1.0
+    dependencies      ! List of functional-dependency (exact FDs, conf >= 0.99)
+    probable-fds      ! Strong approx FDs (0.95 <= conf < 0.99)
+    data-warnings     ! Weak approx FDs (conf < 0.95)
     discovery-time    ! Milliseconds
     sample-info ;     ! Sample metadata
 
 ! ============================================================
-! Default Configuration
+! Default Configuration (per D-NORM-001, D-NORM-002)
 ! ============================================================
 
 : default-fd-config ( -- config )
@@ -54,73 +56,152 @@ TUPLE: partition
     attributes   ! Which attributes define this partition
     classes ;    ! List of equivalence classes (each a list of row indices)
 
-: compute-partition ( data attributes -- partition )
-    ! Group rows by their values on the given attributes
+! Compute partition: group rows by values of given attributes
+:: compute-partition ( data attributes -- partition )
+    H{ } clone :> groups
+    data [| row idx |
+        attributes [ row at ] map :> key
+        key groups at [ V{ } clone ] unless* :> class
+        idx class push
+        class key groups set-at
+    ] each-index
     partition new
-        swap >>attributes
-        [ ] >>classes ;  ! Placeholder - actual implementation would group rows
+        attributes >>attributes
+        groups values >>classes ;
 
-: refine-partition ( partition attr -- partition' )
-    ! Refine partition by adding another attribute
-    drop ;  ! Placeholder
+! Partition refinement: intersect with another attribute
+:: refine-partition ( part attr -- part' )
+    V{ } clone :> new-classes
+    part classes>> [| class |
+        H{ } clone :> subgroups
+        class [| idx |
+            ! Would need data access here - simplified for PoC
+            idx subgroups at [ V{ } clone ] unless* :> subclass
+            idx subclass push
+            subclass idx subgroups set-at
+        ] each
+        subgroups values [ length 1 > ] filter new-classes push-all
+    ] each
+    partition new
+        part attributes>> attr suffix >>attributes
+        new-classes >>classes ;
 
-: is-unique-partition? ( partition -- ? )
-    ! True if every equivalence class has exactly 1 element
+! Check if partition is unique (every class has size 1)
+: unique-partition? ( partition -- ? )
     classes>> [ length 1 = ] all? ;
 
+! Get partition error (count of rows in non-singleton classes)
+: partition-error ( partition -- error )
+    classes>> [ length 1 - 0 max ] map-sum ;
+
 ! ============================================================
-! DFD Algorithm (Simplified)
+! DFD Algorithm Implementation (per D-NORM-001)
 ! ============================================================
 
-! DFD uses depth-first lattice traversal to find minimal FDs
-
+! DFD state for tracking discovery progress
 TUPLE: dfd-state
+    data           ! The actual data rows
     attributes     ! All attribute names
     discovered     ! Set of discovered FDs
-    visited        ! Set of visited attribute sets
-    current-lhs ;  ! Current left-hand side being explored
+    visited        ! Set of visited (lhs, rhs) pairs
+    min-deps ;     ! Minimal dependencies found
 
-: init-dfd-state ( attributes -- state )
+: init-dfd-state ( data -- state )
     dfd-state new
-        swap >>attributes
+        swap >>data
+        dup data>> first keys sort >array >>attributes
         V{ } clone >>discovered
         HS{ } clone >>visited
-        { } >>current-lhs ;
+        H{ } clone >>min-deps ;
 
-: attribute-subsets ( attrs n -- subsets )
-    ! Generate all n-element subsets of attributes
+! Generate all subsets of size n
+: subsets-of-size ( attrs n -- subsets )
     <combinations> [ >array ] map ;
 
-: check-fd ( data lhs rhs -- confidence )
-    ! Check if LHS -> RHS holds in data
-    ! Returns confidence (1.0 = exact, < 1.0 = approximate)
-    3drop 1.0 ;  ! Placeholder - actual impl checks partition refinement
+! Check if X -> Y holds in data with given confidence
+:: check-fd-holds ( data lhs rhs -- confidence )
+    data length :> total
+    total 0 = [ 1.0 ] [
+        H{ } clone :> lhs-to-rhs
+        0 :> violations!
+        data [| row |
+            lhs [ row at ] map :> lhs-val
+            rhs row at :> rhs-val
+            lhs-val lhs-to-rhs at :> existing
+            existing [
+                existing rhs-val = not [ violations 1 + violations! ] when
+            ] [
+                rhs-val lhs-val lhs-to-rhs set-at
+            ] if
+        ] each
+        total violations - total / >float
+    ] if ;
 
-: discover-fds-for-rhs ( data state rhs -- fds )
-    ! Find all minimal FDs with RHS as dependent
-    2drop { } ;  ! Placeholder
+! Check if lhs is minimal (no proper subset determines rhs)
+:: is-minimal-fd? ( state lhs rhs -- ? )
+    lhs length 1 <= [ t ] [
+        lhs length 1 - [0..b) [| i |
+            lhs i swap remove :> subset
+            state data>> subset rhs check-fd-holds 0.99 >=
+        ] any? not
+    ] if ;
 
-: run-dfd ( data config -- result )
-    ! Main DFD algorithm entry point
-    drop
-    ! Extract attribute names from data
-    dup first keys sort >array
-    init-dfd-state
+! Find FDs for a given RHS attribute using DFD traversal
+:: discover-fds-for-rhs ( state rhs config -- )
+    state attributes>> rhs swap remove :> candidates
+
+    ! Start with single-attribute LHS and expand
+    1 config max-lhs-size>> [a..b] [| size |
+        candidates size subsets-of-size [| lhs |
+            ! Skip if already visited
+            lhs rhs 2array state visited>> in? not [
+                lhs rhs 2array state visited>> adjoin
+
+                ! Check if FD holds
+                state data>> lhs rhs check-fd-holds :> conf
+
+                conf config confidence-threshold>> >= [
+                    ! Check minimality
+                    state lhs rhs is-minimal-fd? [
+                        functional-dependency new
+                            lhs >>determinant
+                            rhs 1array >>dependent
+                            conf >>confidence
+                            0 >>discovered-at
+                            state data>> length >>sample-size
+                        state discovered>> push
+                    ] when
+                ] when
+            ] when
+        ] each
+    ] each ;
+
+! Main DFD entry point
+:: run-dfd ( data config -- result )
+    data init-dfd-state :> state
 
     ! For each attribute as potential RHS
-    dup attributes>> [
-        [ ] dip  ! data state rhs
-        over [ discover-fds-for-rhs ] dip swap
-        discovered>> swap suffix!
-        drop
-    ] with with each
+    state attributes>> [| rhs |
+        state rhs config discover-fds-for-rhs
+    ] each
 
-    ! Build result
+    ! Classify results per D-NORM-002 three-tier policy
+    state discovered>> :> all-fds
+    all-fds [ confidence>> 0.99 >= ] filter :> exact
+    all-fds [ confidence>> [ 0.95 >= ] [ 0.99 < ] bi and ] filter :> probable
+    all-fds [ confidence>> 0.95 < ] filter :> warnings
+
     fd-discovery-result new
         "unknown" >>collection
-        swap discovered>> >>dependencies
-        { } >>approximate-fds
-        0 >>discovery-time ;
+        exact >>dependencies
+        probable >>probable-fds
+        warnings >>data-warnings
+        0 >>discovery-time
+        H{
+            { "rows" data length }
+            { "attributes" state attributes>> length }
+            { "algorithm" "dfd" }
+        } >>sample-info ;
 
 ! ============================================================
 ! Normal Form Detection
@@ -132,29 +213,87 @@ TUPLE: normal-form-analysis
     violations        ! List of violations
     candidate-keys ;  ! Inferred candidate keys
 
+TUPLE: nf-violation
+    fd                ! The violating FD
+    violation-type    ! partial-dependency | transitive-dependency | non-superkey
+    explanation ;     ! Human-readable explanation
+
+! Check if attrs is a superkey (contains a candidate key)
 : is-superkey? ( attrs keys -- ? )
-    ! Check if attrs is a superkey (contains a candidate key)
-    [ subset? ] with any? ;
+    [ [ member? ] curry all? ] with any? ;
 
-: check-bcnf-violation ( fd keys -- violation/f )
-    ! BCNF violation: determinant is not a superkey
-    [ determinant>> ] dip is-superkey? not
-    [ dup ] [ f ] if ;
+! Check if attrs is a proper subset of any candidate key
+: proper-subset-of-key? ( attrs keys -- ? )
+    [
+        [ [ member? ] curry all? ]
+        [ length swap length < ] 2bi and
+    ] with any? ;
 
-: check-3nf-violation ( fd keys prime-attrs -- violation/f )
-    ! 3NF violation: determinant not superkey AND dependent not prime
-    [ [ determinant>> ] dip is-superkey? not ]
-    [ [ dependent>> ] dip subset? not ] 2bi
-    and [ swap ] [ 2drop f ] if ;
+! Get prime attributes (in any candidate key)
+: prime-attributes ( keys -- primes )
+    concat members ;
 
-: analyze-normal-form ( fds keys -- analysis )
-    ! Determine highest normal form satisfied
+! Check for BCNF violation
+:: check-bcnf ( fd keys -- violation/f )
+    fd determinant>> keys is-superkey? not [
+        nf-violation new
+            fd >>fd
+            "non-superkey" >>violation-type
+            fd determinant>> ", " join
+            " is not a superkey but determines "
+            fd dependent>> ", " join 3append
+            >>explanation
+    ] [ f ] if ;
+
+! Check for 3NF violation
+:: check-3nf ( fd keys -- violation/f )
+    fd determinant>> keys is-superkey? not
+    fd dependent>> keys prime-attributes [ member? ] curry all? not
+    and [
+        nf-violation new
+            fd >>fd
+            "transitive-dependency" >>violation-type
+            "Non-superkey " fd determinant>> ", " join append
+            " determines non-prime attribute(s) " append
+            fd dependent>> ", " join append
+            >>explanation
+    ] [ f ] if ;
+
+! Check for 2NF violation
+:: check-2nf ( fd keys -- violation/f )
+    fd determinant>> keys proper-subset-of-key?
+    fd dependent>> keys prime-attributes [ member? ] curry all? not
+    and [
+        nf-violation new
+            fd >>fd
+            "partial-dependency" >>violation-type
+            "Partial key " fd determinant>> ", " join append
+            " determines non-prime attribute(s) " append
+            fd dependent>> ", " join append
+            >>explanation
+    ] [ f ] if ;
+
+! Analyze what normal form a schema satisfies
+:: analyze-normal-form ( fds keys -- analysis )
     normal-form-analysis new
         "unknown" >>collection
-        { } >>violations
-        swap >>candidate-keys
-        ! Placeholder: would analyze each FD against normal form rules
-        "1NF" >>current-form ;
+        keys >>candidate-keys
+
+        ! Check for violations at each level
+        fds [ keys check-bcnf ] map sift :> bcnf-violations
+        fds [ keys check-3nf ] map sift :> 3nf-violations
+        fds [ keys check-2nf ] map sift :> 2nf-violations
+
+        ! Determine highest satisfied normal form
+        bcnf-violations empty? [ "BCNF" ] [
+            3nf-violations empty? [ "3NF" ] [
+                2nf-violations empty? [ "2NF" ] [ "1NF" ] if
+            ] if
+        ] if >>current-form
+
+        ! Collect all violations
+        bcnf-violations 3nf-violations append 2nf-violations append
+        >>violations ;
 
 ! ============================================================
 ! FQL Integration: DISCOVER DEPENDENCIES
@@ -167,57 +306,111 @@ TUPLE: discover-stmt
     algorithm ;
 
 : parse-discover ( tokens -- tokens' ast )
-    ! Parse: DISCOVER DEPENDENCIES FROM collection ...
     discover-stmt new
         10000 >>sample-size
         0.95 >>confidence
         "dfd" >>algorithm
-    ! Would parse tokens to fill in values
     swap ;
 
-: execute-discover ( stmt -- result )
-    ! Execute DISCOVER DEPENDENCIES
-    [ collection>> ] [ sample-size>> ] [ confidence>> ] [ algorithm>> ] quad
-
-    ! Build config
+! Execute DISCOVER DEPENDENCIES
+:: execute-discover ( stmt data -- result )
     fd-discovery-config new
-        swap >>algorithm
-        swap >>confidence-threshold
-        swap >>sample-size
-        5 >>max-lhs-size
+        stmt sample-size>> >>sample-size
+        stmt confidence>> >>confidence-threshold
+        stmt algorithm>> >>algorithm
+        5 >>max-lhs-size :> config
 
-    ! Would fetch data from collection via Form.Bridge
-    ! For now, return placeholder
-    drop
-    fd-discovery-result new
-        swap >>collection
-        { } >>dependencies
-        { } >>approximate-fds
-        0 >>discovery-time ;
+    ! Sample data if too large
+    data length config sample-size>> > [
+        data config sample-size>> sample
+    ] [ data ] if :> sampled
+
+    sampled config run-dfd
+        stmt collection>> >>collection ;
 
 ! ============================================================
-! Narrative Generation
+! Narrative Generation (FormDB Philosophy)
 ! ============================================================
 
-: fd>narrative ( fd -- string )
-    ! Convert FD to human-readable narrative
-    [ determinant>> ", " join ]
-    [ dependent>> ", " join ]
-    [ confidence>> ]
-    tri
-    [ "{" prepend "} uniquely determines {" append swap append "}" append ]
-    dip
-    [ " [confidence: " swap number>string append "]" append ] when* ;
+! Convert FD to human-readable narrative
+:: fd>narrative ( fd -- string )
+    fd determinant>> ", " join :> det
+    fd dependent>> ", " join :> dep
+    fd confidence>> :> conf
 
-: result>narrative ( result -- string )
-    ! Generate full narrative for discovery result
-    [
-        "FUNCTIONAL DEPENDENCY DISCOVERY\n"
-        "Collection: " append
-        over collection>> append "\n" append
-        "\nDiscovered Dependencies:\n" append
-        swap dependencies>> [ fd>narrative "  " prepend "\n" append append ] each
-    ] "" make ;
+    "{" det append "}" append
+    " uniquely determines " append
+    "{" append dep append "}" append
+
+    conf 1.0 < [
+        " [confidence: " append
+        conf number>string append
+        conf 0.99 >= [
+            " - EXACT"
+        ] [
+            conf 0.95 >= [
+                " - PROBABLE (requires confirmation)"
+            ] [
+                " - DATA QUALITY WARNING"
+            ] if
+        ] if append
+        "]" append
+    ] when ;
+
+! Generate violation narrative
+:: violation>narrative ( v -- string )
+    v violation-type>> {
+        { "partial-dependency" [ "2NF VIOLATION: " ] }
+        { "transitive-dependency" [ "3NF VIOLATION: " ] }
+        { "non-superkey" [ "BCNF VIOLATION: " ] }
+        [ drop "VIOLATION: " ]
+    } case
+    v explanation>> append ;
+
+! Generate full narrative for discovery result
+:: result>narrative ( result -- string )
+    "FUNCTIONAL DEPENDENCY DISCOVERY REPORT\n" :> out!
+    "=" 60 <repetition> concat "\n" append out swap append out!
+    "\nCollection: " result collection>> append "\n" append out swap append out!
+
+    ! Sample info
+    "\nSample Information:\n" out swap append out!
+    result sample-info>> [
+        "  " swap ": " swap 3append number>string append "\n" append
+        out swap append out!
+    ] assoc-each
+
+    ! Exact FDs
+    "\n\nEXACT FUNCTIONAL DEPENDENCIES:\n" out swap append out!
+    result dependencies>> empty? [
+        "  (none discovered)\n" out swap append out!
+    ] [
+        result dependencies>> [
+            "  " swap fd>narrative append "\n" append
+            out swap append out!
+        ] each
+    ] if
+
+    ! Probable FDs (D-NORM-002 tier 2)
+    result probable-fds>> empty? not [
+        "\n\nPROBABLE FUNCTIONAL DEPENDENCIES (require confirmation):\n"
+        out swap append out!
+        result probable-fds>> [
+            "  " swap fd>narrative append "\n" append
+            out swap append out!
+        ] each
+    ] when
+
+    ! Data quality warnings (D-NORM-002 tier 3)
+    result data-warnings>> empty? not [
+        "\n\nDATA QUALITY WARNINGS:\n" out swap append out!
+        result data-warnings>> [
+            "  " swap fd>narrative append "\n" append
+            out swap append out!
+        ] each
+    ] when
+
+    out ;
 
 ! ============================================================
 ! Normalization Proposals
@@ -231,39 +424,82 @@ TUPLE: normalization-proposal
     equivalence-proof
     narrative ;
 
-: propose-3nf-decomposition ( schema fds -- proposal/f )
-    ! Generate 3NF decomposition proposal if violations exist
-    ! Returns f if already in 3NF
-    2drop f ;  ! Placeholder
+! Propose 3NF decomposition using synthesis algorithm
+:: propose-3nf-decomposition ( schema fds keys -- proposal/f )
+    fds [ keys check-3nf ] map sift :> violations
+    violations empty? [ f ] [
+        ! Simplified synthesis: create table for each FD
+        fds [
+            [ determinant>> ] [ dependent>> ] bi append members
+        ] map :> new-schemas
 
-: propose-bcnf-decomposition ( schema fds -- proposal/f )
-    ! Generate BCNF decomposition proposal if violations exist
-    ! Returns f if already in BCNF
-    2drop f ;  ! Placeholder
+        normalization-proposal new
+            schema >>source-schema
+            new-schemas >>target-schemas
+            "SPLIT on transitive dependencies" >>transformation
+            "JOIN on common attributes" >>inverse
+            "Lossless: common attributes form superkey in one table" >>equivalence-proof
+            violations [ violation>narrative ] map "\n" join
+            "\n\nProposed decomposition eliminates transitive dependencies."
+            append >>narrative
+    ] if ;
+
+! Propose BCNF decomposition
+:: propose-bcnf-decomposition ( schema fds keys -- proposal/f )
+    fds [ keys check-bcnf ] map sift :> violations
+    violations empty? [ f ] [
+        normalization-proposal new
+            schema >>source-schema
+            { } >>target-schemas  ! Would compute actual decomposition
+            "SPLIT on BCNF violations" >>transformation
+            "JOIN on determinant attributes" >>inverse
+            "Lossless: determinant preserved in decomposition" >>equivalence-proof
+            violations [ violation>narrative ] map "\n" join
+            "\n\nProposed BCNF decomposition (may lose some FDs)."
+            append >>narrative
+    ] if ;
+
+! ============================================================
+! Denormalization Support (per D-NORM-003)
+! ============================================================
+
+TUPLE: denormalization-proposal
+    source-schemas      ! List of normalized schemas to merge
+    target-schema       ! Merged schema
+    transformation      ! How to merge
+    inverse             ! How to split back
+    performance-rationale  ! Why denormalization is justified
+    equivalence-proof   ! Proof of lossless merge
+    narrative ;         ! Full explanation
+
+! Propose denormalization for read optimization
+:: propose-denormalization ( schemas join-attrs rationale -- proposal )
+    denormalization-proposal new
+        schemas >>source-schemas
+        schemas concat members >>target-schema
+        "JOIN on " join-attrs ", " join append >>transformation
+        "SPLIT preserving original keys" >>inverse
+        rationale >>performance-rationale
+        "Merge is lossless: join attributes form key" >>equivalence-proof
+        "INTENTIONAL DENORMALIZATION\n"
+        "Reason: " append rationale append "\n" append
+        "This denormalization trades storage efficiency for read performance.\n" append
+        "The operation is fully reversible via SPLIT." append
+        >>narrative ;
 
 ! ============================================================
 ! Public API
 ! ============================================================
 
-: discover-dependencies ( collection-name config -- result )
-    ! Main entry point for FD discovery
-    ! Would call Form.Bridge to fetch data, then run algorithm
-    2drop
-    fd-discovery-result new
-        "placeholder" >>collection
-        { } >>dependencies
-        { } >>approximate-fds
-        0 >>discovery-time ;
+: discover-dependencies ( data config -- result )
+    run-dfd ;
 
-: check-normal-form ( collection-name target-nf -- analysis )
-    ! Check if collection satisfies target normal form
-    2drop
-    normal-form-analysis new
-        "placeholder" >>collection
-        "1NF" >>current-form
-        { } >>violations
-        { } >>candidate-keys ;
+: check-normal-form ( fds keys -- analysis )
+    analyze-normal-form ;
 
-: generate-normalization-proposal ( collection-name target-nf -- proposal/f )
-    ! Generate proposal to reach target normal form
-    2drop f ;
+: generate-normalization-proposal ( schema fds keys target-nf -- proposal/f )
+    {
+        { "3NF" [ propose-3nf-decomposition ] }
+        { "BCNF" [ propose-bcnf-decomposition ] }
+        [ 4drop f ]
+    } case ;

@@ -32,9 +32,14 @@
     (formdb-debugger
       (relationship "sibling-tool")
       (repo "github.com/hyperpolymath/formdb-debugger")
-      (status "planned")
+      (status "scaffolding-complete")
+      (completion 35)
       (description "Proof-carrying debugger. Step through queries, inspect
-                    constraint violations, visualize normalization proofs."))
+                    constraint violations, visualize normalization proofs.")
+      (alignment-status
+        (journal-types "Need Migration/NormalizationStep entry types")
+        (provenance "Need confidence/proof fields")
+        (proofs "LosslessProof stubs need real implementations")))
 
     (formbase
       (relationship "sibling-application")
@@ -50,12 +55,18 @@
       (description "Zotero plugin for FormDB. Reference management with
                     provenance tracking for academic research."))
 
-    (fqldt
+    (fdql-dt
       (relationship "sibling-language")
-      (repo "github.com/hyperpolymath/fqldt")
-      (status "specification")
+      (repo "github.com/hyperpolymath/fdql-dt")
+      (status "specification-complete")
+      (completion 5)
       (description "FQL with Dependent Types. Lean 4 integration for
-                    compile-time query verification and proof-carrying migrations."))
+                    compile-time query verification and proof-carrying migrations.")
+      (alignment-status
+        (fundep-types "FormDB should adopt schema-bound FunDep S type")
+        (armstrongs-axioms "FormDB should implement reflexivity/augmentation/transitivity")
+        (normal-form-predicates "FormDB has enum, fdql-dt has full predicates")
+        (ffi "Compatible - both use CBOR-encoded proof blobs")))
 
     ;; External inspirations and comparisons
     (datomic

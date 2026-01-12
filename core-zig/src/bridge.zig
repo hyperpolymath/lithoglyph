@@ -542,6 +542,195 @@ export fn fdb_introspect_constraints(
 }
 
 // ============================================================
+// Proof Verification (per D-NORM-004)
+// ============================================================
+
+/// Proof verifier callback type
+pub const FdbProofVerifier = *const fn (
+    proof_ptr: [*]const u8,
+    proof_len: usize,
+    context_ptr: ?*anyopaque,
+) callconv(.C) FdbStatus;
+
+/// Proof verifier registration entry
+const VerifierEntry = struct {
+    verifier_type: []const u8,
+    callback: FdbProofVerifier,
+    context: ?*anyopaque,
+};
+
+// Registry of proof verifiers
+var verifier_registry = std.StringHashMap(VerifierEntry).init(global_allocator);
+
+/// Register a proof verifier for a specific proof type
+///
+/// @param type_ptr Proof type identifier (e.g., "normalization", "fd-holds")
+/// @param type_len Length of type identifier
+/// @param callback Verification function
+/// @param context Optional context passed to callback
+/// @return Status code
+export fn fdb_proof_register_verifier(
+    type_ptr: [*]const u8,
+    type_len: usize,
+    callback: FdbProofVerifier,
+    context: ?*anyopaque,
+) FdbStatus {
+    const verifier_type = type_ptr[0..type_len];
+
+    const type_copy = global_allocator.dupe(u8, verifier_type) catch {
+        return .err_out_of_memory;
+    };
+
+    const entry = VerifierEntry{
+        .verifier_type = type_copy,
+        .callback = callback,
+        .context = context,
+    };
+
+    verifier_registry.put(type_copy, entry) catch {
+        global_allocator.free(type_copy);
+        return .err_internal;
+    };
+
+    return .ok;
+}
+
+/// Unregister a proof verifier
+///
+/// @param type_ptr Proof type identifier
+/// @param type_len Length of type identifier
+/// @return Status code
+export fn fdb_proof_unregister_verifier(
+    type_ptr: [*]const u8,
+    type_len: usize,
+) FdbStatus {
+    const verifier_type = type_ptr[0..type_len];
+
+    if (verifier_registry.fetchRemove(verifier_type)) |entry| {
+        global_allocator.free(@constCast(entry.value.verifier_type));
+        return .ok;
+    }
+
+    return .err_not_found;
+}
+
+/// Verify a proof using registered verifiers
+///
+/// @param proof_ptr CBOR-encoded proof blob
+/// @param proof_len Length of proof
+/// @param out_valid Output: true if proof is valid
+/// @param out_err Output parameter for error blob
+/// @return Status code
+export fn fdb_proof_verify(
+    proof_ptr: [*]const u8,
+    proof_len: usize,
+    out_valid: *bool,
+    out_err: *FdbBlob,
+) FdbStatus {
+    const proof_data = proof_ptr[0..proof_len];
+
+    // Parse proof to extract type
+    var decoder = cbor.Decoder.init(global_allocator, proof_data);
+
+    // Expect map with "type" and "data" keys
+    const map_len = decoder.decodeMapLen() catch {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Invalid proof format: expected map");
+        return .err_invalid_argument;
+    };
+
+    var proof_type: ?[]const u8 = null;
+    var proof_data_start: usize = 0;
+    var proof_data_end: usize = 0;
+
+    var i: usize = 0;
+    while (i < map_len) : (i += 1) {
+        const key = decoder.decodeText() catch {
+            out_err.* = createErrorBlob(.err_invalid_argument, "Invalid proof key");
+            return .err_invalid_argument;
+        };
+
+        if (std.mem.eql(u8, key, "type")) {
+            proof_type = decoder.decodeText() catch {
+                out_err.* = createErrorBlob(.err_invalid_argument, "Invalid proof type");
+                return .err_invalid_argument;
+            };
+        } else if (std.mem.eql(u8, key, "data")) {
+            proof_data_start = decoder.position;
+            decoder.skip() catch {
+                out_err.* = createErrorBlob(.err_invalid_argument, "Failed to read proof data");
+                return .err_invalid_argument;
+            };
+            proof_data_end = decoder.position;
+        } else {
+            decoder.skip() catch {
+                out_err.* = createErrorBlob(.err_invalid_argument, "Failed to skip value");
+                return .err_invalid_argument;
+            };
+        }
+    }
+
+    // Look up verifier
+    const ptype = proof_type orelse {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Proof missing type field");
+        return .err_invalid_argument;
+    };
+
+    const entry = verifier_registry.get(ptype) orelse {
+        out_err.* = createErrorBlob(.err_not_found, "No verifier registered for proof type");
+        return .err_not_found;
+    };
+
+    // Call verifier with proof data
+    const verify_data = proof_data[proof_data_start..proof_data_end];
+    const status = entry.callback(verify_data.ptr, verify_data.len, entry.context);
+
+    out_valid.* = (status == .ok);
+    out_err.* = FdbBlob.empty();
+    return .ok;
+}
+
+/// Built-in verifier for FD-holds proofs (always accepts for PoC)
+fn builtin_fd_verifier(
+    _: [*]const u8,
+    _: usize,
+    _: ?*anyopaque,
+) callconv(.C) FdbStatus {
+    // In production, this would actually verify the proof
+    // For PoC, we accept all well-formed proofs
+    return .ok;
+}
+
+/// Built-in verifier for normalization proofs
+fn builtin_normalization_verifier(
+    _: [*]const u8,
+    _: usize,
+    _: ?*anyopaque,
+) callconv(.C) FdbStatus {
+    // In production, this would verify losslessness and dependency preservation
+    // For PoC, we accept all well-formed proofs
+    return .ok;
+}
+
+/// Initialize built-in proof verifiers
+export fn fdb_proof_init_builtins() FdbStatus {
+    // Register FD-holds verifier
+    const fd_type = "fd-holds";
+    var status = fdb_proof_register_verifier(fd_type.ptr, fd_type.len, builtin_fd_verifier, null);
+    if (status != .ok) return status;
+
+    // Register normalization verifier
+    const norm_type = "normalization";
+    status = fdb_proof_register_verifier(norm_type.ptr, norm_type.len, builtin_normalization_verifier, null);
+    if (status != .ok) return status;
+
+    // Register denormalization verifier (same logic)
+    const denorm_type = "denormalization";
+    status = fdb_proof_register_verifier(denorm_type.ptr, denorm_type.len, builtin_normalization_verifier, null);
+
+    return status;
+}
+
+// ============================================================
 // Utility Functions - C ABI Exports
 // ============================================================
 

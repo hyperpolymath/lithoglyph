@@ -4,8 +4,9 @@
 ! FDQL (FormDB Query Language) implementation using PEG parsing.
 
 USING: accessors arrays assocs combinators combinators.short-circuit
-continuations generalizations io json kernel locals math math.parser
-peg peg.ebnf sequences splitting strings unicode ;
+continuations formatting generalizations io json kernel locals math
+math.parser peg peg.ebnf random sequences splitting storage-backend
+strings system unicode vectors ;
 
 IN: fdql
 
@@ -19,7 +20,7 @@ TUPLE: fdql-update collection assignments where-clause provenance ;
 TUPLE: fdql-delete collection where-clause provenance ;
 TUPLE: fdql-create collection fields schema ;
 TUPLE: fdql-drop collection provenance ;
-TUPLE: fdql-explain inner-stmt ;
+TUPLE: fdql-explain inner-stmt analyze? verbose? ;
 TUPLE: fdql-introspect target arg ;
 
 TUPLE: edge-clause type direction depth where ;
@@ -348,9 +349,16 @@ ERROR: fdql-parse-error message position ;
 
 DEFER: parse-statement
 
-: parse-explain ( tokens -- tokens' ast )
-    parse-statement
-    fdql-explain boa ;
+:: parse-explain ( tokens -- tokens' ast )
+    ! Parse optional ANALYZE and VERBOSE flags
+    f :> analyze?!
+    f :> verbose?!
+    tokens
+    "ANALYZE" try-consume [ t analyze?! ] when
+    "VERBOSE" try-consume [ t verbose?! ] when
+    parse-statement :> ( tokens' inner )
+    tokens'
+    inner analyze? verbose? fdql-explain boa ;
 
 : parse-statement ( tokens -- tokens' ast )
     consume-token >upper {  ! After consume-token: ( tokens' token ), >upper: ( tokens' TOKEN )
@@ -387,98 +395,480 @@ DEFER: parse-statement
     nip ;
 
 ! ============================================================
-! Query Execution (Stubs)
+! Query Plan Types
+! ============================================================
+
+TUPLE: plan-step
+    type            ! scan | index-lookup | filter | project | sort | limit | join
+    target          ! collection name or subplan
+    cost            ! estimated cost
+    rows            ! estimated rows
+    rationale ;     ! why this step was chosen
+
+TUPLE: query-plan
+    steps           ! sequence of plan-steps
+    total-cost      ! sum of costs
+    provenance? ;   ! whether provenance is requested
+
+! ============================================================
+! Query Planner
+! ============================================================
+
+GENERIC: plan-query ( ast -- plan )
+
+:: make-scan-step ( collection where -- step )
+    plan-step new
+        "scan" >>type
+        collection >>target
+        where [ 100 ] [ 1000 ] if >>cost   ! filter reduces cost estimate
+        where [ 10 ] [ 100 ] if >>rows
+        where [
+            "Full collection scan with filter - consider adding index"
+        ] [
+            "Full collection scan - no filter specified"
+        ] if >>rationale ;
+
+:: make-project-step ( fields -- step )
+    plan-step new
+        "project" >>type
+        fields >>target
+        1 >>cost
+        0 >>rows
+        fields { "*" } = [
+            "Selecting all fields"
+        ] [
+            fields length "Projecting %d field(s)" sprintf
+        ] if >>rationale ;
+
+:: make-limit-step ( lim -- step )
+    plan-step new
+        "limit" >>type
+        lim >>target
+        1 >>cost
+        lim limit>> >>rows
+        lim limit>> "Limiting to %d rows" sprintf >>rationale ;
+
+:: make-edge-step ( edge -- step )
+    plan-step new
+        "traverse" >>type
+        edge type>> >>target
+        edge depth>> 10 * >>cost
+        edge depth>> 5 * >>rows
+        edge direction>> edge depth>> "Traversing %s edges to depth %d" sprintf >>rationale ;
+
+M: fdql-select plan-query
+    query-plan new
+        V{ } clone
+        ! Add project step
+        over fields>> make-project-step suffix
+        ! Add scan step
+        over collection>> over where-clause>> make-scan-step suffix
+        ! Add edge traversal if present
+        over edge-clause>> [ make-edge-step suffix ] when*
+        ! Add limit if present
+        over limit-clause>> [ make-limit-step suffix ] when*
+        >>steps
+        ! Calculate total cost
+        dup steps>> [ cost>> ] map-sum >>total-cost
+        ! Check provenance flag
+        swap with-provenance?>> >>provenance? ;
+
+M: fdql-insert plan-query
+    query-plan new
+        V{ }
+        over collection>>
+        plan-step new
+            "insert" >>type
+            swap >>target
+            10 >>cost
+            1 >>rows
+            "Insert document into collection" >>rationale
+        suffix >>steps
+        10 >>total-cost
+        f >>provenance? ;
+
+M: fdql-update plan-query
+    query-plan new
+        V{ }
+        over collection>> over where-clause>> make-scan-step suffix
+        over collection>>
+        plan-step new
+            "update" >>type
+            swap >>target
+            50 >>cost
+            0 >>rows
+            "Update matching documents" >>rationale
+        suffix >>steps
+        60 >>total-cost
+        f >>provenance? ;
+
+M: fdql-delete plan-query
+    query-plan new
+        V{ }
+        over collection>> over where-clause>> make-scan-step suffix
+        over collection>>
+        plan-step new
+            "delete" >>type
+            swap >>target
+            50 >>cost
+            0 >>rows
+            "Delete matching documents" >>rationale
+        suffix >>steps
+        60 >>total-cost
+        f >>provenance? ;
+
+M: fdql-create plan-query
+    query-plan new
+        V{ }
+        over collection>>
+        plan-step new
+            "create-collection" >>type
+            swap >>target
+            5 >>cost
+            0 >>rows
+            "Create new collection with schema" >>rationale
+        suffix >>steps
+        5 >>total-cost
+        f >>provenance? ;
+
+M: fdql-drop plan-query
+    query-plan new
+        V{ }
+        over collection>>
+        plan-step new
+            "drop-collection" >>type
+            swap >>target
+            5 >>cost
+            0 >>rows
+            "Drop collection and all documents" >>rationale
+        suffix >>steps
+        5 >>total-cost
+        f >>provenance? ;
+
+M: fdql-explain plan-query
+    inner-stmt>> plan-query ;
+
+M: fdql-introspect plan-query
+    query-plan new
+        V{ }
+        over target>>
+        plan-step new
+            "introspect" >>type
+            swap >>target
+            1 >>cost
+            0 >>rows
+            "Read system metadata" >>rationale
+        suffix >>steps
+        1 >>total-cost
+        f >>provenance? ;
+
+! ============================================================
+! Plan Rendering (for EXPLAIN)
+! ============================================================
+
+: step>assoc ( step -- assoc )
+    {
+        [ type>> "type" swap 2array ]
+        [ target>> "target" swap 2array ]
+        [ cost>> "cost" swap 2array ]
+        [ rows>> "estimated_rows" swap 2array ]
+        [ rationale>> "rationale" swap 2array ]
+    } cleave 5 narray >hashtable ;
+
+: plan>assoc ( plan -- assoc )
+    {
+        [ steps>> [ step>assoc ] map "steps" swap 2array ]
+        [ total-cost>> "total_cost" swap 2array ]
+        [ provenance?>> "with_provenance" swap 2array ]
+    } cleave 3 narray >hashtable ;
+
+! ============================================================
+! Query Executor
 ! ============================================================
 
 GENERIC: execute-fdql ( ast -- result )
 
-M: fdql-insert execute-fdql
-    collection>>                     ! ( collection )
+! Storage backend - uses pluggable storage (memory or bridge)
+! See storage-backend.factor for backend implementations
+
+: get-collection ( name -- docs )
+    storage-get-collection ;
+
+: set-collection ( docs name -- )
+    storage-set-collection ;
+
+: generate-doc-id ( -- id )
+    32 [ CHAR: a CHAR: z [a..b] random ] "" replicate-as ;
+
+:: execute-insert ( collection doc prov -- result )
+    collection get-collection :> coll
+    generate-doc-id :> doc-id
+    doc-id "id" doc clone [ set-at ] keep :> doc'
+    doc' coll push
+    coll collection set-collection
     H{
         { "status" "ok" }
-        { "document_id" "doc_generated" }
-    } clone                          ! ( collection result )
-    [ "collection" ] dip             ! ( collection "collection" result )
-    [ set-at ] keep ;                ! ( result )
+        { "document_id" doc-id }
+        { "collection" collection }
+    } clone
+    prov [ "provenance" swap pick set-at ] when* ;
+
+:: match-where? ( doc where -- ? )
+    where [
+        where expression>> :> comp
+        comp field>> doc at :> actual
+        comp value>> :> expected
+        comp op>> {
+            { "=" [ actual expected = ] }
+            { "!=" [ actual expected = not ] }
+            { ">" [ actual expected > ] }
+            { "<" [ actual expected < ] }
+            { ">=" [ actual expected >= ] }
+            { "<=" [ actual expected <= ] }
+            { "LIKE" [ actual expected swap subseq? ] }
+            { "CONTAINS" [ actual expected swap member? ] }
+            [ 3drop f ]
+        } case
+    ] [ t ] if ;
+
+:: execute-select ( fields collection where edge lim prov? -- result )
+    collection get-collection :> all-docs
+    ! Apply filter
+    all-docs [ where match-where? ] filter :> filtered
+    ! Apply limit
+    lim [ [ limit>> head-clamp ] keep offset>> tail-clamp ] when* :> limited
+    ! Project fields
+    fields { "*" } = [
+        limited
+    ] [
+        limited [ [ fields ] dip '[ _ swap at ] map>alist >hashtable ] map
+    ] if :> projected
+    H{
+        { "status" "ok" }
+        { "collection" collection }
+        { "count" projected length }
+        { "rows" projected >array }
+    } clone
+    prov? [ "provenance_enabled" t pick set-at ] when ;
+
+:: execute-update ( collection assignments where prov -- result )
+    collection get-collection :> docs
+    0 :> modified!
+    docs [
+        dup where match-where? [
+            assignments [ first2 pick set-at ] each
+            modified 1 + modified!
+        ] when
+    ] each
+    docs collection set-collection
+    H{
+        { "status" "ok" }
+        { "collection" collection }
+        { "modified_count" modified }
+    } clone
+    prov [ "provenance" swap pick set-at ] when* ;
+
+:: execute-delete ( collection where prov -- result )
+    collection get-collection :> docs
+    docs [ where match-where? not ] filter :> remaining
+    docs length remaining length - :> deleted
+    remaining collection set-collection
+    H{
+        { "status" "ok" }
+        { "collection" collection }
+        { "deleted_count" deleted }
+    } clone
+    prov [ "provenance" swap pick set-at ] when* ;
+
+:: execute-create ( collection fields schema -- result )
+    V{ } clone collection set-collection
+    H{
+        { "status" "ok" }
+        { "collection" collection }
+        { "schema_version" 1 }
+        { "fields" fields }
+    } clone ;
+
+:: execute-drop ( collection prov -- result )
+    f collection set-collection
+    H{
+        { "status" "ok" }
+        { "collection" collection }
+        { "dropped" t }
+    } clone
+    prov [ "provenance" swap pick set-at ] when* ;
+
+M: fdql-insert execute-fdql
+    [ collection>> ] [ document>> ] [ provenance>> ] tri
+    execute-insert ;
 
 M: fdql-select execute-fdql
-    collection>>                     ! ( collection )
-    H{
-        { "status" "ok" }
-        { "rows" { } }
-        { "count" 0 }
-    } clone                          ! ( collection result )
-    [ "collection" ] dip             ! ( collection "collection" result )
-    [ set-at ] keep ;                ! ( result )
+    [ fields>> ]
+    [ collection>> ]
+    [ where-clause>> ]
+    [ edge-clause>> ]
+    [ limit-clause>> ]
+    [ with-provenance?>> ] 6 ncleave
+    execute-select ;
 
 M: fdql-update execute-fdql
-    drop
-    H{
-        { "status" "ok" }
-        { "modified_count" 0 }
-    } ;
+    [ collection>> ] [ assignments>> ] [ where-clause>> ] [ provenance>> ] quad
+    execute-update ;
 
 M: fdql-delete execute-fdql
-    drop
-    H{
-        { "status" "ok" }
-        { "deleted_count" 0 }
-    } ;
+    [ collection>> ] [ where-clause>> ] [ provenance>> ] tri
+    execute-delete ;
 
 M: fdql-create execute-fdql
-    collection>>                     ! ( collection )
-    H{
-        { "status" "ok" }
-        { "schema_version" 1 }
-    } clone                          ! ( collection result )
-    [ "collection" ] dip             ! ( collection "collection" result )
-    [ set-at ] keep ;                ! ( result )
+    [ collection>> ] [ fields>> ] [ schema>> ] tri
+    execute-create ;
 
 M: fdql-drop execute-fdql
-    drop
-    H{
-        { "status" "ok" }
-    } ;
+    [ collection>> ] [ provenance>> ] bi
+    execute-drop ;
+
+! Timing helper for ANALYZE mode
+: with-timing ( quot -- result elapsed-ms )
+    nano-count [ call ] dip nano-count swap - 1000000 / ; inline
+
+! Generate verbose plan description
+:: plan-step>verbose ( step -- string )
+    step type>> :> type
+    step target>> :> target
+    step cost>> :> cost
+    step rows>> :> rows
+    step rationale>> :> rationale
+    {
+        { [ type "scan" = ] [
+            target "-> Seq Scan on %s" sprintf
+            "\n     Estimated Cost: " cost number>string append
+            "\n     Estimated Rows: " rows number>string append
+            "\n     Note: " rationale append
+            append append append
+        ] }
+        { [ type "project" = ] [
+            "-> Projection"
+            target array? [
+                "\n     Columns: " target ", " join append
+            ] when
+            append
+        ] }
+        { [ type "limit" = ] [
+            "-> Limit"
+            target limit-clause? [
+                "\n     Limit: " target limit>> number>string append
+                target offset>> 0 > [
+                    "\n     Offset: " target offset>> number>string append
+                ] when
+            ] when
+            append
+        ] }
+        { [ type "traverse" = ] [
+            target "-> Graph Traversal (%s)" sprintf
+            "\n     Estimated Cost: " cost number>string append
+            append
+        ] }
+        { [ type "insert" = ] [
+            target "-> Insert into %s" sprintf
+        ] }
+        { [ type "update" = ] [
+            target "-> Update on %s" sprintf
+        ] }
+        { [ type "delete" = ] [
+            target "-> Delete from %s" sprintf
+        ] }
+        { [ type "create-collection" = ] [
+            target "-> Create Collection %s" sprintf
+        ] }
+        { [ type "drop-collection" = ] [
+            target "-> Drop Collection %s" sprintf
+        ] }
+        { [ type "introspect" = ] [
+            target "-> Introspect %s" sprintf
+        ] }
+        [ drop type "-> %s" sprintf ]
+    } cond ;
+
+:: plan>verbose-string ( plan -- string )
+    "QUERY PLAN\n" :> out!
+    "-" 50 <repetition> concat "\n" append out swap append out!
+    plan steps>> [| step i |
+        "  " i 2 * <repetition> concat
+        step plan-step>verbose append
+        "\n" append
+        out swap append out!
+    ] each-index
+    "\nTotal Cost: " plan total-cost>> number>string append "\n" append
+    out swap append out!
+    plan provenance?>> [ "With Provenance Tracking\n" out swap append out! ] when
+    out ;
+
+:: execute-explain ( stmt -- result )
+    stmt inner-stmt>> plan-query :> plan
+    stmt analyze?>> [
+        ! ANALYZE mode: actually run the query and report timing
+        [ stmt inner-stmt>> execute-fdql ] with-timing :> ( result elapsed )
+        H{
+            { "status" "ok" }
+        } clone
+        "plan" plan plan>assoc pick set-at
+        "execution_time_ms" elapsed pick set-at
+        "actual_result" result pick set-at
+        stmt verbose?>> [
+            "verbose_plan" plan plan>verbose-string pick set-at
+        ] when
+    ] [
+        ! Plain EXPLAIN: just show the plan
+        H{
+            { "status" "ok" }
+        } clone
+        "plan" plan plan>assoc pick set-at
+        stmt verbose?>> [
+            "verbose_plan" plan plan>verbose-string pick set-at
+        ] when
+    ] if ;
 
 M: fdql-explain execute-fdql
-    inner-stmt>> execute-fdql        ! ( inner-result )
-    H{
-        { "status" "ok" }
-        { "plan" H{
-            { "type" "SCAN" }
-            { "estimated_rows" 0 }
-        } }
-    } clone                          ! ( inner-result result )
-    [ "result" ] dip                 ! ( inner-result "result" result )
-    [ set-at ] keep ;                ! ( result )
+    execute-explain ;
 
 M: fdql-introspect execute-fdql
-    target>> {
+    [ target>> ] [ arg>> ] bi
+    {
         { "SCHEMA" [
+            drop  ! arg
+            storage-list-collections
+            [ get-collection first [ keys ] [ { } ] if* ] map flatten members
             H{
                 { "status" "ok" }
-                { "fields" { } }
-            }
+            } clone
+            [ "fields" ] dip [ set-at ] keep
         ] }
         { "CONSTRAINTS" [
+            drop
             H{
                 { "status" "ok" }
                 { "constraints" { } }
+                { "functional_dependencies" { } }
             }
         ] }
         { "COLLECTIONS" [
+            drop
+            storage-list-collections >array
             H{
                 { "status" "ok" }
-                { "collections" { } }
-            }
+            } clone
+            [ "collections" ] dip [ set-at ] keep
         ] }
         { "JOURNAL" [
+            ! arg is since sequence number
             H{
                 { "status" "ok" }
                 { "entries" { } }
-            }
+                { "head" 0 }
+            } clone
+            [ "since" ] dip [ set-at ] keep
         ] }
-        [ drop H{ { "status" "error" } { "message" "Unknown introspect target" } } ]
+        [ 2drop H{ { "status" "error" } { "message" "Unknown introspect target" } } ]
     } case ;
 
 ! ============================================================
@@ -490,4 +880,16 @@ M: fdql-introspect execute-fdql
 
 : explain-fdql ( str -- plan )
     "EXPLAIN " prepend
+    run-fdql ;
+
+: explain-verbose-fdql ( str -- plan )
+    "EXPLAIN VERBOSE " prepend
+    run-fdql ;
+
+: explain-analyze-fdql ( str -- plan )
+    "EXPLAIN ANALYZE " prepend
+    run-fdql ;
+
+: explain-analyze-verbose-fdql ( str -- plan )
+    "EXPLAIN ANALYZE VERBOSE " prepend
     run-fdql ;
