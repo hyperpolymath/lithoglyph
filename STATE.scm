@@ -6,7 +6,7 @@
     (version "0.0.3")
     (schema-version "1.0")
     (created "2026-01-03")
-    (updated "2026-01-11")
+    (updated "2026-01-12")
     (project "formdb")
     (repo "github.com/hyperpolymath/formdb"))
 
@@ -139,4 +139,16 @@
         "Resolved Q-BLOCK-HEADER-001, Q-JOURNAL-ENTRY-001, Q-ABI-BLOBS-001, Q-FQL-POC-001"
         "Added decisions D-BLOCK-HEADER-001 through D-FQL-POC-001 to formdb.scm"
         "Completed Milestone M1 (Specification Complete)"
-        "Project ready for Form.Blocks implementation (M2)"))))
+        "Project ready for Form.Blocks implementation (M2)"))
+    (snapshot (date "2026-01-12") (session "integration-testing")
+      (accomplishments
+        "Set up development environment (gforth in toolbox, Factor 0.102)"
+        "Fixed Forth code compatibility with gforth 64-bit"
+        "Renamed blocks.fs to formdb-blocks.fs to avoid gforth BLOCKS extension conflict"
+        "Fixed CRC32C function (DO/LOOP return stack conflict)"
+        "Fixed 32-bit field access (use l!/l@ instead of !/@ for magic, checksum, etc.)"
+        "Fixed block-magic/BLOCK-MAGIC naming collision (renamed to blk-magic)"
+        "Created test suite for Form.Blocks (17/17 tests passing)"
+        "Fixed FQL parser consume-token stack effect"
+        "Fixed Lean FunDep.lean (List.join -> List.flatten)"
+        "Added working justfile recipes (test-forth, check-forth, check-lean)"))))
