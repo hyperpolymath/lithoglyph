@@ -18,6 +18,9 @@ Development phases from concept to production.
 | M8 | Form.Runtime (FQL Engine) | - | 🚧 Next
 | M9 | Form.Normalizer | - | 📋 Planned
 | M10 | Production Hardening | - | 📋 Planned
+| M11 | HTTP API Server | - | 📋 Planned
+| M12 | Language Bindings (ReScript, PHP) | - | 📋 Planned
+| M13 | CMS Integration (WordPress) | - | 📋 Planned
 |===
 
 == Phase 0: Specification ✅
@@ -186,6 +189,128 @@ See link:spec/self-normalizing.adoc[Self-Normalizing Specification] for full det
 * Stories demonstrate target use cases (journalism, governance, archives)
 * Security review passed
 
+== Phase 9: HTTP API Server
+
+*Status*: 📋 Planned
+
+*Goal*: RESTful HTTP server exposing FormDB operations for language-agnostic access.
+
+*Dependencies*: Phase 6 (Form.Runtime) must be complete.
+
+=== Deliverables
+
+* [ ] HTTP server binary (`formdb-server`)
+* [ ] REST API endpoints for all FQL operations
+* [ ] JSON request/response format
+* [ ] Authentication middleware (JWT, API keys)
+* [ ] OpenAPI/Swagger specification
+* [ ] Health check and metrics endpoints
+
+=== API Design
+
+[source]
+----
+POST /v1/query          # Execute FQL query
+POST /v1/collections    # Create collection
+GET  /v1/collections    # List collections
+GET  /v1/journal        # Query journal entries
+GET  /v1/health         # Health check
+GET  /v1/metrics        # Prometheus metrics
+----
+
+=== Acceptance Criteria
+
+* All FQL operations accessible via HTTP
+* Provenance passed via headers or request body
+* JSON responses include journal sequence numbers
+* OpenAPI spec generates valid clients
+
+== Phase 10: Language Bindings
+
+*Status*: 📋 Planned
+
+*Goal*: Native client libraries for ReScript and PHP.
+
+*Dependencies*: Phase 9 (HTTP API) should be complete for HTTP clients.
+
+=== ReScript Client (`@formdb/rescript`)
+
+* [ ] HTTP client using Fetch API
+* [ ] Type-safe FQL query builder
+* [ ] Provenance helpers
+* [ ] Response type definitions
+* [ ] Deno-compatible (no Node.js)
+
+[source,rescript]
+----
+// Example usage
+let result = await FormDB.query(
+  ~collection="articles",
+  ~where=Field("status", Eq, "published"),
+  ~provenance={actor: "editor@news.org", rationale: "Daily review"},
+)
+----
+
+=== PHP Client (`formdb/formdb-php`)
+
+* [ ] PSR-18 HTTP client compatibility
+* [ ] Composer package
+* [ ] FQL query builder (fluent interface)
+* [ ] Provenance handling
+* [ ] Laravel/Symfony integration helpers
+
+[source,php]
+----
+<?php
+// Example usage
+$result = $formdb->query()
+    ->collection('articles')
+    ->where('status', '=', 'published')
+    ->withProvenance('editor@news.org', 'Daily review')
+    ->execute();
+----
+
+=== Acceptance Criteria
+
+* Both clients pass integration tests against formdb-server
+* ReScript client works with Deno
+* PHP client installable via Composer
+* Documentation with examples
+
+== Phase 11: CMS Integration (WordPress)
+
+*Status*: 📋 Planned
+
+*Goal*: WordPress plugin for FormDB-backed content with full provenance.
+
+*Dependencies*: Phase 10 (PHP client) must be complete.
+
+=== Deliverables
+
+* [ ] WordPress plugin (`formdb-wordpress`)
+* [ ] Custom post type backed by FormDB
+* [ ] Edit history with provenance (who changed what, why)
+* [ ] Time-travel: view any historical version
+* [ ] Revision comparison with narrative diffs
+* [ ] Admin UI for FormDB connection settings
+* [ ] WP-CLI commands for FormDB operations
+
+=== Features
+
+* **Provenance on Save**: Every post edit records actor + rationale
+* **Audit Log**: Complete history visible in admin
+* **Rollback**: Restore any previous version with one click
+* **Evidence Chain**: For journalism, link sources to claims
+* **Multi-site**: Shared FormDB across WordPress network
+
+=== Acceptance Criteria
+
+* Plugin installable from WordPress admin
+* Posts stored in FormDB with full provenance
+* Revision history shows narrative explanations
+* Rollback works without data loss
+* Compatible with WordPress 6.x+
+
 == Future Phases (Post-PoC)
 
 === Form.ControlPlane
@@ -202,11 +327,12 @@ See link:spec/self-normalizing.adoc[Self-Normalizing Specification] for full det
 
 === Ecosystem
 
-* Language bindings (Rust, ReScript, etc.)
-* IDE integration
+* Additional language bindings (Rust, Python via HTTP)
+* IDE integration (VS Code, JetBrains)
 * Visualization tools
 * FormDB Studio (zero-friction GUI)
 * FormDB Debugger (proof-carrying debugger)
+* Other CMS integrations (Drupal, Ghost, Strapi)
 
 == Non-Goals (Explicitly Deferred)
 
