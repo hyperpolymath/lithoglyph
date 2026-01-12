@@ -9,6 +9,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2026-01-12
+
+**FormDB 1.0.0 - First Production Release**
+
+🎉 The database where the database is part of the story.
+
+This release marks the first stable, production-ready version of FormDB - a narrative-first database where schemas, constraints, migrations, blocks, and journals are treated as narrative artefacts.
+
+### Highlights
+
+- **16 Milestones Complete** - All foundational work from M1 (Specification) through M16 (Stabilization)
+- **Multi-Protocol API** - REST, gRPC, GraphQL, and WebSocket support
+- **Self-Normalizing Engine** - Automatic FD discovery and normalization proposals
+- **Proof-Carrying Operations** - Lean 4 integration for verified transformations
+- **Production Ready** - Health checks, graceful shutdown, configuration validation
+
+### Core Features
+
+#### Storage Layer (Form.Blocks)
+- 4 KiB fixed-size blocks with 64-byte headers
+- CRC32C integrity verification
+- Block types: SUPERBLOCK, DOCUMENT, EDGE, JOURNAL, SCHEMA
+
+#### Journal System
+- Append-only journal with sequence numbering
+- Full operation history with inverses
+- Crash recovery and replay semantics
+- Provenance tracking for audit trails
+
+#### Query Language (FDQL)
+- SELECT, INSERT, UPDATE, DELETE operations
+- CREATE, DROP for schema management
+- EXPLAIN, INTROSPECT for debugging
+- WITH PROVENANCE clause for audit context
+- Graph traversal syntax (TRAVERSE)
+
+#### Self-Normalizing Database
+- DFD (Depth-First Discovery) for FD detection
+- Normal form analysis (1NF through BCNF)
+- Three-phase migration: Announce → Shadow → Commit
+- Denormalization proposals with rationale
+
+### Platform Support
+
+#### API Protocols
+| Protocol | Features |
+|----------|----------|
+| REST | OpenAPI 3.1, full CRUD, health/metrics |
+| gRPC | Protobuf, all service methods |
+| GraphQL | SDL schema, subscriptions, introspection |
+| WebSocket | RFC 6455, graphql-ws, journal streaming |
+
+#### Client Libraries
+| Language | Features |
+|----------|----------|
+| ReScript | Type-safe, fluent query builder, Deno runtime |
+| PHP | PSR-18, PHP 8.1+, Laravel/Symfony integration |
+
+#### CMS Integrations
+| CMS | Type | Sync Modes |
+|-----|------|------------|
+| Strapi | Plugin | Bidirectional, CMS→FormDB, FormDB→CMS |
+| Directus | Hook Extension | Bidirectional, CMS→FormDB, FormDB→CMS |
+| Ghost | Webhook Server | Bidirectional, CMS→FormDB, FormDB→CMS |
+| Payload | Adapter | Bidirectional, CMS→FormDB, FormDB→CMS |
+
+### Quality & Reliability
+
+#### Testing
+- Property-based tests with random generators
+- Fuzz testing with 8 mutation strategies
+- Integration tests for all CMS plugins
+- E2E tests for API and sync scenarios
+
+#### Performance
+- Query plan LRU cache with TTL
+- Connection pooling with auto-scaling
+- Batch operations with configurable flush
+- Prometheus-compatible metrics
+
+#### Stability
+- Type-safe configuration validation
+- Component health monitoring
+- Graceful shutdown with phased execution
+- Production readiness checker
+
+### Breaking Changes
+
+None - this is the first stable release.
+
+### Upgrade Notes
+
+For projects using pre-1.0 versions:
+- API stability is now guaranteed per [VERSIONING.adoc](VERSIONING.adoc)
+- Binary format stability guaranteed within 1.x series
+- Deprecation warnings will be provided before any breaking changes
+
+### Thank You
+
+FormDB represents a new approach to databases - one where the database itself becomes part of the story your data tells. Thank you to everyone who contributed to making this release possible.
+
+---
+
 ## [0.0.10] - 2026-01-12
 
 Final Stabilization milestone: **M16 Complete - Ready for 1.0.0**
@@ -659,6 +762,7 @@ Initial release: **Repository Initialization**
 
 | Version | Date | Milestone | Key Features |
 |---------|------|-----------|--------------|
+| 1.0.0 | 2026-01-12 | **Production** | First stable release, all M1-M16 complete |
 | 0.0.10 | 2026-01-12 | M16 Complete | Config validation, health checks, graceful shutdown, readiness |
 | 0.0.9 | 2026-01-12 | M15 Complete | Query cache, connection pool, batch ops, metrics |
 | 0.0.8 | 2026-01-12 | M14 Complete | Property tests, fuzz testing, integration tests, E2E tests |
@@ -688,7 +792,8 @@ FormDB is in pre-1.0 development. APIs, formats, and interfaces may change witho
 
 ## Links
 
-[Unreleased]: https://github.com/hyperpolymath/formdb/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/hyperpolymath/formdb/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/hyperpolymath/formdb/compare/v0.0.10...v1.0.0
 [0.0.10]: https://github.com/hyperpolymath/formdb/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/hyperpolymath/formdb/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/hyperpolymath/formdb/compare/v0.0.7...v0.0.8

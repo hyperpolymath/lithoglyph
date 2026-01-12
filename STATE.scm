@@ -3,7 +3,7 @@
 
 (state
   (metadata
-    (version "0.0.10")
+    (version "1.0.0")
     (schema-version "1.0")
     (created "2026-01-03")
     (updated "2026-01-12")
@@ -273,4 +273,17 @@
         "Built graceful shutdown coordinator"
         "Built production readiness checker"
         "Comprehensive stability documentation"
-        "Milestone M16 (Final Stabilization) complete"))))
+        "Milestone M16 (Final Stabilization) complete"))
+    (snapshot (date "2026-01-12") (session "v1-production-release")
+      (accomplishments
+        "First production release of FormDB"
+        "All 16 milestones complete (M1-M16)"
+        "Full specification suite (blocks, journal, encoding, FDQL)"
+        "Core implementation (Forth/Factor/Zig)"
+        "Multi-protocol API (REST, gRPC, GraphQL, WebSocket)"
+        "Client libraries (ReScript, PHP)"
+        "CMS integrations (Strapi, Directus, Ghost, Payload)"
+        "Comprehensive testing (property, fuzz, integration, E2E)"
+        "Performance optimization (cache, pool, batch, metrics)"
+        "Production stability (config, health, shutdown, readiness)"
+        "v1.0.0 Production Release"))))
