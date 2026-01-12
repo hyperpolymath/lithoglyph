@@ -393,62 +393,64 @@ DEFER: parse-statement
 GENERIC: execute-fdql ( ast -- result )
 
 M: fdql-insert execute-fdql
-    [
-        H{
-            { "status" "ok" }
-            { "document_id" "doc_generated" }
-        }
-    ] [ collection>> ] bi
-    "collection" pick set-at ;
+    collection>>                     ! ( collection )
+    H{
+        { "status" "ok" }
+        { "document_id" "doc_generated" }
+    } clone                          ! ( collection result )
+    [ "collection" ] dip             ! ( collection "collection" result )
+    [ set-at ] keep ;                ! ( result )
 
 M: fdql-select execute-fdql
-    [
-        H{
-            { "status" "ok" }
-            { "rows" { } }
-            { "count" 0 }
-        }
-    ] [ collection>> ] bi
-    "collection" pick set-at ;
+    collection>>                     ! ( collection )
+    H{
+        { "status" "ok" }
+        { "rows" { } }
+        { "count" 0 }
+    } clone                          ! ( collection result )
+    [ "collection" ] dip             ! ( collection "collection" result )
+    [ set-at ] keep ;                ! ( result )
 
 M: fdql-update execute-fdql
+    drop
     H{
         { "status" "ok" }
         { "modified_count" 0 }
     } ;
 
 M: fdql-delete execute-fdql
+    drop
     H{
         { "status" "ok" }
         { "deleted_count" 0 }
     } ;
 
 M: fdql-create execute-fdql
-    [
-        H{
-            { "status" "ok" }
-            { "schema_version" 1 }
-        }
-    ] [ collection>> ] bi
-    "collection" pick set-at ;
+    collection>>                     ! ( collection )
+    H{
+        { "status" "ok" }
+        { "schema_version" 1 }
+    } clone                          ! ( collection result )
+    [ "collection" ] dip             ! ( collection "collection" result )
+    [ set-at ] keep ;                ! ( result )
 
 M: fdql-drop execute-fdql
+    drop
     H{
         { "status" "ok" }
     } ;
 
 M: fdql-explain execute-fdql
-    inner-stmt>> execute-fdql
-    [
-        H{
-            { "status" "ok" }
-            { "plan" H{
-                { "type" "SCAN" }
-                { "estimated_rows" 0 }
-            } }
-        }
-    ] dip
-    "result" pick set-at ;
+    inner-stmt>> execute-fdql        ! ( inner-result )
+    H{
+        { "status" "ok" }
+        { "plan" H{
+            { "type" "SCAN" }
+            { "estimated_rows" 0 }
+        } }
+    } clone                          ! ( inner-result result )
+    [ "result" ] dip                 ! ( inner-result "result" result )
+    [ set-at ] keep ;                ! ( result )
 
 M: fdql-introspect execute-fdql
     target>> {
