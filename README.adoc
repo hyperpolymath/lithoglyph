@@ -1,7 +1,9 @@
 = FormDB
 
-image:https://img.shields.io/badge/License-PMPL_1.0-blue.svg[PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
-image:https://img.shields.io/badge/Philosophy-Palimpsest-purple.svg[Palimpsest,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:[License,link="https://github.com/hyperpolymath/palimpsest-license"]
+
+// SPDX-License-Identifier: PMPL-1.0
+// SPDX-FileCopyrightText: 2025 hyperpolymath
 
 :toc: macro
 :toc-title: Contents
@@ -11,9 +13,6 @@ image:https://img.shields.io/badge/Philosophy-Palimpsest-purple.svg[Palimpsest,l
 
 [.lead]
 *The database where the database is part of the story.*
-
-image:https://img.shields.io/badge/version-0.0.1-blue[Version]
-image:https://img.shields.io/badge/stage-conceptual%20%2B%20PoC-orange[Stage]
 
 toc::[]
 
