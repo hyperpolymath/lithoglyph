@@ -151,4 +151,14 @@
         "Created test suite for Form.Blocks (17/17 tests passing)"
         "Fixed FQL parser consume-token stack effect"
         "Fixed Lean FunDep.lean (List.join -> List.flatten)"
-        "Added working justfile recipes (test-forth, check-forth, check-lean)"))))
+        "Added working justfile recipes (test-forth, check-forth, check-lean)"))
+    (snapshot (date "2026-01-12") (session "fdql-parser-fixes")
+      (accomplishments
+        "Renamed FQL to FDQL (FormDB Query Language) throughout codebase"
+        "Renamed directory core-factor/fql to core-factor/fdql"
+        "Fixed peek-token if-empty branch stack effects"
+        "Fixed expect-token stack manipulation (was dropping too many items)"
+        "Fixed try-consume branch effects to match properly"
+        "Fixed argument ordering in :: functions (tokens before keywords)"
+        "All 10 FDQL statement types now parse correctly"
+        "SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, EXPLAIN, INTROSPECT all working"))))
