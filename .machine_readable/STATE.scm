@@ -48,7 +48,7 @@
       (api-openapi 100 "OpenAPI 3.1 specification complete")
       (api-protobuf 100 "Protocol Buffer definitions complete")
       (api-graphql 100 "GraphQL SDL schema complete")
-      (api-server 80 "Zig HTTP server with REST/gRPC/GraphQL handlers"))
+      (api-server 95 "Zig HTTP server with Form.Bridge FFI wiring"))
     (working-features
       "Block read/write with CRC32C"
       "Append-only journal with sequence numbers"
@@ -71,7 +71,8 @@
       "gRPC API with Protocol Buffers"
       "GraphQL API with SDL schema"
       "Prometheus metrics endpoint"
-      "JWT and API key authentication"))
+      "JWT and API key authentication"
+      "REST handlers wired to Form.Bridge FFI"))
 
   (route-to-mvp
     (milestones
@@ -82,14 +83,13 @@
       (m8 "Form.Runtime (FQL Engine)" 100 "v0.0.4" "2026-01-12")
       (m9 "Form.Normalizer" 100 "v0.0.4" "2026-01-12")
       (m10 "Production Hardening" 100 "v0.0.4" "2026-01-12")
-      (m11 "Multi-Protocol API Server" 80 "v0.0.5" "in-progress")))
+      (m11 "Multi-Protocol API Server" 95 "v0.0.5" "in-progress")))
 
   (blockers-and-issues
     (critical)
     (high)
     (medium)
     (low
-      "HTTP API server not yet implemented (M11)"
       "Language bindings pending (M12)"))
 
   (ecosystem-alignment
@@ -108,18 +108,28 @@
 
   (critical-next-actions
     (immediate
-      "Wire REST handlers to Form.Bridge FFI"
-      "Complete gRPC protobuf serialization")
+      "Complete gRPC protobuf serialization"
+      "Integration test API with real queries")
     (this-week
-      "Integration test API with real queries"
       "Add WebSocket support for GraphQL subscriptions"
       "Tag and release v0.0.5")
     (this-month
-      "Begin M12 language bindings (ReScript)")
+      "Begin M12 language bindings (ReScript)"
       "PHP client library"
       "Performance optimization"))
 
   (session-history
+    (session
+      (date "2026-01-12")
+      (name "m11-bridge-wiring")
+      (accomplishments
+        "Created bridge_client.zig module for Form.Bridge FFI integration"
+        "Wired REST handlers to bridge_client (query, collections, health)"
+        "Updated GraphQL health query to use bridge_client"
+        "Added FFI type definitions matching core-zig/src/bridge.zig"
+        "Implemented CBOR encoding for FDQL operations"
+        "Added graceful degraded mode when bridge unavailable"
+        "Updated M11 completion to 95%"))
     (session
       (date "2026-01-12")
       (name "m11-api-server")

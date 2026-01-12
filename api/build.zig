@@ -52,6 +52,7 @@ pub fn build(b: *std.Build) void {
         "src/graphql.zig",
         "src/metrics.zig",
         "src/auth.zig",
+        "src/bridge_client.zig",
     };
 
     for (modules) |mod| {

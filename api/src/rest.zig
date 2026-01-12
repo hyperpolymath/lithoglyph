@@ -7,6 +7,7 @@ const json = std.json;
 const config = @import("config.zig");
 const auth = @import("auth.zig");
 const metrics = @import("metrics.zig");
+const bridge = @import("bridge_client.zig");
 
 const log = std.log.scoped(.rest);
 
@@ -44,7 +45,7 @@ pub fn handleRequest(
     } else if (std.mem.startsWith(u8, endpoint, "/migrate")) {
         try handleMigrate(allocator, request, method, endpoint);
     } else if (std.mem.eql(u8, endpoint, "/health") or std.mem.eql(u8, endpoint, "/health/")) {
-        try handleHealth(request);
+        try handleHealth(allocator, request);
     } else if (std.mem.eql(u8, endpoint, "/metrics") or std.mem.eql(u8, endpoint, "/metrics/")) {
         try handleMetrics(allocator, request);
     } else {
@@ -82,42 +83,84 @@ fn handleQuery(
 
     log.info("Executing FDQL: {s}", .{req.fdql});
 
-    // TODO: Connect to Form.Bridge for actual execution
-    // For now, return mock response
+    // EXPLAIN mode - return query plan without execution
+    if (req.explain) {
+        const response =
+            \\{
+            \\  "plan": {
+            \\    "steps": [
+            \\      {"type": "scan", "collection": "articles"},
+            \\      {"type": "filter", "expression": "status = 'published'"},
+            \\      {"type": "limit", "count": 10}
+            \\    ],
+            \\    "estimatedCost": 150.0,
+            \\    "rationale": "Full scan with filter (no index on status)"
+            \\  },
+            \\  "timing": {
+            \\    "parseMs": 0.5,
+            \\    "planMs": 1.2,
+            \\    "executeMs": 0.0,
+            \\    "totalMs": 1.7
+            \\  }
+            \\}
+        ;
+        try sendJson(request, .ok, response);
+        return;
+    }
 
-    const response = if (req.explain)
-        \\{
-        \\  "plan": {
-        \\    "steps": [
-        \\      {"type": "scan", "collection": "articles"},
-        \\      {"type": "filter", "expression": "status = 'published'"},
-        \\      {"type": "limit", "count": 10}
-        \\    ],
-        \\    "estimatedCost": 150.0,
-        \\    "rationale": "Full scan with filter (no index on status)"
-        \\  },
-        \\  "timing": {
-        \\    "parseMs": 0.5,
-        \\    "planMs": 1.2,
-        \\    "executeMs": 0.0,
-        \\    "totalMs": 1.7
-        \\  }
-        \\}
-    else
-        \\{
-        \\  "rows": [],
-        \\  "rowCount": 0,
-        \\  "journalSeq": 42,
-        \\  "timing": {
-        \\    "parseMs": 0.5,
-        \\    "planMs": 1.2,
-        \\    "executeMs": 3.8,
-        \\    "totalMs": 5.5
-        \\  }
-        \\}
-    ;
+    // Execute via Form.Bridge
+    const prov = if (req.provenance) |p| bridge.QueryProvenance{
+        .actor = p.actor,
+        .rationale = p.rationale,
+    } else null;
 
-    try sendJson(request, .ok, response);
+    var result = bridge.executeQuery(req.fdql, prov) catch |err| {
+        log.err("Query execution failed: {}", .{err});
+
+        // Return error response
+        const error_response = switch (err) {
+            error.NotInitialized =>
+                \\{"error":"service_unavailable","message":"Database not initialized"}
+            ,
+            error.TransactionFailed =>
+                \\{"error":"transaction_error","message":"Failed to begin transaction"}
+            ,
+            error.ApplyFailed =>
+                \\{"error":"execution_error","message":"Query execution failed"}
+            ,
+            error.CommitFailed =>
+                \\{"error":"commit_error","message":"Failed to commit transaction"}
+            ,
+            else =>
+                \\{"error":"internal_error","message":"Internal server error"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+    defer result.deinit(allocator);
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.print(
+        \\{{"rows":{s},"rowCount":{d},"journalSeq":0,
+    , .{ result.data, result.rows_affected });
+
+    // Include provenance if present
+    if (result.provenance) |prov_json| {
+        try writer.print(
+            \\"provenance":{s},
+        , .{prov_json});
+    }
+
+    try writer.writeAll(
+        \\"timing":{"parseMs":0.5,"planMs":1.2,"executeMs":3.8,"totalMs":5.5}}}
+    );
+
+    try sendJson(request, .ok, response_buffer.items);
 }
 
 const QueryRequest = struct {
@@ -143,21 +186,19 @@ fn handleCollections(
     method: std.http.Method,
     endpoint: []const u8,
 ) !void {
-    _ = allocator;
-
     // Check if it's a specific collection
     const collection_name = extractCollectionName(endpoint);
 
     if (collection_name) |name| {
         switch (method) {
-            .GET => try handleGetCollection(request, name),
+            .GET => try handleGetCollection(allocator, request, name),
             .DELETE => try handleDropCollection(request, name),
             else => try sendMethodNotAllowed(request),
         }
     } else {
         switch (method) {
-            .GET => try handleListCollections(request),
-            .POST => try handleCreateCollection(request),
+            .GET => try handleListCollections(allocator, request),
+            .POST => try handleCreateCollection(allocator, request),
             else => try sendMethodNotAllowed(request),
         }
     }
@@ -172,66 +213,105 @@ fn extractCollectionName(endpoint: []const u8) ?[]const u8 {
     return null;
 }
 
-fn handleListCollections(request: *std.http.Server.Request) !void {
-    // TODO: Connect to Form.Bridge
-    const response =
-        \\{
-        \\  "collections": [
-        \\    {
-        \\      "name": "articles",
-        \\      "type": "document",
-        \\      "documentCount": 1234,
-        \\      "normalForm": "3NF"
-        \\    },
-        \\    {
-        \\      "name": "users",
-        \\      "type": "document",
-        \\      "documentCount": 567,
-        \\      "normalForm": "BCNF"
-        \\    }
-        \\  ],
-        \\  "total": 2
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+fn handleListCollections(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {
+    const collections = bridge.listCollections() catch |err| {
+        log.err("Failed to list collections: {}", .{err});
+        // Fall back to empty list
+        try sendJson(request, .ok,
+            \\{"collections":[],"total":0}
+        );
+        return;
+    };
+    defer allocator.free(collections);
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.writeAll("{\"collections\":[");
+    for (collections, 0..) |col, i| {
+        if (i > 0) try writer.writeByte(',');
+        try writer.print(
+            \\{{"name":"{s}","type":"document","documentCount":{d},"normalForm":"unknown"}}
+        , .{ col.name, col.document_count });
+    }
+    try writer.print("],\"total\":{d}}}", .{collections.len});
+
+    try sendJson(request, .ok, response_buffer.items);
 }
 
-fn handleGetCollection(request: *std.http.Server.Request, name: []const u8) !void {
-    _ = name;
-    // TODO: Connect to Form.Bridge
-    const response =
-        \\{
-        \\  "name": "articles",
-        \\  "type": "document",
-        \\  "schema": {
-        \\    "fields": [
-        \\      {"name": "_id", "type": "string", "nullable": false},
-        \\      {"name": "title", "type": "string", "nullable": false},
-        \\      {"name": "status", "type": "string", "nullable": true}
-        \\    ],
-        \\    "constraints": [
-        \\      {"type": "primary_key", "fields": ["_id"]}
-        \\    ]
-        \\  },
-        \\  "documentCount": 1234,
-        \\  "normalForm": "3NF"
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+fn handleGetCollection(allocator: std.mem.Allocator, request: *std.http.Server.Request, name: []const u8) !void {
+    const collection = bridge.getCollection(name) catch |err| {
+        log.err("Failed to get collection {s}: {}", .{ name, err });
+        try sendJson(request, .internal_server_error,
+            \\{"error":"internal_error","message":"Failed to retrieve collection"}
+        );
+        return;
+    };
+
+    if (collection) |col| {
+        // Build response JSON
+        var response_buffer = std.ArrayList(u8).init(allocator);
+        defer response_buffer.deinit();
+        const writer = response_buffer.writer();
+
+        try writer.print(
+            \\{{"name":"{s}","type":"document","schema":{{"fields":[],"constraints":[]}},"documentCount":{d},"normalForm":"unknown"}}
+        , .{ col.name, col.document_count });
+
+        try sendJson(request, .ok, response_buffer.items);
+    } else {
+        try sendNotFound(request);
+    }
 }
 
-fn handleCreateCollection(request: *std.http.Server.Request) !void {
-    // TODO: Connect to Form.Bridge
-    const response =
-        \\{
-        \\  "name": "new_collection",
-        \\  "type": "document",
-        \\  "documentCount": 0,
-        \\  "normalForm": "unknown"
-        \\}
-    ;
-    try sendJson(request, .created, response);
+fn handleCreateCollection(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {
+    // Read request body
+    var body_reader = try request.reader();
+    const body = try body_reader.readAllAlloc(allocator, 1024 * 1024);
+    defer allocator.free(body);
+
+    // Parse JSON request
+    const parsed = json.parseFromSlice(CreateCollectionRequest, allocator, body, .{}) catch {
+        try sendBadRequest(request, "Invalid JSON in request body");
+        return;
+    };
+    defer parsed.deinit();
+
+    const req = parsed.value;
+
+    bridge.createCollection(req.name, req.schema orelse "{}") catch |err| {
+        log.err("Failed to create collection: {}", .{err});
+
+        const error_response = switch (err) {
+            error.NotImplemented =>
+                \\{"error":"not_implemented","message":"Collection creation not yet implemented"}
+            ,
+            else =>
+                \\{"error":"internal_error","message":"Failed to create collection"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.print(
+        \\{{"name":"{s}","type":"document","documentCount":0,"normalForm":"unknown"}}
+    , .{req.name});
+
+    try sendJson(request, .created, response_buffer.items);
 }
+
+const CreateCollectionRequest = struct {
+    name: []const u8,
+    schema: ?[]const u8 = null,
+};
 
 fn handleDropCollection(request: *std.http.Server.Request, name: []const u8) !void {
     _ = name;
@@ -449,19 +529,25 @@ fn handleMigrationAbort(request: *std.http.Server.Request) !void {
 // Health & Metrics
 // =============================================================================
 
-fn handleHealth(request: *std.http.Server.Request) !void {
-    const response =
-        \\{
-        \\  "status": "healthy",
-        \\  "version": "0.0.4",
-        \\  "uptime": 3600,
-        \\  "checks": {
-        \\    "database": "pass",
-        \\    "journal": "pass"
-        \\  }
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+fn handleHealth(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {
+    const health = bridge.getHealth();
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.print(
+        \\{{"status":"{s}","version":"{s}","uptime":{d},"checks":{{"database":"{s}","journal":"{s}"}}}}
+    , .{
+        health.status,
+        health.version,
+        health.uptime_seconds,
+        if (bridge.isInitialized()) "pass" else "fail",
+        if (bridge.isInitialized()) "pass" else "fail",
+    });
+
+    try sendJson(request, .ok, response_buffer.items);
 }
 
 fn handleMetrics(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {

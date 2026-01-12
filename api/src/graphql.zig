@@ -7,6 +7,7 @@
 const std = @import("std");
 const json = std.json;
 const config = @import("config.zig");
+const bridge = @import("bridge_client.zig");
 
 const log = std.log.scoped(.graphql);
 
@@ -157,17 +158,20 @@ fn executeQueryOperation(allocator: std.mem.Allocator, query: []const u8) ![]con
             \\}
         );
     } else if (std.mem.indexOf(u8, query, "health") != null) {
-        return try allocator.dupe(u8,
-            \\{
-            \\  "data": {
-            \\    "health": {
-            \\      "status": "HEALTHY",
-            \\      "version": "0.0.4",
-            \\      "uptimeSeconds": 3600
-            \\    }
-            \\  }
-            \\}
-        );
+        const health = bridge.getHealth();
+        var response_buffer = std.ArrayList(u8).init(allocator);
+        errdefer response_buffer.deinit();
+        const writer = response_buffer.writer();
+
+        try writer.print(
+            \\{{"data":{{"health":{{"status":"{s}","version":"{s}","uptimeSeconds":{d}}}}}}}
+        , .{
+            if (std.mem.eql(u8, health.status, "healthy")) "HEALTHY" else "DEGRADED",
+            health.version,
+            health.uptime_seconds,
+        });
+
+        return try response_buffer.toOwnedSlice();
     } else if (std.mem.indexOf(u8, query, "query(") != null or
         std.mem.indexOf(u8, query, "query (") != null)
     {

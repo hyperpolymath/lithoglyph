@@ -11,6 +11,7 @@ const grpc = @import("grpc.zig");
 const graphql = @import("graphql.zig");
 const metrics = @import("metrics.zig");
 const auth = @import("auth.zig");
+const bridge_client = @import("bridge_client.zig");
 
 pub const std_options = struct {
     pub const log_level: std.log.Level = .info;
@@ -37,6 +38,12 @@ pub fn main() !void {
     // Initialize authentication
     try auth.init(allocator, cfg);
     defer auth.deinit();
+
+    // Initialize Form.Bridge connection
+    bridge_client.init(allocator, cfg) catch |err| {
+        log.warn("Failed to initialize bridge client: {} - running in degraded mode", .{err});
+    };
+    defer bridge_client.deinit();
 
     // Create HTTP server
     var server = std.http.Server.init(allocator, .{
