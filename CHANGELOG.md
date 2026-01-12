@@ -9,6 +9,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.0.6] - 2026-01-12
+
+Language Bindings milestone: **M12 Complete**
+
+This release completes Milestone M12, delivering official client libraries for ReScript and PHP.
+
+### Added
+
+#### Client Libraries
+
+- **ReScript Client** (`clients/rescript/`)
+  - Type-safe client for Deno runtime
+  - Full type definitions: Provenance, QueryResult, Collection, JournalEntry
+  - Fluent query builder with type-safe WHERE clauses
+  - Filter expressions: Field, And, Or, Not
+  - Support for all FDQL operations (SELECT, INSERT, UPDATE, DELETE)
+  - Collection management (list, create, delete)
+  - Journal access with filtering
+  - Normalization operations (discover dependencies, analyze normal form)
+  - Migration operations (start, commit)
+  - Health check endpoint
+  - Environment-based configuration (FORMDB_URL, FORMDB_API_KEY)
+  - API key and Bearer token authentication
+
+- **PHP Client** (`clients/php/`)
+  - PSR-18 HTTP client compatible
+  - PHP 8.1+ with strict types
+  - Full type definitions as final readonly classes
+  - Enums: CollectionType, JournalOperation, NormalForm, ConfidenceLevel, MigrationPhase, HealthStatus
+  - Fluent query builders: QueryBuilder, InsertBuilder, UpdateBuilder, DeleteBuilder
+  - Filter classes: FieldFilter, AndFilter, OrFilter, NotFilter with CompareOp enum
+  - All comparison operators: =, !=, <, <=, >, >=, LIKE, IN
+  - Framework integration examples: Laravel, Symfony
+  - FormDBException with error codes and details
+  - Environment-based configuration
+
+#### SDK Generator (`tools/sdk-gen/`)
+
+- API specification in ReScript (`ApiSpec.res`)
+  - Full FormDB REST API model
+  - Type definitions, endpoints, parameters
+  - HTTP methods, request/response types
+
+- Code generators
+  - `ReScriptGen.res` - Generate ReScript client code
+  - `PhpGen.res` - Generate PHP client code
+
+- CLI entry point (`Main.res`)
+  - `deno task gen:rescript` - Generate ReScript SDK
+  - `deno task gen:php` - Generate PHP SDK
+
+#### Documentation
+
+- `clients/README.md` - Comprehensive client library documentation
+  - Quick start examples for both languages
+  - Query builder usage patterns
+  - Filter expression examples
+  - Authentication configuration
+  - Error handling patterns
+
+### Changed
+
+- STATE.scm updated to M12 100% completion
+- Tech stack now includes "clients" section with ReScript and PHP
+
+---
+
 ## [0.0.5] - 2026-01-12
 
 Multi-Protocol API Server milestone: **M11 Complete**
@@ -367,6 +434,7 @@ Initial release: **Repository Initialization**
 
 | Version | Date | Milestone | Key Features |
 |---------|------|-----------|--------------|
+| 0.0.6 | 2026-01-12 | M12 Complete | ReScript client, PHP client, SDK generator |
 | 0.0.5 | 2026-01-12 | M11 Complete | Multi-protocol API server, WebSocket subscriptions |
 | 0.0.4 | 2026-01-12 | M8-M10 Complete | Query engine, normalizer, production hardening |
 | 0.0.3 | 2026-01-12 | M7 Complete | Complete documentation suite, PMPL-1.0 license |
@@ -391,7 +459,8 @@ FormDB is in pre-1.0 development. APIs, formats, and interfaces may change witho
 
 ## Links
 
-[Unreleased]: https://github.com/hyperpolymath/formdb/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/hyperpolymath/formdb/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/hyperpolymath/formdb/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/hyperpolymath/formdb/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/hyperpolymath/formdb/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/hyperpolymath/formdb/compare/v0.0.2...v0.0.3

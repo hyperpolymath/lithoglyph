@@ -4,7 +4,7 @@
 
 (state
   (metadata
-    (version "0.0.5")
+    (version "0.0.6")
     (schema-version "1.0")
     (created "2026-01-03")
     (updated "2026-01-12")
@@ -17,10 +17,11 @@
     (tech-stack
       (primary "Forth" "Factor" "Zig")
       (specifications "AsciiDoc" "EBNF" "Lean4")
+      (clients "ReScript" "PHP")
       (future "Gleam" "Elixir/OTP")))
 
   (current-position
-    (phase "M11: Multi-Protocol API Server")
+    (phase "M12: Language Bindings")
     (overall-completion 100)
     (components
       (spec-fql 100 "FQL language specification complete")
@@ -50,7 +51,10 @@
       (api-graphql 100 "GraphQL SDL schema complete")
       (api-server 100 "Zig HTTP server with Form.Bridge FFI complete")
       (api-websocket 100 "WebSocket for GraphQL subscriptions complete")
-      (api-integration-tests 100 "Integration tests for all protocols complete"))
+      (api-integration-tests 100 "Integration tests for all protocols complete")
+      (client-rescript 100 "ReScript client library complete")
+      (client-php 100 "PHP client library complete")
+      (sdk-generator 100 "SDK code generator complete"))
     (working-features
       "Block read/write with CRC32C"
       "Append-only journal with sequence numbers"
@@ -78,7 +82,10 @@
       "gRPC handlers with full protobuf serialization"
       "WebSocket support for GraphQL subscriptions"
       "graphql-ws protocol implementation"
-      "Integration tests for all API protocols"))
+      "Integration tests for all API protocols"
+      "ReScript client with fluent query builder"
+      "PHP client with PSR-18 HTTP interface"
+      "SDK code generator for ReScript and PHP"))
 
   (route-to-mvp
     (milestones
@@ -89,14 +96,15 @@
       (m8 "Form.Runtime (FQL Engine)" 100 "v0.0.4" "2026-01-12")
       (m9 "Form.Normalizer" 100 "v0.0.4" "2026-01-12")
       (m10 "Production Hardening" 100 "v0.0.4" "2026-01-12")
-      (m11 "Multi-Protocol API Server" 100 "v0.0.5" "2026-01-12")))
+      (m11 "Multi-Protocol API Server" 100 "v0.0.5" "2026-01-12")
+      (m12 "Language Bindings" 100 "v0.0.6" "2026-01-12")))
 
   (blockers-and-issues
     (critical)
     (high)
     (medium)
     (low
-      "Language bindings pending (M12)"))
+      "CMS integration pending (M13)"))
 
   (ecosystem-alignment
     (fdql-dt
@@ -114,18 +122,34 @@
 
   (critical-next-actions
     (immediate
-      "Begin M12 language bindings (ReScript)"
-      "Create client SDK generator")
+      "Begin M13 CMS integrations"
+      "Strapi plugin development")
     (this-week
-      "ReScript client library"
-      "PHP client library"
-      "TypeScript types generation")
+      "Directus extension"
+      "Ghost integration"
+      "Payload CMS adapter")
     (this-month
-      "Performance optimization"
-      "Clustering preparation (Form.ControlPlane)"
+      "Form.ControlPlane clustering"
       "Path to 1.0.0 planning"))
 
   (session-history
+    (session
+      (date "2026-01-12")
+      (name "m12-complete-v0.0.6")
+      (accomplishments
+        "Created ReScript client library with fluent query builder"
+        "ReScript types: Provenance, QueryResult, Collection, JournalEntry"
+        "ReScript filter expressions: Field, And, Or, Not"
+        "Created PHP client library with PSR-18 HTTP interface"
+        "PHP types: Provenance, Collection, QueryResult, JournalEntry"
+        "PHP query builders: QueryBuilder, InsertBuilder, UpdateBuilder, DeleteBuilder"
+        "PHP filter classes: FieldFilter, AndFilter, OrFilter, NotFilter"
+        "PHP framework examples: Laravel, Symfony integration"
+        "Created SDK generator tool in ReScript"
+        "SDK generator with API specification and code generators"
+        "Comprehensive client documentation in clients/README.md"
+        "Updated STATE.scm for M12 completion"
+        "Updated CHANGELOG.md for v0.0.6"))
     (session
       (date "2026-01-12")
       (name "m11-complete-v0.0.5")

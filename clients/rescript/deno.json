@@ -1,0 +1,17 @@
+{
+  "name": "@formdb/rescript",
+  "version": "0.0.6",
+  "exports": "./src/FormDB.res.js",
+  "tasks": {
+    "build": "rescript build",
+    "clean": "rescript clean",
+    "dev": "rescript build -w",
+    "test": "deno test --allow-net tests/"
+  },
+  "imports": {
+    "@rescript/core": "npm:@rescript/core@^1.0.0"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom"]
+  }
+}
