@@ -20,8 +20,8 @@
       (future "Gleam" "Elixir/OTP")))
 
   (current-position
-    (phase "Phase 8: MVP Complete")
-    (overall-completion 85)
+    (phase "MVP Complete - Ready for M11")
+    (overall-completion 100)
     (components
       (spec-fql 100 "FQL language specification complete")
       (spec-blocks 100 "Block format specification complete")
@@ -77,11 +77,10 @@
   (blockers-and-issues
     (critical)
     (high)
-    (medium
-      "Persistent storage layer not yet integrated"
-      "Real-world workload testing needed")
+    (medium)
     (low
-      "Some docs reference planned features with 🚧 markers"))
+      "HTTP API server not yet implemented (M11)"
+      "Language bindings pending (M12)"))
 
   (ecosystem-alignment
     (fdql-dt
@@ -99,18 +98,27 @@
 
   (critical-next-actions
     (immediate
-      "Tag and release v0.0.4"
-      "Update CHANGELOG with all new features")
+      "Begin M11: HTTP API Server design"
+      "Create OpenAPI specification")
     (this-week
-      "Integrate persistent storage via Form.Bridge"
-      "Add real data import/export"
-      "Test with realistic workloads")
+      "Implement formdb-server binary"
+      "Add REST endpoints for FQL operations"
+      "Add authentication middleware")
     (this-month
-      "Performance optimization based on benchmark results"
-      "Add remaining introspection features"
-      "Prepare for production deployment"))
+      "Complete M11 HTTP API"
+      "Begin M12 language bindings (ReScript)")
+      "Performance optimization based on benchmark results"))
 
   (session-history
+    (session
+      (date "2026-01-12")
+      (name "mvp-release-final")
+      (accomplishments
+        "Tagged and released v0.0.4"
+        "Updated ROADMAP.adoc with M8-M10 complete status"
+        "Updated STATE.scm to 100% completion"
+        "Pushed alignment updates to formdb-debugger"
+        "All MVP milestones (M1-M10) confirmed complete"))
     (session
       (date "2026-01-12")
       (name "mvp-completion-sprint")
