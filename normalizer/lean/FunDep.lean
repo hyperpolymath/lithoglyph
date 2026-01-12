@@ -60,7 +60,7 @@ def isProperSubsetOfKey (s : Schema) (attrs : List Attribute) : Bool :=
 
 /-- Get prime attributes (attributes that are part of any candidate key) -/
 def primeAttributes (s : Schema) : List Attribute :=
-  s.candidateKeys.join.eraseDups
+  s.candidateKeys.flatten.eraseDups
 
 /-! # Normal Form Predicates -/
 
