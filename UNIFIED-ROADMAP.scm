@@ -7,12 +7,14 @@
 ; - fbql-dt (dependently-typed query language)
 ; - formbd-studio (GUI)
 ; - formbd-debugger (recovery tool)
+; - formbd-geo (geospatial projection layer)
+; - formbd-analytics (OLAP analytics projection layer)
 
 (unified-roadmap
   (metadata
-    (version "1.0.0")
+    (version "1.1.0")
     (created "2026-01-12")
-    (updated "2026-01-12")
+    (updated "2026-01-16")
     (author "hyperpolymath")
     (target "MVP 1.0.0"))
 
@@ -40,7 +42,17 @@
         (version "0.1.0")
         (completion 55)
         (role "Proof-carrying recovery tool")
-        (tech "Lean 4 + Idris 2 + Rust")))
+        (tech "Lean 4 + Idris 2 + Rust"))
+      (formbd-geo
+        (version "0.1.0")
+        (completion 15)
+        (role "Geospatial projection layer")
+        (tech "Rust (rstar, axum, geo)"))
+      (formbd-analytics
+        (version "0.1.0")
+        (completion 15)
+        (role "OLAP analytics projection layer")
+        (tech "Julia (DataFrames, Parquet2, Oxygen)")))
 
     (architecture
       "┌─────────────────────────────────────────────────────────────┐"
@@ -59,6 +71,9 @@
       "│  FormBD Debugger (alongside)                                │"
       "│    ↓ proves recovery safe                                   │"
       "│  FormBD + FQLdt                                             │"
+      "├─────────────────────────────────────────────────────────────┤"
+      "│  Projection Layers (read from FormBD HTTP API)              │"
+      "│    formbd-geo (R-tree spatial)  formbd-analytics (OLAP)     │"
       "└─────────────────────────────────────────────────────────────┘"))
 
   ;; ============================================================================
@@ -98,7 +113,13 @@
         (task "Complete Ratatui TUI interface" priority: medium status: in-progress)
         (task "Integration: proof verification before recovery" priority: medium status: pending))
 
-      (checkpoint "Users can create schemas in Studio, debug with Debugger"))
+      (projection-layer-tasks
+        (task "formbd-geo: Integration test with real FormBD" priority: high status: pending)
+        (task "formbd-geo: Docker deployment" priority: medium status: pending)
+        (task "formbd-analytics: Integration test with real FormBD" priority: high status: pending)
+        (task "formbd-analytics: PROMPT score dashboard endpoints" priority: medium status: pending))
+
+      (checkpoint "Users can create schemas in Studio, debug with Debugger, query spatial/analytics"))
 
     (phase (id "P3") (name "Production Hardening")
       (duration "weeks 11-12")
@@ -142,7 +163,19 @@
     (debugger-repl-db
       (name "Debugger REPL Database Connection")
       (blocks "Real debugging")
-      (priority high)))
+      (priority high))
+
+    (formbd-geo-integration
+      (name "formbd-geo FormBD Integration")
+      (depends-on "formbd-m11")
+      (blocks "Spatial queries in Studio")
+      (priority medium))
+
+    (formbd-analytics-integration
+      (name "formbd-analytics FormBD Integration")
+      (depends-on "formbd-m11")
+      (blocks "Analytics dashboards in Studio")
+      (priority medium)))
 
   ;; ============================================================================
   ;; UNRESOLVED DECISIONS
@@ -176,7 +209,9 @@
         "Form.Normalizer full integration (FD discovery → decomposition)"
         "Three-phase migration workflow (Announce/Shadow/Commit)"
         "Studio: visual normalization wizard"
-        "Debugger: migration rollback proofs"))
+        "Debugger: migration rollback proofs"
+        "formbd-geo: Polygon and region queries"
+        "formbd-analytics: Time-series dashboards in Studio"))
 
     (release (version "1.2.0") (name "Multi-Database Support")
       (features
@@ -207,5 +242,7 @@
       "All ReScript code compiles without warnings"
       "All Rust code passes Clippy lints"
       "All Lean 4 code builds with lake"
+      "All Julia code passes tests"
       "Cross-platform builds succeed (Mac/Windows/Linux)"
-      "Integration tests pass end-to-end")))
+      "Integration tests pass end-to-end"
+      "Projection layers can sync from FormBD HTTP API")))
