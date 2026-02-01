@@ -22,6 +22,7 @@ Development phases from concept to production.
 | M12 | Language Bindings (ReScript, PHP) | v0.0.6 | 🚧 Next
 | M13 | CMS Integration (WordPress) | v0.0.7 | 📋 Planned
 | M14 | Form.ControlPlane (Clustering) | v0.1.0 | 📋 Planned
+| M14.5 | Final Naming and Branding | v0.9.0 | 📋 Planned
 | M15 | 1.0.0 Release Candidate | v1.0.0-rc | 📋 Planned
 |===
 
@@ -407,13 +408,14 @@ These may be addressed post-PoC based on community needs.
 | v0.0.7 | M13 | CMS integration (WordPress)
 | v0.1.0 | M14 | Form.ControlPlane (clustering, supervision)
 | v0.2.0 | - | Distribution (multi-node replication)
+| v0.9.0 | M14.5 | Final Naming and Branding (replace "FormBD" temporary name)
 | v1.0.0-rc | M15 | Release candidate (stability, testing)
 | v1.0.0 | GA | General availability
 |===
 
 === 1.0.0 Requirements
 
-* [ ] All M1-M14 milestones complete
+* [ ] All M1-M14.5 milestones complete
 * [ ] Six months of stability (no breaking changes)
 * [ ] Production deployments validated
 * [ ] Security audit completed

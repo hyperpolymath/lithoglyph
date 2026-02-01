@@ -1,10 +1,11 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; ECOSYSTEM.scm - Ecosystem position for FormDB
+;; ECOSYSTEM.scm - Ecosystem position for FormBD
 ;; Media-Type: application/vnd.ecosystem+scm
 
 (ecosystem
   (version "1.0")
-  (name "FormDB")
+  (name "FormBD")
+  (naming-note "Temporary name - 'FormDB' is Google-owned trademark. Final name TBD before v1.0.0")
   (type "database-engine")
   (purpose "Narrative-first, reversible, audit-grade database for domains
             where provenance, auditability, and human understanding matter
@@ -21,78 +22,114 @@
       "Audit-grade: Complete history from genesis, time-travel queries"))
 
   (related-projects
-    ;; Sibling projects in the FormDB ecosystem
-    (formdb-studio
-      (relationship "sibling-tool")
-      (repo "github.com/hyperpolymath/formdb-studio")
-      (status "planned")
-      (description "Zero-friction GUI for FormDB. Visual schema design,
-                    query builder, provenance explorer, journal viewer."))
-
-    (formdb-debugger
-      (relationship "sibling-tool")
-      (repo "github.com/hyperpolymath/formdb-debugger")
-      (status "scaffolding-complete")
-      (completion 35)
-      (description "Proof-carrying debugger. Step through queries, inspect
-                    constraint violations, visualize normalization proofs.")
+    ;; Core ecosystem - Sibling projects
+    (fbql-dt
+      (relationship "sibling-language")
+      (repo "github.com/hyperpolymath/fbql-dt")
+      (status "implementation-in-progress")
+      (completion 75)
+      (description "FBQLdt: Dependently-Typed FormBD Query Language. Lean 4 implementation
+                    with compile-time type checking, refinement types, and proof-carrying
+                    migrations. Two-tier design: FBQLdt (admin) and FBQL (user-friendly).")
+      (tech-stack "Lean 4 + Idris2 ABI + Zig FFI + ReScript bindings")
+      (integration-points
+        (type-system "BoundedNat, BoundedInt, NonEmptyString, Confidence, PromptScores")
+        (provenance "ActorId, Rationale, Timestamp, Tracked types")
+        (serialization "CBOR proof blobs, JSON API, binary storage")
+        (parser "Complete parser for INSERT/SELECT/UPDATE/DELETE with type inference")
+        (permissions "Two-tier permission system with TypeWhitelist"))
       (alignment-status
-        (journal-types "Need Migration/NormalizationStep entry types")
-        (provenance "Need confidence/proof fields")
-        (proofs "LosslessProof stubs need real implementations")))
+        (fundep-types "FormBD should adopt schema-bound FunDep S type from fbql-dt")
+        (proofs "Waiting for fbql-dt M7 (Idris2 ABI) + M8 (Zig FFI)")
+        (bindings "Waiting for fbql-dt M9 (ReScript bindings)")
+        (ffi "Compatible - both use CBOR-encoded proof blobs via Zig FFI")))
 
     (formbase
       (relationship "sibling-application")
       (repo "github.com/hyperpolymath/formbase")
-      (status "planned")
-      (description "Airtable alternative built on FormDB. Spreadsheet UI
-                    with full provenance, versioning, and audit trail."))
+      (status "ui-prototype")
+      (completion 30)
+      (description "Open-source Airtable alternative built on FormBD. Spreadsheet-database
+                    hybrid with provenance by default, full reversibility, PROMPT scores,
+                    and multi-view support (Grid/Kanban/Calendar/Gallery/Form).")
+      (tech-stack "Gleam/BEAM backend + ReScript+React UI + Yjs CRDT + WebSocket")
+      (dependency "Requires FormBD language bindings (M12) for integration")
+      (roadmap "v0.1.0 Core Grid view in progress"))
 
-    (zotero-formdb
-      (relationship "sibling-integration")
-      (repo "github.com/hyperpolymath/zotero-formdb")
+    (formbd-studio
+      (relationship "sibling-tool")
+      (repo "github.com/hyperpolymath/formbd-studio")
       (status "planned")
-      (description "Zotero plugin for FormDB. Reference management with
-                    provenance tracking for academic research."))
+      (description "Zero-friction admin GUI for FormBD. Visual schema designer,
+                    FQL query builder, provenance explorer, journal viewer, and
+                    normalization proof visualizer."))
 
-    (fdql-dt
-      (relationship "sibling-language")
-      (repo "github.com/hyperpolymath/fdql-dt")
-      (status "specification-complete")
-      (completion 5)
-      (description "FQL with Dependent Types. Lean 4 integration for
-                    compile-time query verification and proof-carrying migrations.")
+    (formbd-debugger
+      (relationship "sibling-tool")
+      (repo "github.com/hyperpolymath/formbd-debugger")
+      (status "scaffolding-complete")
+      (completion 35)
+      (description "Proof-carrying debugger. Step through FQL queries, inspect
+                    constraint violations, visualize normalization proofs, and
+                    explore journal replay scenarios.")
       (alignment-status
-        (fundep-types "FormDB should adopt schema-bound FunDep S type")
-        (armstrongs-axioms "FormDB should implement reflexivity/augmentation/transitivity")
-        (normal-form-predicates "FormDB has enum, fdql-dt has full predicates")
-        (ffi "Compatible - both use CBOR-encoded proof blobs")))
+        (journal-types "Need Migration/NormalizationStep entry types from FormBD")
+        (provenance "Need Confidence + ProofBlob types from fbql-dt")
+        (proofs "LosslessProof stubs need real Lean 4 implementations")))
+
+    (formbd-analytics
+      (relationship "sibling-extension")
+      (repo "github.com/hyperpolymath/formbd-analytics")
+      (status "planned")
+      (description "Analytics layer for FormBD. OLAP-style queries, time-series
+                    analysis, provenance-aware aggregations."))
+
+    (formbd-beam
+      (relationship "sibling-integration")
+      (repo "github.com/hyperpolymath/formbd-beam")
+      (status "planned")
+      (description "Erlang/BEAM ecosystem integration. Native Elixir/Gleam bindings,
+                    OTP supervision tree, distributed FormBD clusters."))
+
+    (formbd-geo
+      (relationship "sibling-extension")
+      (repo "github.com/hyperpolymath/formbd-geo")
+      (status "planned")
+      (description "Geospatial extensions for FormBD. PostGIS-style spatial types,
+                    indexes, and queries with provenance tracking."))
+
+    (zotero-formbd
+      (relationship "sibling-integration")
+      (repo "github.com/hyperpolymath/zotero-formbd")
+      (status "planned")
+      (description "Zotero plugin for FormBD. Academic reference management with
+                    provenance tracking, DOI linking, and citation graphs."))
 
     ;; External inspirations and comparisons
     (datomic
       (relationship "inspiration")
-      (description "Immutable database with time-travel. FormDB shares the
+      (description "Immutable database with time-travel. FormBD shares the
                     immutability philosophy but adds provenance and narrative."))
 
     (arangodb
       (relationship "comparison")
-      (description "Multi-model database (document + graph). FormDB is similar
+      (description "Multi-model database (document + graph). FormBD is similar
                     but prioritizes auditability over performance."))
 
     (sqlite
       (relationship "comparison")
-      (description "Embedded database. FormDB aims for similar simplicity
+      (description "Embedded database. FormBD aims for similar simplicity
                     but with built-in versioning and provenance."))
 
     (event-sourcing
       (relationship "pattern-inspiration")
-      (description "FormDB's journal is conceptually similar to event sourcing
+      (description "FormBD's journal is conceptually similar to event sourcing
                     but with first-class inverses and provenance."))
 
     (git
       (relationship "philosophy-inspiration")
       (description "Content-addressable, append-only, complete history.
-                    FormDB applies git's philosophy to structured data.")))
+                    FormBD applies git's philosophy to structured data.")))
 
   (target-domains
     (investigative-journalism
@@ -117,17 +154,20 @@
 
   (what-this-is
     "A database engine that treats data history as sacred"
-    "A query language (FQL) designed for provenance and narrative"
+    "A query language (FBQL/FBQLdt) designed for provenance and narrative"
     "A storage format (blocks + journal) optimized for auditability"
     "A philosophy: databases should explain themselves"
     "An ecosystem of tools for narrative-first data management"
-    "Open source under PMPL-1.0 (ethical open source)")
+    "Layered architecture: Forth (storage) + Zig (FFI) + Factor (runtime) + Elixir (clustering)"
+    "Integration with formal methods: Lean 4 via fbql-dt for proof-carrying migrations"
+    "Open source under PMPL-1.0-or-later (Palimpsest License)")
 
   (what-this-is-not
-    "Not a drop-in SQL replacement (FQL is intentionally different)"
-    "Not optimized for OLAP workloads (narrative overhead)"
-    "Not a distributed database (single-node PoC, clustering planned)"
-    "Not a real-time streaming platform (use CDC integration)"
-    "Not a full-text search engine (integrate with Elasticsearch/Meilisearch)"
-    "Not a time-series database (different access patterns)"
-    "Not trying to be the fastest database (auditability > performance)"))
+    "Not a drop-in SQL replacement (FBQL is intentionally different)"
+    "Not optimized for OLAP workloads (narrative overhead, use formbd-analytics for that)"
+    "Not a distributed database yet (single-node PoC complete, clustering in M14)"
+    "Not a real-time streaming platform (use CDC integration for streaming)"
+    "Not a full-text search engine (integrate with Meilisearch/Typesense)"
+    "Not a time-series database (different access patterns, use InfluxDB/TimescaleDB)"
+    "Not trying to be the fastest database (auditability > performance)"
+    "Not called 'FormDB' - that's Google's trademark (final name TBD before v1.0.0)"))

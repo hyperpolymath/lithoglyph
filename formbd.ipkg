@@ -1,0 +1,26 @@
+-- SPDX-License-Identifier: PMPL-1.0-or-later
+-- Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+package formbd
+
+version = 0.6.5
+authors = "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"
+license = "PMPL-1.0-or-later"
+brief = "FormBD - Provenance-native database ABI"
+readme = "README.adoc"
+homepage = "https://github.com/hyperpolymath/formbd"
+sourceloc = "https://github.com/hyperpolymath/formbd"
+bugtracker = "https://github.com/hyperpolymath/formbd/issues"
+
+sourcedir = "src"
+builddir = "build"
+outputdir = "build/exec"
+
+modules = FormBD.FormBridge
+        , FormBD.FormLayout
+        , FormBD.FormForeign
+
+depends = base >= 0.6.0
+        , contrib
+        
+
+opts = "--total"

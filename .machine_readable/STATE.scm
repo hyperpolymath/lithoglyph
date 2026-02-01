@@ -1,240 +1,333 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; STATE.scm - Project state for FormDB
+;; SPDX-FileCopyrightText: 2025 hyperpolymath
+;;
+;; STATE.scm - Project state tracking for FormBD
 ;; Media-Type: application/vnd.state+scm
 
 (state
   (metadata
     (version "0.0.6")
-    (schema-version "1.0")
-    (created "2026-01-03")
-    (updated "2026-01-12")
-    (project "formdb")
-    (repo "github.com/hyperpolymath/formdb"))
+    (schema-version "1.0.0")
+    (created "2026-02-01")
+    (updated "2026-02-01")
+    (project "FormBD")
+    (repo "https://github.com/hyperpolymath/formbd"))
 
   (project-context
-    (name "FormDB")
-    (tagline "Narrative-first, reversible, audit-grade database")
+    (name "FormBD: Narrative-First, Reversible, Audit-Grade Database")
+    (tagline "The database where the database is part of the story")
+    (naming-note "Temporary name - Google owns 'FormDB' trademark. Rename before v1.0.0")
     (tech-stack
-      (primary "Forth" "Factor" "Zig")
-      (specifications "AsciiDoc" "EBNF" "Lean4")
-      (clients "ReScript" "PHP")
-      (future "Gleam" "Elixir/OTP")))
+      (storage-layer "Forth" "Form.Blocks + Form.Model")
+      (bridge-layer "Zig" "Form.Bridge - Zig-only ABI, no C dependency")
+      (runtime-layer "Factor" "Form.Runtime - FQL parser/planner/executor")
+      (normalizer-layer "Factor + Lean 4" "Form.Normalizer - FD discovery with proofs")
+      (control-plane "Elixir/OTP" "Form.ControlPlane - clustering, supervision")
+      (query-language "FBQLdt" "github.com/hyperpolymath/fbql-dt - dependently-typed")
+      (config "Nickel")
+      (containers "Podman/Nerdctl")))
 
   (current-position
-    (phase "M12: Language Bindings")
-    (overall-completion 100)
+    (phase "language-bindings")
+    (overall-completion 65)
     (components
-      (spec-fql 100 "FQL language specification complete")
-      (spec-blocks 100 "Block format specification complete")
-      (spec-journal 100 "Journal format specification complete")
-      (spec-self-normalizing 100 "Self-normalizing spec complete")
-      (spec-fql-dt 100 "FQLdt dependent types spec complete")
-      (form-blocks 100 "Forth block storage layer complete")
-      (form-journal 100 "Forth journal layer complete")
-      (form-model 100 "Forth model layer complete")
-      (form-bridge 100 "Zig ABI with proof verification FFI complete")
-      (documentation 100 "Full docs suite complete")
-      (fdql-parser 100 "Factor PEG parser complete")
-      (fdql-planner 100 "Query planner with cost estimation complete")
-      (fdql-executor 100 "Executor with in-memory storage complete")
-      (fdql-explain 100 "EXPLAIN/ANALYZE/VERBOSE complete")
-      (normalizer-types 100 "Lean4 types for FD/NF/migration complete")
-      (normalizer-dfd 100 "DFD algorithm implementation complete")
-      (normalizer-migration 100 "Three-phase migration framework complete")
-      (lean4-bridge 100 "Lean4 FFI bindings to Zig complete")
-      (lean4-proofs 100 "Proof-carrying transformations complete")
-      (seam-tests 100 "End-to-end pipeline tests complete")
-      (benchmarks 100 "Performance benchmarks complete")
-      (migration-tests 100 "Migration framework tests complete")
-      (api-openapi 100 "OpenAPI 3.1 specification complete")
-      (api-protobuf 100 "Protocol Buffer definitions complete")
-      (api-graphql 100 "GraphQL SDL schema complete")
-      (api-server 100 "Zig HTTP server with Form.Bridge FFI complete")
-      (api-websocket 100 "WebSocket for GraphQL subscriptions complete")
-      (api-integration-tests 100 "Integration tests for all protocols complete")
-      (client-rescript 100 "ReScript client library complete")
-      (client-php 100 "PHP client library complete")
-      (sdk-generator 100 "SDK code generator complete"))
+      (form-blocks
+        (status complete)
+        (completion 100)
+        (version "v0.0.2")
+        (files
+          "core-forth/src/formbd-blocks.fs"
+          "core-forth/test/test-blocks.fs"
+          "spec/blocks.adoc"))
+      (form-journal
+        (status complete)
+        (completion 100)
+        (version "v0.0.2")
+        (files
+          "core-forth/src/formbd-journal.fs"
+          "spec/journal.adoc"))
+      (form-model
+        (status complete)
+        (completion 100)
+        (version "v0.0.2")
+        (files
+          "core-forth/src/formbd-model.fs"
+          "spec/encoding.adoc"))
+      (form-bridge
+        (status complete)
+        (completion 100)
+        (version "v0.0.2")
+        (files
+          "core-zig/src/bridge.zig"
+          "core-zig/src/types.zig"
+          "core-zig/src/cbor.zig"
+          "core-zig/build.zig"))
+      (form-runtime
+        (status complete)
+        (completion 100)
+        (version "v0.0.4")
+        (files
+          "core-factor/fbql/fbql.factor"
+          "core-factor/fbql/storage-backend.factor"
+          "core-factor/fbql/benchmarks.factor"
+          "core-factor/fbql/seam-tests.factor"
+          "spec/fbql.adoc"
+          "spec/fbql-philosophy.adoc"))
+      (form-normalizer
+        (status complete)
+        (completion 100)
+        (version "v0.0.4")
+        (files
+          "spec/self-normalizing.adoc"))
+      (api-server
+        (status complete)
+        (completion 100)
+        (version "v0.0.5")
+        (files
+          "api/README.adoc"))
+      (language-bindings
+        (status in-progress)
+        (completion 40)
+        (version "v0.0.6")
+        (rescript-bindings
+          (status in-progress)
+          (completion 60)
+          (files "clients/rescript/README.md"))
+        (php-bindings
+          (status in-progress)
+          (completion 20)
+          (files "clients/php/README.md")))
+      (cms-integrations
+        (status not-started)
+        (completion 0)
+        (planned-integrations
+          "WordPress/Strapi/Directus/Ghost/Payload"
+          "See: integrations/"))
+      (control-plane
+        (status not-started)
+        (completion 0)
+        (planned-version "v0.1.0")
+        (files "control-plane/README.adoc")))
     (working-features
-      "Block read/write with CRC32C"
-      "Append-only journal with sequence numbers"
-      "Document/edge collection storage"
-      "Schema metadata storage"
-      "FDQL parser (AST generation)"
-      "Query planner with cost estimation"
-      "Query executor with in-memory storage"
-      "EXPLAIN/ANALYZE/VERBOSE query analysis"
-      "DFD functional dependency discovery"
-      "Normal form analysis (1NF-BCNF)"
-      "Three-tier confidence classification"
-      "Denormalization proposals"
-      "Three-phase migration (Announce/Shadow/Commit)"
-      "Proof verification FFI with registered verifiers"
-      "Lean4 proof-carrying transformations"
-      "End-to-end seam tests"
-      "Performance benchmark suite"
-      "REST API with OpenAPI 3.1 spec"
-      "gRPC API with Protocol Buffers"
-      "GraphQL API with SDL schema"
-      "Prometheus metrics endpoint"
-      "JWT and API key authentication"
-      "REST handlers wired to Form.Bridge FFI"
-      "gRPC handlers with full protobuf serialization"
-      "WebSocket support for GraphQL subscriptions"
-      "graphql-ws protocol implementation"
-      "Integration tests for all API protocols"
-      "ReScript client with fluent query builder"
-      "PHP client with PSR-18 HTTP interface"
-      "SDK code generator for ReScript and PHP"))
+      "Fixed-size block storage (4 KiB blocks)"
+      "Append-only journal with sequence numbering"
+      "Multi-model layer (documents + edges + schemas)"
+      "Zig FFI bridge with C-compatible calling convention"
+      "FQL parser and executor in Factor"
+      "Self-normalizing database with FD discovery"
+      "Multi-protocol API server"))
 
   (route-to-mvp
+    (target-version "1.0.0")
+    (definition "Production-ready narrative database with clustering and full ecosystem")
+
     (milestones
-      (m1 "Core Specifications" 100 "v0.0.2" "2026-01-11")
-      (m2-m5 "Forth PoC Implementation" 100 "v0.0.2" "2026-01-11")
-      (m6 "Machine-Readable Artefacts" 100 "v0.0.2" "2026-01-11")
-      (m7 "Complete Documentation Suite" 100 "v0.0.3" "2026-01-12")
-      (m8 "Form.Runtime (FQL Engine)" 100 "v0.0.4" "2026-01-12")
-      (m9 "Form.Normalizer" 100 "v0.0.4" "2026-01-12")
-      (m10 "Production Hardening" 100 "v0.0.4" "2026-01-12")
-      (m11 "Multi-Protocol API Server" 100 "v0.0.5" "2026-01-12")
-      (m12 "Language Bindings" 100 "v0.0.6" "2026-01-12")))
+      (milestone-1
+        (name "Core Specifications")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.2")
+        (items
+          (item "formbd.scm unified specification" status: complete)
+          (item "spec/blocks.adoc" status: complete)
+          (item "spec/journal.adoc" status: complete)
+          (item "spec/fbql.adoc" status: complete)
+          (item "spec/fbql-dependent-types.md" status: complete)
+          (item "spec/self-normalizing.adoc" status: complete)
+          (item "spec/cloud-storage.adoc" status: complete)
+          (item "spec/fbql-philosophy.adoc" status: complete)))
+
+      (milestone-2-5
+        (name "Forth PoC Implementation")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.2")
+        (items
+          (item "Form.Blocks - Fixed-size blocks with headers" status: complete)
+          (item "Form.Journal - Append-only with crash recovery" status: complete)
+          (item "Form.Model - Multi-model layer" status: complete)
+          (item "Form.Bridge - Zig-only ABI" status: complete)))
+
+      (milestone-6
+        (name "Machine-Readable Artefacts")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.2"))
+
+      (milestone-7
+        (name "Complete Documentation Suite")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.3"))
+
+      (milestone-8
+        (name "Form.Runtime (FQL Engine)")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.4")
+        (items
+          (item "FQL parser in Factor" status: complete)
+          (item "Query planner" status: complete)
+          (item "Executor with introspection" status: complete)
+          (item "Storage backend integration" status: complete)))
+
+      (milestone-9
+        (name "Form.Normalizer")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.4")
+        (items
+          (item "FD discovery algorithms (DFD/TANE)" status: complete)
+          (item "Self-normalizing database spec" status: complete)))
+
+      (milestone-10
+        (name "Production Hardening")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.4"))
+
+      (milestone-11
+        (name "Multi-Protocol API Server")
+        (status complete)
+        (completed-date "2025")
+        (version "v0.0.5"))
+
+      (milestone-12
+        (name "Language Bindings")
+        (status in-progress)
+        (version "v0.0.6")
+        (items
+          (item "ReScript bindings" status: in-progress completion: 60)
+          (item "PHP bindings" status: in-progress completion: 20)
+          (item "SDK generator tooling" status: planned)
+          (item "Deno/JavaScript bindings" status: planned)
+          (item "Julia bindings" status: planned)))
+
+      (milestone-13
+        (name "CMS Integration")
+        (status not-started)
+        (version "v0.0.7")
+        (items
+          (item "WordPress plugin/integration" status: planned)
+          (item "Strapi integration" status: planned)
+          (item "Directus integration" status: planned)
+          (item "Ghost integration" status: planned)
+          (item "Payload integration" status: planned)))
+
+      (milestone-14
+        (name "Form.ControlPlane (Clustering)")
+        (status not-started)
+        (version "v0.1.0")
+        (items
+          (item "Elixir/OTP control plane" status: planned)
+          (item "Session management" status: planned)
+          (item "Cluster coordination" status: planned)
+          (item "Port communication with core" status: planned)))
+
+      (milestone-14.5
+        (name "Final Branding and Naming")
+        (status not-started)
+        (version "v0.9.0")
+        (description "Choose final production name to replace 'FormBD' (Google owns 'FormDB' trademark)")
+        (items
+          (item "Trademark search" status: planned)
+          (item "Community feedback on name options" status: planned)
+          (item "Update all documentation and code" status: planned)
+          (item "Update domain names and branding" status: planned)))
+
+      (milestone-15
+        (name "1.0.0 Release Candidate")
+        (status not-started)
+        (version "v1.0.0-rc")
+        (items
+          (item "Production deployment guide" status: planned)
+          (item "Performance benchmarks" status: planned)
+          (item "Security audit" status: planned)
+          (item "Full test coverage" status: planned)
+          (item "Documentation complete" status: planned)))))
 
   (blockers-and-issues
-    (critical)
-    (high)
-    (medium)
-    (low
-      "CMS integration pending (M13)"))
+    (critical
+      (issue
+        (id "NAMING-001")
+        (title "FormBD is temporary name")
+        (description "Google owns 'FormDB' trademark. Need final production name before v1.0.0")
+        (milestone "M14.5 - Final Branding and Naming")
+        (target-version "v0.9.0")))
+    (high
+      (issue
+        (id "INTEGRATION-001")
+        (title "FBQLdt integration")
+        (description "FormBD needs to integrate with fbql-dt for dependently-typed queries")
+        (dependency "github.com/hyperpolymath/fbql-dt M7 (Idris2 ABI) + M8 (Zig FFI)")
+        (notes "Wait for fbql-dt to complete Idris2 ABI and Zig FFI layers")))
+    (medium
+      (issue
+        (id "BINDINGS-001")
+        (title "Language bindings incomplete")
+        (description "ReScript bindings 60% done, PHP bindings 20% done")
+        (milestone "M12"))
+      (issue
+        (id "ABI-FFI-001")
+        (title "Verify ABI/FFI Universal Standard compliance")
+        (description "Ensure FormBD follows hyperpolymath standard: Idris2 ABI + Zig FFI")
+        (status "needs-assessment")
+        (notes "Current: Zig bridge exists, but Idris2 ABI layer may be missing")))
+    (low ()))
 
-  (ecosystem-alignment
-    (fdql-dt
-      (status "spec-aligned")
-      (notes
-        "normalization-types.md spec matches Form.Normalizer direction"
-        "FFI pattern (CBOR proof blobs) is compatible"
-        "FormDB FunDep.lean should adopt schema-bound types when fdql-dt implements"))
-    (formdb-debugger
-      (status "scaffold-aligned")
-      (notes
-        "Journal types need Migration entry type added"
-        "Provenance struct needs confidence and proof fields"
-        "LosslessProof in debugger should use FormDB's proofs")))
+  (formbd-ecosystem
+    (reference "ECOSYSTEM.scm")
+    (core-repos
+      "formbd - Database core (this repo)"
+      "fbql-dt - Dependently-typed query language"
+      "formbase - Airtable alternative UI"
+      "formbd-studio - Admin GUI"
+      "formbd-debugger - Proof-carrying recovery tool"
+      "formbd-analytics - Analytics layer"
+      "formbd-beam - BEAM/Elixir ecosystem integration"
+      "formbd-geo - Geospatial extensions"
+      "zotero-formbd - Reference manager integration")
+    (integration-status
+      (fbql-dt "Spec-aligned, implementation pending M7+M8")
+      (formbase "Depends on FormBD, needs API bindings")
+      (formbd-studio "Planned for M13+")
+      (formbd-debugger "Planned for production hardening")))
 
   (critical-next-actions
     (immediate
-      "Begin M13 CMS integrations"
-      "Strapi plugin development")
+      (action "Complete ReScript bindings (M12)")
+      (action "Complete PHP bindings (M12)"))
     (this-week
-      "Directus extension"
-      "Ghost integration"
-      "Payload CMS adapter")
+      (action "Create ECOSYSTEM.scm with full ecosystem relationships")
+      (action "Assess ABI/FFI Universal Standard compliance")
+      (action "Document integration plan with fbql-dt"))
     (this-month
-      "Form.ControlPlane clustering"
-      "Path to 1.0.0 planning"))
+      (action "Start M13 CMS Integration planning")
+      (action "Design M14 ControlPlane architecture")
+      (action "Brainstorm name options for M14.5")))
 
   (session-history
-    (session
-      (date "2026-01-12")
-      (name "m12-complete-v0.0.6")
+    (snapshot
+      (date "2026-02-01")
+      (session-id "documentation-organization")
       (accomplishments
-        "Created ReScript client library with fluent query builder"
-        "ReScript types: Provenance, QueryResult, Collection, JournalEntry"
-        "ReScript filter expressions: Field, And, Or, Not"
-        "Created PHP client library with PSR-18 HTTP interface"
-        "PHP types: Provenance, Collection, QueryResult, JournalEntry"
-        "PHP query builders: QueryBuilder, InsertBuilder, UpdateBuilder, DeleteBuilder"
-        "PHP filter classes: FieldFilter, AndFilter, OrFilter, NotFilter"
-        "PHP framework examples: Laravel, Symfony integration"
-        "Created SDK generator tool in ReScript"
-        "SDK generator with API specification and code generators"
-        "Comprehensive client documentation in clients/README.md"
-        "Updated STATE.scm for M12 completion"
-        "Updated CHANGELOG.md for v0.0.6"))
-    (session
-      (date "2026-01-12")
-      (name "m11-complete-v0.0.5")
-      (accomplishments
-        "Completed gRPC protobuf encoder/decoder implementation"
-        "All gRPC handlers wired to Form.Bridge FFI"
-        "Created websocket.zig for GraphQL subscriptions"
-        "WebSocket upgrade, frame encoding, graphql-ws protocol"
-        "Integrated WebSocket into GraphQL handler"
-        "Created comprehensive integration tests"
-        "Updated CHANGELOG for v0.0.5"
-        "Updated STATE.scm to M11 100% completion"
-        "Created UNIFIED-ROADMAP.scm for ecosystem coordination"
-        "Tagged and released v0.0.5"))
-    (session
-      (date "2026-01-12")
-      (name "m11-bridge-wiring")
-      (accomplishments
-        "Created bridge_client.zig module for Form.Bridge FFI integration"
-        "Wired REST handlers to bridge_client (query, collections, health)"
-        "Updated GraphQL health query to use bridge_client"
-        "Added FFI type definitions matching core-zig/src/bridge.zig"
-        "Implemented CBOR encoding for FDQL operations"
-        "Added graceful degraded mode when bridge unavailable"
-        "Updated M11 completion to 95%"))
-    (session
-      (date "2026-01-12")
-      (name "m11-api-server")
-      (accomplishments
-        "Created multi-protocol API server structure"
-        "OpenAPI 3.1 specification (spec/openapi.yaml)"
-        "Protocol Buffers for gRPC (proto/formdb.proto)"
-        "GraphQL SDL schema (graphql/schema.graphql)"
-        "Zig HTTP server with REST/gRPC/GraphQL routing"
-        "Prometheus metrics endpoint"
-        "JWT and API key authentication"
-        "GraphiQL UI for GraphQL exploration"
-        "Updated ROADMAP with expanded M11 scope"))
-    (session
-      (date "2026-01-12")
-      (name "mvp-release-final")
-      (accomplishments
-        "Tagged and released v0.0.4"
-        "Updated ROADMAP.adoc with M8-M10 complete status"
-        "Updated STATE.scm to 100% completion"
-        "Pushed alignment updates to formdb-debugger"
-        "All MVP milestones (M1-M10) confirmed complete"))
-    (session
-      (date "2026-01-12")
-      (name "mvp-completion-sprint")
-      (accomplishments
-        "Created Lean4 FFI bindings (Bridge.lean) with CBOR encoding"
-        "Created proof-carrying transformation module (Proofs.lean)"
-        "Created lakefile.toml for Lean project"
-        "Implemented three-phase migration framework (migration.factor)"
-        "Created comprehensive migration tests (migration-tests.factor)"
-        "Enhanced EXPLAIN with ANALYZE and VERBOSE modes"
-        "Created seam tests for full pipeline (seam-tests.factor)"
-        "Created performance benchmarks (benchmarks.factor)"
-        "Updated overall completion to 85%"
-        "Advanced to Phase 8: MVP Complete"
-        "All milestones m1-m10 now at 100%"))
-    (session
-      (date "2026-01-12")
-      (name "implementation-sprint")
-      (accomplishments
-        "Resolved all 6 design blockers (D-CTRL-PLANE-001, D-NORM-001 through D-NORM-005)"
-        "Implemented Form.Runtime query planner with cost estimation"
-        "Implemented Form.Runtime executor with in-memory storage"
-        "Implemented DFD algorithm in fd-discovery.factor"
-        "Added DenormalizationStep, MigrationPhase, MigrationState to FunDep.lean"
-        "Added proof verification FFI to Form.Bridge (bridge.zig)"
-        "Implemented three-phase migration framework (migration.factor)"
-        "Updated component completion to 75%"
-        "Advanced to Phase 7: Form.Normalizer Implementation"))
-    (session
-      (date "2026-01-12")
-      (name "documentation-v0.0.3")
-      (accomplishments
-        "Fleshed out docs/API-REFERENCE.adoc"
-        "Fleshed out docs/MIGRATION-FROM-RDBMS.adoc"
-        "Fleshed out docs/OBSERVABILITY.adoc"
-        "Fleshed out docs/INTEGRATION-PATTERNS.adoc"
-        "Updated CHANGELOG for v0.0.3"
-        "Tagged and released v0.0.3"
-        "Created GitHub release"
-        "Updated ROADMAP with milestone status"
-        "Committed FDQL parser (fql→fdql rename)"))))
+        "Created STATE.scm for FormBD repo"
+        "Added M14.5 milestone for final naming/branding before v1.0.0"
+        "Assessed current state: M1-M11 complete, M12 in progress (40%)"
+        "Identified critical blocker: FBQLdt integration needs M7+M8 from fbql-dt"
+        "Identified medium priority: ABI/FFI standard compliance needs assessment")
+      (next-steps
+        "Create ECOSYSTEM.scm"
+        "Organize documentation per user's plan"
+        "Verify ABI/FFI Universal Standard compliance"
+        "Update ROADMAP.adoc with M14.5 milestone"))))
+
+;; Helper functions for state queries
+(define (get-completion-percentage state)
+  (state 'current-position 'overall-completion))
+
+(define (get-blockers state priority)
+  (state 'blockers-and-issues priority))
+
+(define (get-milestone state n)
+  (state 'route-to-mvp 'milestones (string->symbol (format "milestone-~a" n))))
