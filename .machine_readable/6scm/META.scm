@@ -1,3 +1,4 @@
+;; SPDX-License-Identifier: PMPL-1.0-or-later
 ;; META.scm - FormDB Meta-Level Information
 ;; Media-Type: application/meta+scheme
 ;; Spec: spec/META-FORMAT-SPEC.adoc

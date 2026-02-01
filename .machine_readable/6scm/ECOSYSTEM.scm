@@ -1,3 +1,4 @@
+;; SPDX-License-Identifier: PMPL-1.0-or-later
 ;; ECOSYSTEM.scm - FormDB Position in Ecosystem
 ;; Media-Type: application/vnd.ecosystem+scm
 
@@ -29,7 +30,7 @@
       (synergy "FormDB could be the persistent store for anamnesis memories"))
 
     (potential-consumer
-      (project "gitvisor")
+      (project "git-hud")
       (relationship "potential-consumer")
       (description "Git repository governance")
       (synergy "FormDB for storing governance audit trails"))
