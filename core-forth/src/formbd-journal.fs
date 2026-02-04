@@ -4,7 +4,7 @@
 \ Every mutation is journaled before being applied.
 \ The journal enables crash recovery and provides provenance.
 
-require formdb-blocks.fs
+require formbd-blocks.fs
 
 \ ============================================================
 \ Journal Constants

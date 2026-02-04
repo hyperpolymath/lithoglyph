@@ -1,7 +1,7 @@
 \ SPDX-License-Identifier: AGPL-3.0-or-later
 \ Test harness for Form.Blocks
 
-include ../src/formdb-blocks.fs
+include ../src/formbd-blocks.fs
 
 \ ============================================================
 \ Test Utilities
