@@ -1,0 +1,130 @@
+ummary
+
+  Repo: https://github.com/hyperpolymath/formbase
+
+  Files created (2,038 lines):
+  ┌───────────────┬──────────┬────────────────────────────────┐
+  │     File      │  Lines   │            Purpose             │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ README.adoc   │ 250      │ Overview, features, comparison │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ SPEC.adoc     │ 750      │ Full technical spec            │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ STATE.scm     │ 90       │ Project state                  │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ META.scm      │ 85       │ Architecture decisions         │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ ECOSYSTEM.scm │ 75       │ Ecosystem position             │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ AGENTIC.scm   │ 70       │ AI patterns                    │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ NEUROSYM.scm  │ 80       │ Neurosymbolic config           │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ PLAYBOOK.scm  │ 100      │ Build commands                 │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ justfile      │ 50       │ Build tasks                    │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ ui/*          │ Scaffold │ ReScript + React + Deno        │
+  ├───────────────┼──────────┼────────────────────────────────┤
+  │ server/*      │ Scaffold │ Gleam on BEAM                  │
+  └───────────────┴──────────┴────────────────────────────────┘
+  Ecosystem updated (6 repos):
+  ┌─────────────────┬─────────┐
+  │      Repo       │ Commit  │
+  ├─────────────────┼─────────┤
+  │ formdb          │ 4840a4a │
+  ├─────────────────┼─────────┤
+  │ fqldt           │ 7ec1cee │
+  ├─────────────────┼─────────┤
+  │ formdb-studio   │ fb109cf │
+  ├─────────────────┼─────────┤
+  │ formdb-debugger │ 6eeaaf1 │
+  ├─────────────────┼─────────┤
+  │ bofig           │ 6ec83ab │
+  ├─────────────────┼─────────┤
+  │ zotero-formdb   │ 122fcb2 │
+  └─────────────────┴─────────┘
+  FormDB Ecosystem now has 7 projects:
+  1. formdb - Core database
+  2. fqldt - Query language
+  3. formdb-studio - Admin GUI
+  4. formdb-debugger - Recovery tool
+  5. bofig - Journalism app
+  6. zotero-formdb - Reference manager
+  7. formbase - Airtable alternative ✨ NEW
+
+  Current State
+  ┌─────────────────┬────────────┬────────────┬───────────────────────────┐
+  │      Repo       │   Phase    │ Completion │        Source Code        │
+  ├─────────────────┼────────────┼────────────┼───────────────────────────┤
+  │ formdb          │ Conceptual │ 5%         │ 0 lines (specs only)      │
+  ├─────────────────┼────────────┼────────────┼───────────────────────────┤
+  │ fqldt           │ Spec       │ ~10%       │ 0 lines (specs only)      │
+  ├─────────────────┼────────────┼────────────┼───────────────────────────┤
+  │ formdb-studio   │ Spec       │ ~5%        │ 2,114 lines (UI scaffold) │
+  ├─────────────────┼────────────┼────────────┼───────────────────────────┤
+  │ formdb-debugger │ Scaffolded │ 35%        │ ~2,000 lines (stubs)      │
+  ├─────────────────┼────────────┼────────────┼───────────────────────────┤
+  │ formbase        │ Spec       │ 5%         │ ~100 lines (scaffold)     │
+  └─────────────────┴────────────┴────────────┴───────────────────────────┘
+  Dependency Graph
+
+                      formdb (FOUNDATION)
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+        fqldt        Form.Bridge      Form.Runtime
+      (proofs)         (FFI)          (queries)
+           │               │               │
+           └───────────────┼───────────────┘
+                           │
+      ┌────────────────────┼────────────────────┐
+      │                    │                    │
+  formdb-studio      formdb-debugger       formbase
+      │                    │                    │
+      └────────────────────┼────────────────────┘
+                           │
+                ┌──────────┼──────────┐
+                │          │          │
+             bofig   zotero-formdb  (apps)
+
+  Everything depends on formdb. Nothing else can be meaningfully developed until the core exists.
+
+  FormDB's Current Blockers
+
+  From STATE.scm, these decisions must be made first:
+  ┌─────────────────────┬──────────────────────┐
+  │     Question ID     │   Decision Needed    │
+  ├─────────────────────┼──────────────────────┤
+  │ Q-BLOCK-HEADER-001  │ Block header format  │
+  ├─────────────────────┼──────────────────────┤
+  │ Q-JOURNAL-ENTRY-001 │ Journal entry schema │
+  ├─────────────────────┼──────────────────────┤
+  │ Q-ABI-BLOBS-001     │ ABI blob encoding    │
+  ├─────────────────────┼──────────────────────┤
+  │ Q-FQL-POC-001       │ FQL PoC grammar      │
+  └─────────────────────┴──────────────────────┘
+  Recommended Development Order
+
+  1. formdb - Answer open questions, implement Form.Blocks, Form.Model
+  2. fqldt - Once formdb has a query interface to extend
+  3. formdb-studio - Once there's data to display
+  4. formbase - Once formdb + fqldt work
+
+  What Would Unblock Everything
+
+  The minimum viable formdb needs:
+
+  Form.Blocks  → Append-only storage that works on cloud drives
+  Form.Model   → Collections, edges, schema
+  Form.Bridge  → Zig FFI so other languages can use it
+  Form.Runtime → Basic FQL: INSERT, SELECT, provenance queries
+
+  Once those work, all the other projects become buildable.
+
+  ---
+  Bottom line: Focus 100% on formdb until it can:
+  1. Store a document
+  2. Retrieve it with provenance
+  3. Be called from Gleam/ReScript/Julia via FFI
+

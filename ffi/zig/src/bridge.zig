@@ -7,6 +7,7 @@
 const std = @import("std");
 const types = @import("types.zig");
 const cbor = @import("cbor.zig");
+const query_executor = @import("query_executor.zig");
 
 // Status codes (matches Idris2 FdbStatus exactly)
 pub const Status = enum(i32) {
@@ -36,6 +37,7 @@ pub const FdbMigration = opaque {};
 // Global state
 var initialized: bool = false;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var global_executor: ?query_executor.SimpleExecutor = null;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Library Lifecycle
@@ -45,6 +47,12 @@ var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 /// CRITICAL: Pure ABI bridge - delegates to Idris2 for actual initialization
 export fn fdb_init() callconv(.c) i32 {
     if (initialized) return @intFromEnum(Status.ok);
+
+    // Initialize query executor (M5 implementation)
+    const allocator = gpa.allocator();
+    global_executor = query_executor.SimpleExecutor.init(allocator) catch {
+        return @intFromEnum(Status.out_of_memory);
+    };
 
     // TODO: Call Idris2 initialization function
     // const idris_status = idris2_fdb_init();
@@ -95,6 +103,12 @@ export fn fdb_open(
 /// Close database
 export fn fdb_close(db: *FdbDb) callconv(.c) i32 {
     if (!initialized) return @intFromEnum(Status.internal_error);
+
+    // Clean up query executor
+    if (global_executor) |*executor| {
+        executor.deinit();
+        global_executor = null;
+    }
 
     // TODO: Call Idris2 fdb_close function
     // Flush pending writes, close file descriptors
@@ -240,15 +254,31 @@ export fn fdb_query_execute(
     if (query_len > 1_000_000) return @intFromEnum(Status.invalid_arg); // 1MB query limit
     if (provenance_len == 0) return @intFromEnum(Status.invalid_arg);
 
-    // TODO: Call Idris2/Factor fdb_query_execute function
-    // Query validation via Proven.SafeString
-    // FQL parsing in Factor runtime
-    // Provenance tracking via ActorId + Rationale
-
     _ = db;
-    _ = query_str;
-    _ = provenance_json;
-    _ = cursor_out;
+    _ = provenance_json; // TODO: Use provenance for audit log
+
+    // Get the global executor
+    if (global_executor) |*executor| {
+        // Convert C string to Zig slice
+        const query = query_str[0..query_len];
+
+        // Execute query (M5 implementation - will call Factor in M6)
+        var result = executor.execute(query) catch {
+            return @intFromEnum(Status.internal_error);
+        };
+        defer result.deinit();
+
+        // For now, just return success
+        // TODO: Create cursor from result.data
+        _ = cursor_out;
+
+        if (std.mem.eql(u8, result.status, "ok")) {
+            return @intFromEnum(Status.ok);
+        } else {
+            return @intFromEnum(Status.internal_error);
+        }
+    }
+
     return @intFromEnum(Status.internal_error);
 }
 
