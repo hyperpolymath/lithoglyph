@@ -50,6 +50,21 @@ The name reflects the core metaphor: **Forth code sculpts data onto disk**, carv
 * Agentic ecosystems + multi-repo handover
 * Long-term cultural/institutional archives
 
+== Repository Structure
+
+[source,text]
+----
+lithoglyph/
+├── spec/              # Format specs + rationale (AsciiDoc)
+├── core-forth/        # Form.Blocks + Form.Model (truth core)
+├── core-zig/          # Form.Bridge (ABI + port framing)
+├── core-factor/       # Form.Runtime (GQL + introspection)
+├── control-plane/     # Elixir/OTP gateway (optional)
+├── tools/             # Render/inspect/doctor utilities
+├── test-vectors/      # Golden bytes + golden renders
+└── stories/           # Narrative examples + onboarding artefacts
+----
+
 == Architecture
 
 Lithoglyph is structured in layers, each with a specific language and responsibility:
@@ -64,7 +79,7 @@ Lithoglyph is structured in layers, each with a specific language and responsibi
 │  FD discovery, type encoding, proof-carrying normalization  │
 ├─────────────────────────────────────────────────────────────┤
 │  Form.Runtime (Factor)                                      │
-│  FQL parse/plan/exec, explain, introspection                │
+│  GQL parse/plan/exec, explain, introspection                │
 ├─────────────────────────────────────────────────────────────┤
 │  Form.Bridge (Zig)                                          │
 │  Stable Zig ABI (no C), safety governor                     │
@@ -98,14 +113,14 @@ Lithoglyph is structured in layers, each with a specific language and responsibi
 * Uses `callconv(.C)` for FFI compatibility without requiring C toolchain
 
 ==== Form.Runtime (Factor)
-* FQL minimal subset for PoC
+* GQL minimal subset for PoC
 * Planner steps introspection
 * Constraint explanation surfaces
 * Provenance surfaces
 
 ==== Form.Normalizer (Factor + Lean 4)
 * Automatic functional dependency discovery (DFD/TANE/FDHits)
-* Type encoding of FDs in FQL-dt
+* Type encoding of FDs in GQL-DT
 * Normal form predicates (1NF through BCNF)
 * Proof-carrying schema evolution
 * Narrative explanations for all normalization decisions
@@ -128,9 +143,9 @@ Renderability:: Blocks and journal entries MUST be renderable deterministically 
 Provenance:: All query results can optionally include provenance pointers to journal and blocks.
 Constraints as Ethics:: Constraints are explainable: rejections must return reasons + pointers + narrative rationale.
 
-== FQL (FormBD Query Language)
+== GQL (Glyph Query Language)
 
-FQL is the query language for FormBD—not a "forms" query language, but the native query interface for this narrative-first database.
+GQL is the query language for Lithoglyph—the native query interface for this narrative-first database. The name "Glyph Query Language" reflects the stone-carving metaphor: each query carves new glyphs (data) into permanence.
 
 PoC subset capabilities:
 
@@ -147,21 +162,6 @@ PoC subset capabilities:
 * Win microbenchmarks
 * Ship full distributed consensus in the first PoC
 
-== Repository Structure
-
-[source,text]
-----
-formbd/
-├── spec/              # Format specs + rationale (AsciiDoc)
-├── core-forth/        # Form.Blocks + Form.Model (truth core)
-├── core-zig/          # Form.Bridge (ABI + port framing)
-├── core-factor/       # Form.Runtime (FQL + introspection)
-├── control-plane/     # Elixir/OTP gateway (optional)
-├── tools/             # Render/inspect/doctor utilities
-├── test-vectors/      # Golden bytes + golden renders
-└── stories/           # Narrative examples + onboarding artefacts
-----
-
 == PoC Acceptance Criteria
 
 * Single-node db open/close
@@ -174,20 +174,20 @@ formbd/
 
 == Open Questions
 
-See link:formbd.scm[formbd.scm] for structured open questions with acceptance criteria:
+See link:lithoglyph.scm[lithoglyph.scm] for structured open questions with acceptance criteria:
 
 === Core PoC
 * `Q-BLOCK-HEADER-001`: Minimal block header layout
 * `Q-JOURNAL-ENTRY-001`: Minimal journal entry schema
 * `Q-ABI-BLOBS-001`: ABI blob encoding choice
-* `Q-FQL-POC-001`: FQL PoC grammar
+* `Q-GQL-POC-001`: GQL PoC grammar
 * `Q-CTRL-PLANE-001`: Elixir/OTP introduction timing
 
 === Self-Normalizing (Form.Normalizer)
 * `Q-NORM-001`: Default FD discovery algorithm (DFD vs TANE vs FDHits)
 * `Q-NORM-002`: Approximate FD handling policy
 * `Q-NORM-003`: Denormalization support scope
-* `Q-NORM-004`: FQL-dt proof integration interface
+* `Q-NORM-004`: GQL-DT proof integration interface
 * `Q-NORM-005`: Query rewriting for affected queries
 
 == Documentation
@@ -201,17 +201,17 @@ See link:formbd.scm[formbd.scm] for structured open questions with acceptance cr
 * link:ARCHITECTURE.adoc[Architecture] - Technical architecture deep-dive
 * link:ROADMAP.adoc[Roadmap] - Development roadmap
 * link:PHILOSOPHY.adoc[Philosophy] - Design philosophy and principles
-* link:formbd.scm[formbd.scm] - Machine-readable specification
+* link:lithoglyph.scm[lithoglyph.scm] - Machine-readable specification
 
 === Specifications
-* link:spec/fql.adoc[FQL Specification] - Query language reference
-* link:spec/fql-dependent-types.md[FQL Dependent Types] - Compile-time verified queries
+* link:spec/gql.adoc[GQL Specification] - Query language reference
+* link:spec/gql-dependent-types.md[GQL Dependent Types] - Compile-time verified queries
 * link:spec/self-normalizing.adoc[Self-Normalizing Database] - Automatic FD discovery, proof-carrying schema evolution
 * link:spec/blocks.adoc[Block Format] - Storage layer specification
 * link:spec/journal.adoc[Journal Format] - Audit log specification
 
 === Operations
-* link:docs/DEPLOYMENT.adoc[Deployment Guide] - Run FormBD in production
+* link:docs/DEPLOYMENT.adoc[Deployment Guide] - Run Lithoglyph in production
 * link:docs/OBSERVABILITY.adoc[Observability] - Monitoring, logging, tracing
 * link:docs/SECURITY-AUTH.adoc[Security & Auth] - Authentication and hardening
 
@@ -221,15 +221,15 @@ See link:formbd.scm[formbd.scm] for structured open questions with acceptance cr
 * link:docs/INTEGRATION-PATTERNS.adoc[Integration Patterns] - Queues, search, analytics
 
 === Domain-Specific
-* link:docs/WP05_interactive_documentary.md[WP05] - FormBD for Interactive Documentary/Journalism
+* link:docs/WP05_interactive_documentary.md[WP05] - Lithoglyph for Interactive Documentary/Journalism
 
 == Related Projects
 
-* https://github.com/hyperpolymath/fqldt[FQLdt] - Dependently-typed FQL (same database, compile-time proofs)
-* https://github.com/hyperpolymath/formbd-studio[FormBD Studio] - Zero-friction GUI for non-technical users
+* https://github.com/hyperpolymath/gql-dt[GQL-DT] - Dependently-typed GQL (same database, compile-time proofs)
+* https://github.com/hyperpolymath/lithoglyph-studio[Lithoglyph Studio] - Zero-friction GUI for non-technical users
 * https://github.com/hyperpolymath/bofig[BoFIG] - Evidence graph for investigative journalism
-* https://github.com/hyperpolymath/zotero-formbd[Zotero-FormBD] - Post-truth reference manager with PROMPT scores
-* https://github.com/hyperpolymath/formbd-debugger[FormBD Debugger] - Proof-carrying database debugger (Lean 4 + Idris 2)
+* https://github.com/hyperpolymath/zotero-lithoglyph[Zotero-Lithoglyph] - Post-truth reference manager with PROMPT scores
+* https://github.com/hyperpolymath/lithoglyph-debugger[Lithoglyph Debugger] - Proof-carrying database debugger (Lean 4 + Idris 2)
 * https://github.com/hyperpolymath/formbase[FormBase] - Open-source Airtable alternative with provenance
 
 == License
