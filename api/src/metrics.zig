@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Prometheus Metrics
+// Lithoglyph API Server - Prometheus Metrics
 
 const std = @import("std");
 
@@ -87,51 +87,51 @@ pub fn getPrometheus(alloc: std.mem.Allocator) ![]const u8 {
 
     // Write metrics in Prometheus format
     try writer.print(
-        \\# HELP formdb_requests_total Total number of requests
-        \\# TYPE formdb_requests_total counter
-        \\formdb_requests_total {d}
+        \\# HELP lithoglyph_requests_total Total number of requests
+        \\# TYPE lithoglyph_requests_total counter
+        \\lithoglyph_requests_total {d}
         \\
-        \\# HELP formdb_requests_by_status Requests by HTTP status code range
-        \\# TYPE formdb_requests_by_status counter
-        \\formdb_requests_by_status{{status="2xx"}} {d}
-        \\formdb_requests_by_status{{status="3xx"}} {d}
-        \\formdb_requests_by_status{{status="4xx"}} {d}
-        \\formdb_requests_by_status{{status="5xx"}} {d}
+        \\# HELP lithoglyph_requests_by_status Requests by HTTP status code range
+        \\# TYPE lithoglyph_requests_by_status counter
+        \\lithoglyph_requests_by_status{{status="2xx"}} {d}
+        \\lithoglyph_requests_by_status{{status="3xx"}} {d}
+        \\lithoglyph_requests_by_status{{status="4xx"}} {d}
+        \\lithoglyph_requests_by_status{{status="5xx"}} {d}
         \\
-        \\# HELP formdb_requests_by_protocol Requests by protocol
-        \\# TYPE formdb_requests_by_protocol counter
-        \\formdb_requests_by_protocol{{protocol="rest"}} {d}
-        \\formdb_requests_by_protocol{{protocol="grpc"}} {d}
-        \\formdb_requests_by_protocol{{protocol="graphql"}} {d}
+        \\# HELP lithoglyph_requests_by_protocol Requests by protocol
+        \\# TYPE lithoglyph_requests_by_protocol counter
+        \\lithoglyph_requests_by_protocol{{protocol="rest"}} {d}
+        \\lithoglyph_requests_by_protocol{{protocol="grpc"}} {d}
+        \\lithoglyph_requests_by_protocol{{protocol="graphql"}} {d}
         \\
-        \\# HELP formdb_request_duration_seconds Request latency histogram
-        \\# TYPE formdb_request_duration_seconds histogram
-        \\formdb_request_duration_seconds_bucket{{le="0.001"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.005"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.01"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.025"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.05"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.1"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.25"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="0.5"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="1.0"}} {d}
-        \\formdb_request_duration_seconds_bucket{{le="+Inf"}} {d}
+        \\# HELP lithoglyph_request_duration_seconds Request latency histogram
+        \\# TYPE lithoglyph_request_duration_seconds histogram
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.001"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.005"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.01"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.025"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.05"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.1"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.25"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="0.5"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="1.0"}} {d}
+        \\lithoglyph_request_duration_seconds_bucket{{le="+Inf"}} {d}
         \\
-        \\# HELP formdb_active_connections Current number of active connections
-        \\# TYPE formdb_active_connections gauge
-        \\formdb_active_connections {d}
+        \\# HELP lithoglyph_active_connections Current number of active connections
+        \\# TYPE lithoglyph_active_connections gauge
+        \\lithoglyph_active_connections {d}
         \\
-        \\# HELP formdb_active_migrations Current number of active migrations
-        \\# TYPE formdb_active_migrations gauge
-        \\formdb_active_migrations {d}
+        \\# HELP lithoglyph_active_migrations Current number of active migrations
+        \\# TYPE lithoglyph_active_migrations gauge
+        \\lithoglyph_active_migrations {d}
         \\
-        \\# HELP formdb_uptime_seconds Server uptime in seconds
-        \\# TYPE formdb_uptime_seconds gauge
-        \\formdb_uptime_seconds {d}
+        \\# HELP lithoglyph_uptime_seconds Server uptime in seconds
+        \\# TYPE lithoglyph_uptime_seconds gauge
+        \\lithoglyph_uptime_seconds {d}
         \\
-        \\# HELP formdb_info Server version information
-        \\# TYPE formdb_info gauge
-        \\formdb_info{{version="0.0.4"}} 1
+        \\# HELP lithoglyph_info Server version information
+        \\# TYPE lithoglyph_info gauge
+        \\lithoglyph_info{{version="0.0.4"}} 1
         \\
     , .{
         requests_total,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Authentication
+// Lithoglyph API Server - Authentication
 
 const std = @import("std");
 const config = @import("config.zig");

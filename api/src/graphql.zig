@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - GraphQL Handler
+// Lithoglyph API Server - GraphQL Handler
 //
-// GraphQL endpoint for FormDB operations
+// GraphQL endpoint for Lithoglyph operations
 // Supports queries, mutations, and subscriptions
 
 const std = @import("std");
@@ -39,7 +39,7 @@ fn handleGraphiQL(request: *std.http.Server.Request) !void {
         \\<!DOCTYPE html>
         \\<html>
         \\<head>
-        \\  <title>FormDB GraphQL</title>
+        \\  <title>Lithoglyph GraphQL</title>
         \\  <style>body { margin: 0; height: 100vh; }</style>
         \\  <link rel="stylesheet" href="https://unpkg.com/graphiql/graphiql.min.css" />
         \\</head>

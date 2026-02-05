@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - gRPC Handler
+// Lithoglyph API Server - gRPC Handler
 //
 // gRPC over HTTP/2 with Protocol Buffers
-// Implements the FormDB gRPC service defined in proto/formdb.proto
+// Implements the Lithoglyph gRPC service defined in proto/lithoglyph.proto
 
 const std = @import("std");
 const config = @import("config.zig");
@@ -33,9 +33,9 @@ pub fn handleRequest(
     }
 
     // Route to service method
-    // Path format: /grpc/formdb.v1.FormDB/MethodName
-    if (std.mem.indexOf(u8, path, "/formdb.v1.FormDB/")) |idx| {
-        const method = path[idx + "/formdb.v1.FormDB/".len ..];
+    // Path format: /grpc/lithoglyph.v1.Lithoglyph/MethodName
+    if (std.mem.indexOf(u8, path, "/lithoglyph.v1.Lithoglyph/")) |idx| {
+        const method = path[idx + "/lithoglyph.v1.Lithoglyph/".len ..];
         try routeGrpcMethod(allocator, request, method);
     } else {
         try sendGrpcError(allocator, request, 12, "Unknown service");
@@ -516,9 +516,9 @@ fn getHeader(request: *std.http.Server.Request, name: []const u8) ?[]const u8 {
 }
 
 test "grpc path parsing" {
-    const path = "/grpc/formdb.v1.FormDB/Query";
-    if (std.mem.indexOf(u8, path, "/formdb.v1.FormDB/")) |idx| {
-        const method = path[idx + "/formdb.v1.FormDB/".len ..];
+    const path = "/grpc/lithoglyph.v1.Lithoglyph/Query";
+    if (std.mem.indexOf(u8, path, "/lithoglyph.v1.Lithoglyph/")) |idx| {
+        const method = path[idx + "/lithoglyph.v1.Lithoglyph/".len ..];
         try std.testing.expectEqualStrings("Query", method);
     } else {
         return error.TestFailed;

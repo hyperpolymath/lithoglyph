@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Integration Tests
+// Lithoglyph API Server - Integration Tests
 //
 // End-to-end tests for REST, gRPC, and GraphQL endpoints
 // Tests API server with mocked Form.Bridge responses
@@ -53,7 +53,7 @@ test "REST collections endpoint returns valid structure" {
 test "REST query execution returns valid response" {
     const allocator = createTestAllocator();
 
-    // Test FDQL query execution
+    // Test GQL query execution
     const result = try bridge.executeQuery(allocator, "SELECT * FROM test");
     defer allocator.free(result);
 

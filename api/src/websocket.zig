@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - WebSocket Handler
+// Lithoglyph API Server - WebSocket Handler
 //
 // WebSocket support for GraphQL subscriptions and real-time journal streaming
 

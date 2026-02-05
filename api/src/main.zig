@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Multi-Protocol (REST, gRPC, GraphQL)
+// Lithoglyph API Server - Multi-Protocol (REST, gRPC, GraphQL)
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -17,7 +17,7 @@ pub const std_options = struct {
     pub const log_level: std.log.Level = .info;
 };
 
-const log = std.log.scoped(.formdb_server);
+const log = std.log.scoped(.lithoglyph_server);
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -28,7 +28,7 @@ pub fn main() !void {
     const cfg = try config.load(allocator);
     defer cfg.deinit();
 
-    log.info("FormDB API Server v{s}", .{cfg.version});
+    log.info("Lithoglyph API Server v{s}", .{cfg.version});
     log.info("Listening on {s}:{d}", .{ cfg.host, cfg.port });
 
     // Initialize metrics

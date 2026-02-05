@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Bridge Client
+// Lithoglyph API Server - Bridge Client
 //
 // Wraps Form.Bridge FFI calls for the API server, converting between
 // JSON (HTTP) and CBOR (bridge) formats.
@@ -224,7 +224,7 @@ pub fn executeQuery(fdql: []const u8, provenance: ?QueryProvenance) !QueryResult
         }
     }
 
-    // Encode operation as CBOR (simplified - just wrap FDQL string)
+    // Encode operation as CBOR (simplified - just wrap GQL string)
     var op_buffer: [4096]u8 = undefined;
     const op_len = encodeFdqlOperation(&op_buffer, fdql, provenance) catch {
         return error.EncodingFailed;
@@ -320,14 +320,14 @@ pub fn getCollection(name: []const u8) !?CollectionInfo {
 pub fn createCollection(name: []const u8, schema_json: []const u8) !void {
     _ = name;
     _ = schema_json;
-    // Create collection via FDQL CREATE COLLECTION statement
+    // Create collection via GQL CREATE COLLECTION statement
     // For now, placeholder
     return error.NotImplemented;
 }
 
 pub fn dropCollection(name: []const u8) !void {
     _ = name;
-    // Drop collection via FDQL DROP COLLECTION statement
+    // Drop collection via GQL DROP COLLECTION statement
     // For now, placeholder
     return error.NotImplemented;
 }
@@ -480,7 +480,7 @@ pub fn getHealth() HealthStatus {
 // =============================================================================
 
 fn encodeFdqlOperation(buffer: []u8, fdql: []const u8, prov: ?QueryProvenance) !usize {
-    // Simplified CBOR encoding for FDQL operation
+    // Simplified CBOR encoding for GQL operation
     // In production, would use proper CBOR encoder
 
     // CBOR map with 2-3 entries

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - REST Handler
+// Lithoglyph API Server - REST Handler
 
 const std = @import("std");
 const json = std.json;
@@ -81,7 +81,7 @@ fn handleQuery(
 
     const req = parsed.value;
 
-    log.info("Executing FDQL: {s}", .{req.fdql});
+    log.info("Executing GQL: {s}", .{req.fdql});
 
     // EXPLAIN mode - return query plan without execution
     if (req.explain) {

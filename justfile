@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# justfile - Just recipes for FormBD
+# justfile - Just recipes for Lithoglyph
 # See: https://github.com/hyperpolymath/mustfile
 
 # Default recipe
@@ -8,7 +8,7 @@ default:
 
 # Build the project (placeholder - components use different build systems)
 build:
-    @echo "FormBD uses multiple languages:"
+    @echo "Lithoglyph uses multiple languages:"
     @echo "  - Forth (gforth): No build step needed"
     @echo "  - Factor: Vocabulary loads on demand"
     @echo "  - Zig: Use 'zig build' in core-zig/"
@@ -22,9 +22,9 @@ test-forth:
 # Check that Forth code loads
 check-forth:
     @echo "Checking Forth code loads..."
-    cd core-forth/src && toolbox run gforth formbd-blocks.fs -e 'bye'
-    cd core-forth/src && toolbox run gforth formbd-journal.fs -e 'bye'
-    cd core-forth/src && toolbox run gforth formbd-model.fs -e 'bye'
+    cd core-forth/src && toolbox run gforth lithoglyph-blocks.fs -e 'bye'
+    cd core-forth/src && toolbox run gforth lithoglyph-journal.fs -e 'bye'
+    cd core-forth/src && toolbox run gforth lithoglyph-model.fs -e 'bye'
     @echo "All Forth files load successfully"
 
 # Check that Lean code compiles

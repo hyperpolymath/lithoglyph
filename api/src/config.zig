@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Configuration
+// Lithoglyph API Server - Configuration
 
 const std = @import("std");
 
@@ -54,7 +54,7 @@ pub fn load(allocator: std.mem.Allocator) !*const Config {
         .require_auth = getEnvBool("FORMDB_REQUIRE_AUTH", false),
 
         // Database
-        .db_path = getEnvOrDefault("FORMDB_DB_PATH", "./formdb.dat"),
+        .db_path = getEnvOrDefault("FORMDB_DB_PATH", "./lithoglyph.dat"),
 
         // Logging
         .log_level = .info,
