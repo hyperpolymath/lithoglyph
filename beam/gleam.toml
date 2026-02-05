@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+
+name = "formdb_beam"
+version = "0.1.0"
+description = "BEAM bindings for Lithoglyph - the narrative-first database"
+licences = ["AGPL-3.0-or-later"]
+repository = { type = "github", user = "hyperpolymath", repo = "formdb-beam" }
+
+[dependencies]
+gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+gleam_erlang = ">= 0.25.0 and < 1.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
