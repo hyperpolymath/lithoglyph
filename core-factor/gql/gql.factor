@@ -1,27 +1,28 @@
-! SPDX-License-Identifier: PMPL-1.0
-! Form.Runtime - FDQL Parser and Executor
+! SPDX-License-Identifier: PMPL-1.0-or-later
+! Form.Runtime - GQL Parser and Executor
 !
-! FDQL (FormDB Query Language) implementation using PEG parsing.
+! GQL (Glyph Query Language) - Carving queries into stone-carved data.
+! Part of Lithoglyph: Stone-carved data for the ages.
 
 USING: accessors arrays assocs combinators combinators.short-circuit
 continuations formatting generalizations io json kernel locals math
 math.parser peg peg.ebnf random sequences splitting storage-backend
 strings system unicode vectors ;
 
-IN: fdql
+IN: gql
 
 ! ============================================================
 ! AST Node Types
 ! ============================================================
 
-TUPLE: fdql-insert collection document provenance ;
-TUPLE: fdql-select fields collection where-clause edge-clause limit-clause with-provenance? ;
-TUPLE: fdql-update collection assignments where-clause provenance ;
-TUPLE: fdql-delete collection where-clause provenance ;
-TUPLE: fdql-create collection fields schema ;
-TUPLE: fdql-drop collection provenance ;
-TUPLE: fdql-explain inner-stmt analyze? verbose? ;
-TUPLE: fdql-introspect target arg ;
+TUPLE: gql-insert collection document provenance ;
+TUPLE: gql-select fields collection where-clause edge-clause limit-clause with-provenance? ;
+TUPLE: gql-update collection assignments where-clause provenance ;
+TUPLE: gql-delete collection where-clause provenance ;
+TUPLE: gql-create collection fields schema ;
+TUPLE: gql-drop collection provenance ;
+TUPLE: gql-explain inner-stmt analyze? verbose? ;
+TUPLE: gql-introspect target arg ;
 
 TUPLE: edge-clause type direction depth where ;
 TUPLE: where-clause expression ;
@@ -60,7 +61,7 @@ TUPLE: binary-expr left op right ;
 ! Parser Combinators (Simplified)
 ! ============================================================
 
-ERROR: fdql-parse-error message position ;
+ERROR: gql-parse-error message position ;
 
 : peek-token ( tokens -- token/f )
     dup empty? [ drop f ] [ first ] if ;
@@ -74,7 +75,7 @@ ERROR: fdql-parse-error message position ;
     over = [                     ! ( tokens EXPECTED ) if match
         drop consume-token drop  ! ( tokens' )
     ] [
-        "Expected '" "'" surround fdql-parse-error
+        "Expected '" "'" surround gql-parse-error
     ] if ;
 
 : try-consume ( tokens expected -- tokens' matched? )
@@ -102,7 +103,7 @@ ERROR: fdql-parse-error message position ;
 
 : parse-identifier ( tokens -- tokens' identifier )
     consume-token
-    dup keyword? [ "Unexpected keyword" fdql-parse-error ] when ;
+    dup keyword? [ "Unexpected keyword" gql-parse-error ] when ;
 
 : parse-json-value ( tokens -- tokens' value )
     ! Simplified: just consume until end of JSON
@@ -231,7 +232,7 @@ ERROR: fdql-parse-error message position ;
     ! Parse provenance
     tokens'''' parse-provenance-clause :> ( final-tokens prov )
     final-tokens
-    collection doc prov fdql-insert boa ;
+    collection doc prov gql-insert boa ;
 
 : parse-select ( tokens -- tokens' ast )
     ! Parse "SELECT fields FROM collection" (simplified)
@@ -250,14 +251,14 @@ ERROR: fdql-parse-error message position ;
     "FROM" expect-token             ! ( fields tokens'' )
     parse-collection-name           ! ( fields tokens'' collection )
 
-    ! Build the fdql-select tuple with defaults for optional clauses
-    ! fdql-select needs: ( fields collection where edge lim prov )
+    ! Build the gql-select tuple with defaults for optional clauses
+    ! gql-select needs: ( fields collection where edge lim prov )
     ! Stack has: ( fields tokens'' collection )
 
     rot                             ! ( tokens'' collection fields )
     swap                            ! ( tokens'' fields collection )
     f f f f                         ! ( tokens'' fields collection f f f f )
-    fdql-select boa                 ! ( tokens'' ast )
+    gql-select boa                 ! ( tokens'' ast )
     ;
 
 :: parse-update ( tokens -- tokens' ast )
@@ -275,14 +276,14 @@ ERROR: fdql-parse-error message position ;
     tokens''' parse-where-clause :> ( tokens'''' where )
     tokens'''' parse-provenance-clause :> ( final-tokens prov )
     final-tokens
-    collection assignments >array where prov fdql-update boa ;
+    collection assignments >array where prov gql-update boa ;
 
 :: parse-delete ( tokens -- tokens' ast )
     tokens "FROM" expect-token parse-collection-name :> ( tokens' collection )
     tokens' parse-where-clause :> ( tokens'' where )
     tokens'' parse-provenance-clause :> ( final-tokens prov )
     final-tokens
-    collection where prov fdql-delete boa ;
+    collection where prov gql-delete boa ;
 
 :: parse-create ( tokens -- tokens' ast )
     tokens "COLLECTION" expect-token parse-collection-name :> ( tokens' collection )
@@ -306,17 +307,17 @@ ERROR: fdql-parse-error message position ;
     has-schema? [
         tokens'''''' "SCHEMA" expect-token :> tokens'''''''
         tokens'''''''
-        collection fields H{ } clone fdql-create boa  ! placeholder schema
+        collection fields H{ } clone gql-create boa  ! placeholder schema
     ] [
         tokens''''''
-        collection fields f fdql-create boa
+        collection fields f gql-create boa
     ] if ;
 
 :: parse-drop ( tokens -- tokens' ast )
     tokens "COLLECTION" expect-token parse-collection-name :> ( tokens' collection )
     tokens' parse-provenance-clause :> ( final-tokens prov )
     final-tokens
-    collection prov fdql-drop boa ;
+    collection prov gql-drop boa ;
 
 :: parse-introspect-target ( tokens -- tokens' target arg )
     tokens consume-token :> ( tokens' target-raw )
@@ -345,7 +346,7 @@ ERROR: fdql-parse-error message position ;
 
 : parse-introspect ( tokens -- tokens' ast )
     parse-introspect-target
-    fdql-introspect boa ;
+    gql-introspect boa ;
 
 DEFER: parse-statement
 
@@ -358,7 +359,7 @@ DEFER: parse-statement
     "VERBOSE" try-consume [ t verbose?! ] when
     parse-statement :> ( tokens' inner )
     tokens'
-    inner analyze? verbose? fdql-explain boa ;
+    inner analyze? verbose? gql-explain boa ;
 
 : parse-statement ( tokens -- tokens' ast )
     consume-token >upper {  ! After consume-token: ( tokens' token ), >upper: ( tokens' TOKEN )
@@ -370,14 +371,14 @@ DEFER: parse-statement
         { "DROP" [ parse-drop ] }
         { "EXPLAIN" [ parse-explain ] }
         { "INTROSPECT" [ parse-introspect ] }
-        [ "Unknown statement type" fdql-parse-error ]
+        [ "Unknown statement type" gql-parse-error ]
     } case ;
 
 ! ============================================================
 ! Main Parser Entry Point
 ! ============================================================
 
-: parse-fdql ( str -- ast )
+: parse-gql ( str -- ast )
     ! Remove trailing semicolon if present
     dup ";" tail? [ but-last ] when
     ! Remove comments
@@ -456,7 +457,7 @@ GENERIC: plan-query ( ast -- plan )
         edge depth>> 5 * >>rows
         edge direction>> edge depth>> "Traversing %s edges to depth %d" sprintf >>rationale ;
 
-M: fdql-select plan-query
+M: gql-select plan-query
     query-plan new
         V{ } clone
         ! Add project step
@@ -473,7 +474,7 @@ M: fdql-select plan-query
         ! Check provenance flag
         swap with-provenance?>> >>provenance? ;
 
-M: fdql-insert plan-query
+M: gql-insert plan-query
     query-plan new
         V{ }
         over collection>>
@@ -487,7 +488,7 @@ M: fdql-insert plan-query
         10 >>total-cost
         f >>provenance? ;
 
-M: fdql-update plan-query
+M: gql-update plan-query
     query-plan new
         V{ }
         over collection>> over where-clause>> make-scan-step suffix
@@ -502,7 +503,7 @@ M: fdql-update plan-query
         60 >>total-cost
         f >>provenance? ;
 
-M: fdql-delete plan-query
+M: gql-delete plan-query
     query-plan new
         V{ }
         over collection>> over where-clause>> make-scan-step suffix
@@ -517,7 +518,7 @@ M: fdql-delete plan-query
         60 >>total-cost
         f >>provenance? ;
 
-M: fdql-create plan-query
+M: gql-create plan-query
     query-plan new
         V{ }
         over collection>>
@@ -531,7 +532,7 @@ M: fdql-create plan-query
         5 >>total-cost
         f >>provenance? ;
 
-M: fdql-drop plan-query
+M: gql-drop plan-query
     query-plan new
         V{ }
         over collection>>
@@ -545,10 +546,10 @@ M: fdql-drop plan-query
         5 >>total-cost
         f >>provenance? ;
 
-M: fdql-explain plan-query
+M: gql-explain plan-query
     inner-stmt>> plan-query ;
 
-M: fdql-introspect plan-query
+M: gql-introspect plan-query
     query-plan new
         V{ }
         over target>>
@@ -586,7 +587,7 @@ M: fdql-introspect plan-query
 ! Query Executor
 ! ============================================================
 
-GENERIC: execute-fdql ( ast -- result )
+GENERIC: execute-gql ( ast -- result )
 
 ! Storage backend - uses pluggable storage (memory or bridge)
 ! See storage-backend.factor for backend implementations
@@ -698,11 +699,11 @@ GENERIC: execute-fdql ( ast -- result )
     } clone
     prov [ "provenance" swap pick set-at ] when* ;
 
-M: fdql-insert execute-fdql
+M: gql-insert execute-gql
     [ collection>> ] [ document>> ] [ provenance>> ] tri
     execute-insert ;
 
-M: fdql-select execute-fdql
+M: gql-select execute-gql
     [ fields>> ]
     [ collection>> ]
     [ where-clause>> ]
@@ -711,19 +712,19 @@ M: fdql-select execute-fdql
     [ with-provenance?>> ] 6 ncleave
     execute-select ;
 
-M: fdql-update execute-fdql
+M: gql-update execute-gql
     [ collection>> ] [ assignments>> ] [ where-clause>> ] [ provenance>> ] quad
     execute-update ;
 
-M: fdql-delete execute-fdql
+M: gql-delete execute-gql
     [ collection>> ] [ where-clause>> ] [ provenance>> ] tri
     execute-delete ;
 
-M: fdql-create execute-fdql
+M: gql-create execute-gql
     [ collection>> ] [ fields>> ] [ schema>> ] tri
     execute-create ;
 
-M: fdql-drop execute-fdql
+M: gql-drop execute-gql
     [ collection>> ] [ provenance>> ] bi
     execute-drop ;
 
@@ -807,7 +808,7 @@ M: fdql-drop execute-fdql
     stmt inner-stmt>> plan-query :> plan
     stmt analyze?>> [
         ! ANALYZE mode: actually run the query and report timing
-        [ stmt inner-stmt>> execute-fdql ] with-timing :> ( result elapsed )
+        [ stmt inner-stmt>> execute-gql ] with-timing :> ( result elapsed )
         H{
             { "status" "ok" }
         } clone
@@ -828,10 +829,10 @@ M: fdql-drop execute-fdql
         ] when
     ] if ;
 
-M: fdql-explain execute-fdql
+M: gql-explain execute-gql
     execute-explain ;
 
-M: fdql-introspect execute-fdql
+M: gql-introspect execute-gql
     [ target>> ] [ arg>> ] bi
     {
         { "SCHEMA" [
@@ -875,21 +876,21 @@ M: fdql-introspect execute-fdql
 ! Public API
 ! ============================================================
 
-: run-fdql ( str -- result )
-    parse-fdql execute-fdql ;
+: run-gql ( str -- result )
+    parse-gql execute-gql ;
 
-: explain-fdql ( str -- plan )
+: explain-gql ( str -- plan )
     "EXPLAIN " prepend
-    run-fdql ;
+    run-gql ;
 
-: explain-verbose-fdql ( str -- plan )
+: explain-verbose-gql ( str -- plan )
     "EXPLAIN VERBOSE " prepend
-    run-fdql ;
+    run-gql ;
 
-: explain-analyze-fdql ( str -- plan )
+: explain-analyze-gql ( str -- plan )
     "EXPLAIN ANALYZE " prepend
-    run-fdql ;
+    run-gql ;
 
-: explain-analyze-verbose-fdql ( str -- plan )
+: explain-analyze-verbose-gql ( str -- plan )
     "EXPLAIN ANALYZE VERBOSE " prepend
-    run-fdql ;
+    run-gql ;
