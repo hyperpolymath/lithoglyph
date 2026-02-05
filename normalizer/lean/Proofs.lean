@@ -1,10 +1,12 @@
 /-
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: PMPL-1.0-or-later
 Form.Normalizer - Proof Integration
 
 Ties together FunDep types with Bridge FFI for proof-carrying
 normalization transformations. This module provides the high-level
 API for creating verified normalization and denormalization steps.
+
+Part of Lithoglyph: Stone-carved data for the ages.
 -/
 
 -- Note: In a full Lean project, these would be proper imports:
@@ -12,11 +14,11 @@ API for creating verified normalization and denormalization steps.
 -- import Bridge
 -- For now, we inline the necessary type references
 
-namespace FormDB.Normalizer.Proofs
+namespace Lithoglyph.Normalizer.Proofs
 
 -- Re-export from FunDep namespace
-open FormDB.Normalizer in
-export FormDB.Normalizer (
+open Lithoglyph.Normalizer in
+export Lithoglyph.Normalizer (
   Attribute Schema Tuple Relation
   FunDep FDHolds NFViolation
   NormalizationStep Decomposition
@@ -26,8 +28,8 @@ export FormDB.Normalizer (
 )
 
 -- Re-export from Bridge namespace
-open FormDB.Bridge in
-export FormDB.Bridge (
+open Lithoglyph.Bridge in
+export Lithoglyph.Bridge (
   FdbStatus FdbBlob CborEncoder Proof VerificationResult
   encodeFDProof encodeNormalizationProof encodeDenormalizationProof
   verifyProofPure
@@ -306,4 +308,4 @@ def packageDenormalizationForJournal
     |>.encodeBool vds.losslessVerified
   encoder.finish
 
-end FormDB.Normalizer.Proofs
+end Lithoglyph.Normalizer.Proofs

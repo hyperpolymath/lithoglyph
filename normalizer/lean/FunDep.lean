@@ -1,12 +1,14 @@
 /-
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: PMPL-1.0-or-later
 Form.Normalizer - Functional Dependency Types
 
 Lean 4 types for encoding functional dependencies and
 normal form predicates for proof-carrying normalization.
+
+Part of Lithoglyph: Stone-carved data for the ages.
 -/
 
-namespace FormDB.Normalizer
+namespace Lithoglyph.Normalizer
 
 /-! # Attribute and Schema Types -/
 
@@ -357,4 +359,4 @@ def MigrationState.toNarrative (state : MigrationState) : String :=
   s!"Rewrite rules: {state.rewriteRules.length}\n" ++
   s!"Compatibility views: {state.compatViews.length}"
 
-end FormDB.Normalizer
+end Lithoglyph.Normalizer

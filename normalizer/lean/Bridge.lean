@@ -1,32 +1,33 @@
 /-
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: PMPL-1.0-or-later
 Form.Normalizer - FFI Bridge to Zig Core
 
 Lean 4 foreign function interface bindings to the Form.Bridge
 C ABI layer (bridge.zig). Enables Lean proofs to be verified
 by the runtime and proof results to be embedded in the database.
 
+Part of Lithoglyph: Stone-carved data for the ages.
 Decision D-NORM-004: Form.Bridge exports proof verification FFI
 -/
 
-namespace FormDB.Bridge
+namespace Lithoglyph.Bridge
 
 /-! # Status Codes -/
 
 /-- Status codes from Form.Bridge C ABI -/
-inductive FdbStatus where
-  | ok                    : FdbStatus  -- 0
-  | errInvalidArgument    : FdbStatus  -- 1
-  | errOutOfMemory        : FdbStatus  -- 2
-  | errInternal           : FdbStatus  -- 3
-  | errNotFound           : FdbStatus  -- 4
-  | errNotImplemented     : FdbStatus  -- 5
-  | errTxnNotActive       : FdbStatus  -- 6
-  | errTxnAlreadyCommitted: FdbStatus  -- 7
+inductive LgStatus where
+  | ok                    : LgStatus  -- 0
+  | errInvalidArgument    : LgStatus  -- 1
+  | errOutOfMemory        : LgStatus  -- 2
+  | errInternal           : LgStatus  -- 3
+  | errNotFound           : LgStatus  -- 4
+  | errNotImplemented     : LgStatus  -- 5
+  | errTxnNotActive       : LgStatus  -- 6
+  | errTxnAlreadyCommitted: LgStatus  -- 7
   deriving Repr, BEq, Inhabited
 
 /-- Convert status to integer for FFI -/
-def FdbStatus.toUInt8 : FdbStatus → UInt8
+def LgStatus.toUInt8 : LgStatus → UInt8
   | .ok => 0
   | .errInvalidArgument => 1
   | .errOutOfMemory => 2
@@ -37,7 +38,7 @@ def FdbStatus.toUInt8 : FdbStatus → UInt8
   | .errTxnAlreadyCommitted => 7
 
 /-- Convert integer from FFI to status -/
-def FdbStatus.fromUInt8 : UInt8 → FdbStatus
+def LgStatus.fromUInt8 : UInt8 → LgStatus
   | 0 => .ok
   | 1 => .errInvalidArgument
   | 2 => .errOutOfMemory
@@ -51,15 +52,15 @@ def FdbStatus.fromUInt8 : UInt8 → FdbStatus
 /-! # Blob Type -/
 
 /-- CBOR-encoded blob for FFI transfer -/
-structure FdbBlob where
+structure LgBlob where
   data : ByteArray
   deriving Repr, Inhabited
 
 /-- Create empty blob -/
-def FdbBlob.empty : FdbBlob := ⟨ByteArray.empty⟩
+def LgBlob.empty : LgBlob := ⟨ByteArray.empty⟩
 
 /-- Create blob from string -/
-def FdbBlob.fromString (s : String) : FdbBlob := ⟨s.toUTF8⟩
+def LgBlob.fromString (s : String) : LgBlob := ⟨s.toUTF8⟩
 
 /-! # CBOR Encoding (Simplified) -/
 
@@ -350,4 +351,4 @@ def createProofCarryingDenormalization
     verified := result.valid
   }
 
-end FormDB.Bridge
+end Lithoglyph.Bridge

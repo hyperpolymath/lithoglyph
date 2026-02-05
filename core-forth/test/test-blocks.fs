@@ -1,7 +1,9 @@
-\ SPDX-License-Identifier: AGPL-3.0-or-later
+\ SPDX-License-Identifier: PMPL-1.0-or-later
 \ Test harness for Form.Blocks
+\
+\ Part of Lithoglyph: Stone-carved data for the ages.
 
-include ../src/formbd-blocks.fs
+include ../src/lithoglyph-blocks.fs
 
 \ ============================================================
 \ Test Utilities
