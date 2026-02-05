@@ -1,10 +1,12 @@
-\ SPDX-License-Identifier: AGPL-3.0-or-later
-\ Form.Blocks Journal - Append-only mutation log
+\ SPDX-License-Identifier: PMPL-1.0-or-later
+\ Form.Journal - Append-only mutation log
 \
 \ Every mutation is journaled before being applied.
 \ The journal enables crash recovery and provides provenance.
+\
+\ Part of Lithoglyph: Stone-carved data for the ages.
 
-require formbd-blocks.fs
+require lithoglyph-blocks.fs
 
 \ ============================================================
 \ Journal Constants

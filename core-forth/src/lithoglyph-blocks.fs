@@ -1,8 +1,11 @@
-\ SPDX-License-Identifier: AGPL-3.0-or-later
+\ SPDX-License-Identifier: PMPL-1.0-or-later
 \ Form.Blocks - Fixed-size block storage layer
 \
-\ This is the truth core of FormDB. All data goes through here.
+\ This is the truth core of Lithoglyph. All data goes through here.
 \ No business logic - just blocks, journals, and integrity.
+\
+\ Lithoglyph = litho (stone) + glyph (carved symbol)
+\ Forth sculpts data onto disk like carving glyphs in stone.
 
 \ Reset to clean Forth vocabulary to avoid gforth BLOCKS extension conflicts
 only forth definitions
@@ -15,8 +18,8 @@ only forth definitions
 64 constant HEADER-SIZE         \ 64-byte fixed header
 BLOCK-SIZE HEADER-SIZE - constant PAYLOAD-SIZE  \ 4032 bytes
 
-\ Magic bytes: "FDB\0" = 0x46444200
-$46444200 constant BLOCK-MAGIC
+\ Magic bytes: "LGH\0" = 0x4C474800 (Lithoglyph)
+$4C474800 constant BLOCK-MAGIC
 
 \ Block types
 $0000 constant TYPE-FREE

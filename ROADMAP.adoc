@@ -1,9 +1,11 @@
-= FormBD Roadmap
+= Lithoglyph Roadmap
 :toc:
 :icons: font
 
 [.lead]
 Development phases from concept to production.
+
+**Note:** This project was formerly known as "formbd" until 2026-02-05, when it was renamed to Lithoglyph to avoid trademark conflicts and better reflect the stone-carving metaphor of Forth sculpting data onto disk.
 
 == Milestone Summary
 
@@ -34,7 +36,7 @@ Development phases from concept to production.
 
 === Deliverables
 
-* [x] `formbd.scm` - Unified specification
+* [x] `lithoglyph.scm` - Unified specification (formerly formbd.scm)
 * [x] Repository structure
 * [x] `spec/blocks.adoc` - Block format spec (4 KiB blocks, 64-byte headers)
 * [x] `spec/journal.adoc` - Journal format spec (append-only, sequence numbers)
@@ -52,7 +54,7 @@ Development phases from concept to production.
 
 === Deliverables
 
-* [x] Fixed-size block implementation (`core-forth/src/formbd-blocks.fs`)
+* [x] Fixed-size block implementation (`core-forth/src/lithoglyph-blocks.fs`)
 * [x] Block header structure with magic, version, type, checksums
 * [x] Memory buffer management
 * [x] CRC32C implementation (Castagnoli polynomial)
@@ -65,7 +67,7 @@ Development phases from concept to production.
 
 === Deliverables
 
-* [x] Append-only journal (`core-forth/src/formbd-journal.fs`)
+* [x] Append-only journal (`core-forth/src/lithoglyph-journal.fs`)
 * [x] Sequence numbering
 * [x] Operation logging with inverses
 * [x] Crash recovery primitives
@@ -78,7 +80,7 @@ Development phases from concept to production.
 
 === Deliverables
 
-* [x] Document collection support (`core-forth/src/formbd-model.fs`)
+* [x] Document collection support (`core-forth/src/lithoglyph-model.fs`)
 * [x] Edge collection support
 * [x] Schema metadata storage
 * [x] Constraint storage

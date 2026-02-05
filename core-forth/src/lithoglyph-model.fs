@@ -1,10 +1,12 @@
-\ SPDX-License-Identifier: AGPL-3.0-or-later
+\ SPDX-License-Identifier: PMPL-1.0-or-later
 \ Form.Model - Multi-model logical layer
 \
 \ Documents, edges, collections, and schemas.
 \ All operations go through the journal.
+\
+\ Part of Lithoglyph: Stone-carved data for the ages.
 
-require formbd-journal.fs
+require lithoglyph-journal.fs
 
 \ ============================================================
 \ Collection Management
