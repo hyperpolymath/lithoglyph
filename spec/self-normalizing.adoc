@@ -6,7 +6,7 @@
 :source-highlighter: rouge
 
 [.lead]
-FormDB as a self-normalizing database: automatic functional dependency discovery, type-encoded normal forms, and proof-carrying schema evolution.
+Lithoglyph as a self-normalizing database: automatic functional dependency discovery, type-encoded normal forms, and proof-carrying schema evolution.
 
 toc::[]
 
@@ -15,7 +15,7 @@ toc::[]
 A *self-normalizing database* automatically:
 
 1. **Discovers** functional dependencies from data patterns
-2. **Encodes** dependencies in the type system (via FQL-dt)
+2. **Encodes** dependencies in the type system (via GQL-dt)
 3. **Proves** schema satisfies target normal form
 4. **Proposes** refactorings with equivalence proofs
 5. **Narrates** every decision in human/agent-readable form
@@ -24,9 +24,9 @@ A *self-normalizing database* automatically:
 This is not a fantasy. The pieces exist:
 
 * FD discovery algorithms (TANE, DFD, FDHits) are mature
-* FQL-dt provides dependent types for encoding constraints
-* FormDB's journal guarantees reversibility
-* FormDB's narrative philosophy demands explainability
+* GQL-dt provides dependent types for encoding constraints
+* Lithoglyph's journal guarantees reversibility
+* Lithoglyph's narrative philosophy demands explainability
 
 == Prior Art
 
@@ -61,7 +61,7 @@ No existing system combines:
 * Narrative explanation
 * Full reversibility with provenance
 
-FormDB + FQL-dt can be the first.
+Lithoglyph + GQL-dt can be the first.
 
 == Architecture
 
@@ -97,7 +97,7 @@ FormDB + FQL-dt can be the first.
        ┌───────────────────────┼───────────────────────┐
        ▼                       ▼                       ▼
 ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│ FQL-dt      │         │ FQL         │         │ Form.Model  │
+│ GQL-dt      │         │ GQL         │         │ Form.Model  │
 │ (Lean 4)    │         │ (Factor)    │         │ (Forth)     │
 │ Type-check  │         │ Runtime     │         │ Apply       │
 │ proofs      │         │ queries     │         │ transforms  │
@@ -185,7 +185,7 @@ def normalize (S : Schema) (fds : List (FunDep S))
 
 [source,factor]
 ----
-! FQL extension for FD discovery
+! GQL extension for FD discovery
 DISCOVER DEPENDENCIES
   FROM collection
   SAMPLE 10000           ! Sample size for large collections
@@ -198,7 +198,7 @@ DISCOVER DEPENDENCIES
 
 === Phase 2: Encoding
 
-Discovered FDs are encoded as FQL-dt types:
+Discovered FDs are encoded as GQL-dt types:
 
 [source,text]
 ----
@@ -380,7 +380,7 @@ REVERSIBILITY:
 
 | *1NF*
 | Full
-| Atomic value checking is straightforward; FQL-dt can encode atomicity in types
+| Atomic value checking is straightforward; GQL-dt can encode atomicity in types
 
 | *2NF*
 | Full
@@ -422,9 +422,9 @@ Most real-world databases target *3NF* or *BCNF*:
   - Harder to discover automatically
   - Often require domain expertise to identify
 
-FormDB will *fully support 1NF through BCNF* with automatic discovery and proof generation.
+Lithoglyph will *fully support 1NF through BCNF* with automatic discovery and proof generation.
 
-For 4NF and 5NF, FormDB can:
+For 4NF and 5NF, Lithoglyph can:
 
 * Accept manually specified MVDs and JDs
 * Verify normalization against provided dependencies
@@ -466,7 +466,7 @@ def FourthNormalForm (S : Schema) (fds : List (FunDep S)) (mvds : List (MVD S)) 
 | If yes: define DenormalizationStep type with equivalent proofs
 
 | Q-NORM-004
-| How to integrate with FQL-dt's existing proof system?
+| How to integrate with GQL-dt's existing proof system?
 | Define interface between Lean 4 proofs and Form.Normalizer
 
 | Q-NORM-005
@@ -479,11 +479,11 @@ def FourthNormalForm (S : Schema) (fds : List (FunDep S)) (mvds : List (MVD S)) 
 === Phase A: FD Discovery (Form.Normalizer Core)
 
 * Implement DFD algorithm in Forth (truth core) or Factor (runtime)
-* Create `DISCOVER DEPENDENCIES` FQL command
+* Create `DISCOVER DEPENDENCIES` GQL command
 * Journal all discoveries as narrative artefacts
 * Confidence scoring and approximate FD detection
 
-=== Phase B: Type Encoding (FQL-dt Integration)
+=== Phase B: Type Encoding (GQL-dt Integration)
 
 * Encode FunDep structure in Lean 4
 * Implement normal form predicates (1NF through 5NF)
@@ -531,7 +531,7 @@ def FourthNormalForm (S : Schema) (fds : List (FunDep S)) (mvds : List (MVD S)) 
 
 == See Also
 
-* link:../README.adoc[README] - FormDB overview
+* link:../README.adoc[README] - Lithoglyph overview
 * link:../ARCHITECTURE.adoc[ARCHITECTURE] - System architecture
-* https://github.com/hyperpolymath/fqldt[FQL-dt] - Dependent types for FQL
-* link:fql-dependent-types.md[FQL Dependent Types] - Type system specification
+* https://github.com/hyperpolymath/fqldt[GQL-dt] - Dependent types for GQL
+* link:fql-dependent-types.md[GQL Dependent Types] - Type system specification

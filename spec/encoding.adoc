@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-= FormDB Blob Encoding Specification
+= Lithoglyph Blob Encoding Specification
 :toc: macro
 :toc-title: Contents
 :toclevels: 3
@@ -7,7 +7,7 @@
 :sectnums:
 
 [.lead]
-Specification for blob encoding in FormDB's ABI and storage layers.
+Specification for blob encoding in Lithoglyph's ABI and storage layers.
 
 **Status**: PROPOSED (resolves Q-ABI-BLOBS-001)
 
@@ -80,7 +80,7 @@ toc::[]
 
 == CBOR Selection Rationale
 
-=== Advantages for FormDB
+=== Advantages for Lithoglyph
 
 1. **Schema-optional**: Works without code generation
 2. **Self-describing**: Values carry type information
@@ -112,7 +112,7 @@ toc::[]
 
 === Deterministic Encoding (RFC 8949 §4.2)
 
-FormDB REQUIRES deterministic CBOR encoding:
+Lithoglyph REQUIRES deterministic CBOR encoding:
 
 1. **Integer encoding**: Use smallest representation
 2. **Map key ordering**: Lexicographic by encoded key bytes
@@ -122,7 +122,7 @@ FormDB REQUIRES deterministic CBOR encoding:
 
 === Tagged Types
 
-FormDB uses CBOR tags for domain-specific types:
+Lithoglyph uses CBOR tags for domain-specific types:
 
 [cols="1,2,3"]
 |===
@@ -141,36 +141,36 @@ FormDB uses CBOR tags for domain-specific types:
 | Optional wrapper (standard CBOR)
 
 | 39001
-| FormDB Block Reference
+| Lithoglyph Block Reference
 | Reference to a block by ID
 
 | 39002
-| FormDB Document ID
+| Lithoglyph Document ID
 | Document identifier
 
 | 39003
-| FormDB Collection Name
+| Lithoglyph Collection Name
 | Collection identifier
 
 | 39004
-| FormDB Provenance
+| Lithoglyph Provenance
 | Provenance payload
 
 | 39005
-| FormDB Actor
+| Lithoglyph Actor
 | Actor information
 
 | 39006
-| FormDB PROMPT Score
+| Lithoglyph PROMPT Score
 | PROMPT evidence score
 
 | 39007
-| FormDB Functional Dependency
+| Lithoglyph Functional Dependency
 | FD encoding for normalizer
 
 | 39008
-| FormDB Proof
-| FQLdt proof blob
+| Lithoglyph Proof
+| GQLdt proof blob
 |===
 
 NOTE: Tags 39001-39999 are in the "first come first served" range per RFC 8949.
@@ -273,7 +273,7 @@ All CBOR blobs MUST have deterministic text rendering for audit:
 === Rendering Rules
 
 1. Use CBOR diagnostic notation as base
-2. Expand FormDB-specific tags to human-readable form
+2. Expand Lithoglyph-specific tags to human-readable form
 3. Timestamps rendered as ISO 8601
 4. Document IDs rendered with collection context
 5. Provenance rendered with actor name
@@ -372,7 +372,7 @@ Golden test vectors in `test-vectors/encoding/`:
 * `simple_document.cbor` - Simple document encoding
 * `simple_document.txt` - Canonical text rendering
 * `provenance.cbor` - Full provenance encoding
-* `tagged_types.cbor` - All FormDB-specific tags
+* `tagged_types.cbor` - All Lithoglyph-specific tags
 * `deterministic_map.cbor` - Map with ordered keys
 * `compressed_document.lz4` - LZ4-compressed CBOR
 

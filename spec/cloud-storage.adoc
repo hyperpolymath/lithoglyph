@@ -6,13 +6,13 @@
 :source-highlighter: rouge
 
 [.lead]
-FormDB is designed from the ground up to be safe on cloud storage services. This specification documents the guarantees, conflict resolution strategies, and recovery mechanisms.
+Lithoglyph is designed from the ground up to be safe on cloud storage services. This specification documents the guarantees, conflict resolution strategies, and recovery mechanisms.
 
 toc::[]
 
 == Overview
 
-FormDB's append-only journal architecture makes it inherently safe for cloud storage, unlike traditional databases that use random-write patterns.
+Lithoglyph's append-only journal architecture makes it inherently safe for cloud storage, unlike traditional databases that use random-write patterns.
 
 === The Problem with Traditional Databases
 
@@ -44,11 +44,11 @@ Cloud storage violates all of these:
 * No cross-device file locking
 * Sync granularity is file-level, not block-level
 
-=== FormDB's Solution
+=== Lithoglyph's Solution
 
 [source,text]
 ----
-FormDB journal on cloud storage:
+Lithoglyph journal on cloud storage:
 
      Client A                    Client B
          │                           │
@@ -64,7 +64,7 @@ FormDB journal on cloud storage:
     (append-only, no byte conflicts)
 ----
 
-FormDB's design guarantees:
+Lithoglyph's design guarantees:
 * **Append-only**: New data goes to end of journal, never overwrites
 * **Content-addressed**: Each entry identified by hash, not position
 * **Merkle-verified**: Integrity chain detects any corruption
@@ -423,7 +423,7 @@ Laptop (primary)     Desktop (secondary)     Phone (read-mostly)
    Cloud Storage (Dropbox/iCloud/etc.)
        │
        ▼
-   FormDB journal (append-only)
+   Lithoglyph journal (append-only)
 ----
 
 Recommendations:
@@ -444,7 +444,7 @@ Alice (researcher)   Bob (researcher)    Carol (editor)
    Shared cloud folder (team Dropbox/GDrive)
        │
        ▼
-   FormDB journal
+   Lithoglyph journal
        │
        ▼
    Provenance tracking (who changed what)
@@ -458,7 +458,7 @@ Key features:
 
 === Offline-First Workflow
 
-FormDB is designed for extended offline use:
+Lithoglyph is designed for extended offline use:
 
 [source,text]
 ----
@@ -478,7 +478,7 @@ Resolution:
 
 === File Locking
 
-FormDB does NOT rely on file locking:
+Lithoglyph does NOT rely on file locking:
 
 [source,text]
 ----
@@ -487,7 +487,7 @@ Traditional approach (BROKEN on cloud):
   2. Write data
   3. Release lock
 
-FormDB approach (WORKS on cloud):
+Lithoglyph approach (WORKS on cloud):
   1. Generate entry with unique ID
   2. Append to journal
   3. Entry either fully written or not (atomic at entry level)
@@ -532,7 +532,7 @@ For databases over 1GB:
 
 [cols="1,1,1,1,1"]
 |===
-| Feature | FormDB | SQLite | CouchDB | Git
+| Feature | Lithoglyph | SQLite | CouchDB | Git
 
 | Cloud-safe
 | ✓ Native
@@ -553,7 +553,7 @@ For databases over 1GB:
 | ○ Manual
 
 | Query language
-| ✓ FQL
+| ✓ GQL
 | ✓ SQL
 | ○ MapReduce
 | ✗ None
@@ -571,7 +571,7 @@ For databases over 1GB:
 | ✓ Built-in
 
 | Dependent types
-| ✓ FQL-dt
+| ✓ GQL-dt
 | ✗ None
 | ✗ None
 | ✗ None
@@ -593,7 +593,7 @@ Cloud storage encryption is the user's responsibility:
 | Client-side
 | Encrypt journal segments before sync (Cryptomator, gocryptfs)
 
-| FormDB-native
+| Lithoglyph-native
 | Future: built-in encryption with user-held keys
 |===
 
@@ -622,7 +622,7 @@ The journal IS the audit trail:
 | ID | Question | Acceptance Criteria
 
 | Q-CLOUD-001
-| Should FormDB have built-in encryption?
+| Should Lithoglyph have built-in encryption?
 | Design doc for key management
 
 | Q-CLOUD-002
@@ -640,7 +640,7 @@ The journal IS the audit trail:
 
 == See Also
 
-* link:../README.adoc[README] - FormDB overview
+* link:../README.adoc[README] - Lithoglyph overview
 * link:../ARCHITECTURE.adoc[ARCHITECTURE] - System architecture
 * link:self-normalizing.adoc[Self-Normalizing] - Schema evolution
-* https://github.com/hyperpolymath/zotero-formdb[Zotero-FormDB] - Reference manager using cloud storage
+* https://github.com/hyperpolymath/zotero-formdb[Zotero-Lithoglyph] - Reference manager using cloud storage

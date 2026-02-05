@@ -1,4 +1,4 @@
-# FQL with Dependent Types: Complete Specification
+# GQL with Dependent Types: Complete Specification
 
 **Version**: 0.2.0 (Dependent Types Extension)  
 **Status**: Research Prototype  
@@ -25,32 +25,32 @@
 
 ### 1.1 What This Document Covers
 
-This specification extends FQL with **dependent types**—types that can depend on values. This enables:
+This specification extends GQL with **dependent types**—types that can depend on values. This enables:
 
 - **Compile-time verification** of constraints (e.g., PROMPT scores in [0, 100])
 - **Provenance in types** (can't create data without provenance)
 - **Reversibility proofs** (prove operations have inverses)
 - **Machine-checkable correctness** (types ARE proofs)
 
-### 1.2 Relationship to Standard FQL
+### 1.2 Relationship to Standard GQL
 
 ```
-Standard FQL (runtime checks):
+Standard GQL (runtime checks):
   CREATE COLLECTION evidence (
     prompt_provenance INT CHECK (prompt_provenance BETWEEN 0 AND 100)
   );
 
-FQL with Dependent Types (compile-time proofs):
+GQL with Dependent Types (compile-time proofs):
   CREATE COLLECTION evidence (
     prompt_provenance : BoundedNat 0 100  -- Proof at type level
   ) WITH DEPENDENT_TYPES;
 ```
 
-**Backward Compatibility**: Standard FQL is valid in dependent-type mode (types are inferred).
+**Backward Compatibility**: Standard GQL is valid in dependent-type mode (types are inferred).
 
 ### 1.3 Implementation Languages
 
-FQL with dependent types can be implemented in:
+GQL with dependent types can be implemented in:
 - **Idris 2**: Good balance of practicality and power
 - **Lean 4**: Excellent IDE support, strong automation
 - **Agda**: Most expressive, research-oriented
@@ -77,7 +77,7 @@ Type ω (Sort ω):  Type ω-1       -- Infinite hierarchy
 ### 2.2 Primitive Types
 
 ```lean
--- Lean 4 primitives (available in FQL-DT)
+-- Lean 4 primitives (available in GQL-DT)
 Nat       : Type      -- Natural numbers (0, 1, 2, ...)
 Int       : Type      -- Integers (..., -1, 0, 1, ...)
 String    : Type      -- Unicode strings
@@ -144,7 +144,7 @@ def prompt95 : PromptDimension := ⟨95, by omega, by omega⟩
 -- Shorthand with auto-proofs
 instance : OfNat PromptDimension n := ⟨n, by omega, by omega⟩
 
--- Usage in FQL
+-- Usage in GQL
 CREATE COLLECTION evidence (
   id : UUID,
   prompt_provenance : PromptDimension
@@ -182,7 +182,7 @@ structure NonEmptyString where
 abbrev Rationale := NonEmptyString
 abbrev ActorId := NonEmptyString
 
--- FQL usage
+-- GQL usage
 INSERT INTO claims (text)
 VALUES ('Some claim')
 RATIONALE (r : Rationale);  -- Must be non-empty!
@@ -196,7 +196,7 @@ structure Email where
   val : String
   valid : val.matches emailRegex
 
--- FQL usage
+-- GQL usage
 CREATE COLLECTION users (
   email : Email  -- Only valid emails!
 );
@@ -211,7 +211,7 @@ structure ValidUUID where
   valid : val.matches uuidRegex
   length : val.length = 36
 
--- FQL usage
+-- GQL usage
 CREATE COLLECTION entities (
   id : ValidUUID PRIMARY KEY
 );
@@ -236,7 +236,7 @@ def head {α : Type} {n : Nat} : Vector α (n + 1) → α
 -- Type guarantees non-empty vector
 ```
 
-**FQL Usage**:
+**GQL Usage**:
 ```fql
 -- Fixed-size array (compile-time checked)
 CREATE COLLECTION survey_responses (
@@ -263,7 +263,7 @@ def mkTracked (a : α) (actor : ActorId) (ts : Timestamp) (rat : Rationale)
 -- Can't construct without provenance!
 ```
 
-**FQL Usage**:
+**GQL Usage**:
 ```fql
 -- All values automatically tracked
 CREATE COLLECTION claims (
@@ -301,7 +301,7 @@ def mkPromptScores (p r o m pub t : PromptDimension) : PromptScores :=
   ⟨p, r, o, m, pub, t, ⟨avg, by omega, by omega⟩, by simp [avg]⟩
 ```
 
-**FQL Usage**:
+**GQL Usage**:
 ```fql
 INSERT INTO evidence (prompt_scores)
 VALUES ({
@@ -344,7 +344,7 @@ axiom roundTripPreservesIdentity {α : Type} (x : α) (f : α → α)
   : roundTrip x f = x
 ```
 
-**FQL Usage**:
+**GQL Usage**:
 ```fql
 -- Reversible insertion
 INSERT INTO claims (text)
@@ -386,7 +386,7 @@ def combineClaims {c1 c2 : Confidence}
   : Claim (fuseConfidence c1 c2) := sorry
 ```
 
-**FQL Usage**:
+**GQL Usage**:
 ```fql
 -- Claim with confidence in type
 CREATE COLLECTION claims (
@@ -424,7 +424,7 @@ def createPath {ordering : Evidence → Evidence → Bool}
   ⟨sorted, insertionSortIsSorted ordering evs⟩
 ```
 
-**FQL Usage**:
+**GQL Usage**:
 ```fql
 -- Path with proven ordering
 CREATE NAVIGATION_PATH 'skeptic_path'
@@ -822,8 +822,8 @@ WITH_PROOF {
 
 **Pre-Proved Theorems**:
 ```lean
--- FormDB standard library
-namespace FormDB.Proofs
+-- Lithoglyph standard library
+namespace Lithoglyph.Proofs
 
 -- Bounded values
 theorem averagePreservesBounds {n : Nat} (xs : Vector (BoundedNat 0 100) n)
@@ -842,18 +842,18 @@ theorem trackedHasProvenance {α : Type} (t : Tracked α)
 theorem insertDeleteRoundTrip {α : Type} (x : Tracked α)
   : roundTrip x (delete (insert x)) = x := by ...
 
-end FormDB.Proofs
+end Lithoglyph.Proofs
 ```
 
 ---
 
 ## 9. Tactics and Automation
 
-### 9.1 FormDB-Specific Tactics
+### 9.1 Lithoglyph-Specific Tactics
 
 ```lean
--- Custom tactics for FormDB
-namespace FormDB.Tactics
+-- Custom tactics for Lithoglyph
+namespace Lithoglyph.Tactics
 
 -- Auto-solve bounds proofs
 syntax "formdb_bounds" : tactic
@@ -874,10 +874,10 @@ macro_rules
       simp [PromptScores, computeOverall];
       formdb_bounds)
 
-end FormDB.Tactics
+end Lithoglyph.Tactics
 ```
 
-**Usage in FQL**:
+**Usage in GQL**:
 ```fql
 WITH_PROOF {
   score_valid: by formdb_prompt,
@@ -899,7 +899,7 @@ Features:
 ```
 
 **Example IDE Workflow**:
-1. Write FQL with `VALUES (...)`
+1. Write GQL with `VALUES (...)`
 2. IDE shows: "Missing proof of X"
 3. User writes `WITH_PROOF { x: by }`
 4. IDE suggests tactics: `omega, simp, decide`
@@ -1190,9 +1190,9 @@ a < b                 -- Less than
 a = b                 -- Equality
 ```
 
-### A.2 FQL Notation Mapping
+### A.2 GQL Notation Mapping
 
-| FQL Syntax | Lean 4 Type | Meaning |
+| GQL Syntax | Lean 4 Type | Meaning |
 |------------|-------------|---------|
 | `BoundedNat 0 100` | `{n : Nat // 0 ≤ n ∧ n ≤ 100}` | Nat in [0, 100] |
 | `NonEmptyString` | `{s : String // s.length > 0}` | Non-empty string |
@@ -1327,6 +1327,6 @@ theorem updateReverses {α : Type} (old new : Tracked α)
 - Phase 3 (Month 13-18): Full verification
 
 **See Also**:
-- WP06: Dependently-Typed FormDB (research proposal)
-- FormDB arXiv paper (Section 14: Future Work)
+- WP06: Dependently-Typed Lithoglyph (research proposal)
+- Lithoglyph arXiv paper (Section 14: Future Work)
 - My-Newsroom Me dialect (epistemic types)

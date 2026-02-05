@@ -1,4 +1,4 @@
-= FormDB Specifications
+= Lithoglyph Specifications
 :toc:
 
 This directory contains format specifications and rationale documents.
@@ -8,7 +8,7 @@ This directory contains format specifications and rationale documents.
 * `blocks.adoc` - Block storage format specification
 * `journal.adoc` - Journal entry format specification
 * `rendering.adoc` - Canonical rendering rules
-* `fql.adoc` - FQL query language grammar
+* `fql.adoc` - GQL query language grammar
 
 == Status
 

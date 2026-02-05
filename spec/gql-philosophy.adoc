@@ -1,4 +1,4 @@
-= FQL Design Philosophy
+= GQL Design Philosophy
 :toc: macro
 :toc-title: Contents
 :toclevels: 3
@@ -6,7 +6,7 @@
 :source-highlighter: rouge
 
 [.lead]
-FQL (FormDB Query Language) is not just another query language. This specification documents the philosophical principles that distinguish FQL from traditional query languages like SQL, AQL, and GraphQL.
+GQL (Lithoglyph Query Language) is not just another query language. This specification documents the philosophical principles that distinguish GQL from traditional query languages like SQL, AQL, and GraphQL.
 
 toc::[]
 
@@ -17,21 +17,21 @@ The database is part of the story, not an opaque substrate.
 
 Traditional query languages answer: "What data matches this query?"
 
-FQL answers: "What data, who put it there, why, and can we undo it?"
+GQL answers: "What data, who put it there, why, and can we undo it?"
 
-== AQL vs FQL: Principled Comparison
+== AQL vs GQL: Principled Comparison
 
-ArangoDB's AQL represents a modern, well-designed query language for graph and document databases. FQL shares some surface similarities but differs fundamentally in philosophy.
+ArangoDB's AQL represents a modern, well-designed query language for graph and document databases. GQL shares some surface similarities but differs fundamentally in philosophy.
 
 === Design Philosophy
 
 [source,text]
 ----
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║                    AQL vs FQL: Design Philosophy                              ║
+║                    AQL vs GQL: Design Philosophy                              ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                               ║
-║  AQL (ArangoDB)                    FQL (FormDB)                               ║
+║  AQL (ArangoDB)                    GQL (Lithoglyph)                               ║
 ║  ──────────────                    ────────────                               ║
 ║                                                                               ║
 ║  "Get the data"                    "Tell the story of the data"              ║
@@ -43,7 +43,7 @@ ArangoDB's AQL represents a modern, well-designed query language for graph and d
 
 [cols="2,3,3"]
 |===
-| Principle | AQL | FQL
+| Principle | AQL | GQL
 
 | **Core question**
 | "What data matches this query?"
@@ -75,7 +75,7 @@ ArangoDB's AQL represents a modern, well-designed query language for graph and d
 
 | **Schema changes**
 | DDL executes immediately
-| DDL proposes + requires proof of equivalence (FQL-dt)
+| DDL proposes + requires proof of equivalence (GQL-dt)
 
 | **Trust model**
 | Trust the query
@@ -98,7 +98,7 @@ AQL Flow:
      └──────────────┴──────────────┘
            "What happened?" 🤷
 
-FQL Flow:
+GQL Flow:
 ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────────┐
 │ Query   │───►│ Plan    │───►│ Execute │───►│ Results +   │
 │         │    │ +Explain│    │ +Journal│    │ Provenance  │
@@ -114,7 +114,7 @@ FQL Flow:
 
 [cols="1,1"]
 |===
-| AQL | FQL
+| AQL | GQL
 
 | Database is a **black box** that answers questions
 | Database is a **narrative artefact** that tells its own story
@@ -132,7 +132,7 @@ FQL Flow:
 | History is **mandatory**
 |===
 
-== FQL Core Principles
+== GQL Core Principles
 
 === 1. Provenance by Construction
 
@@ -140,7 +140,7 @@ You cannot insert data without saying who added it and why.
 
 [source,fql]
 ----
--- This will NOT compile in FQL:
+-- This will NOT compile in GQL:
 INSERT INTO evidence (name, type)
 VALUES ('ONS CPI Data', 'report');
 -- Error: Missing required ADDED_BY clause
@@ -153,7 +153,7 @@ ADDED_BY "researcher_alice"
 RATIONALE "Primary source for UK inflation analysis";
 ----
 
-In FQL-dt (dependently-typed FQL), this is enforced at the type level:
+In GQL-dt (dependently-typed GQL), this is enforced at the type level:
 
 [source,lean]
 ----
@@ -188,7 +188,7 @@ ADDED_BY "admin" RATIONALE "v2 migration";
 
 === 3. Constraints as Ethics
 
-When a constraint rejects an operation, FQL returns:
+When a constraint rejects an operation, GQL returns:
 * The constraint that failed
 * Why it failed (not just "constraint violation")
 * Pointers to relevant schema definitions
@@ -199,7 +199,7 @@ When a constraint rejects an operation, FQL returns:
 AQL constraint failure:
   ERROR 1620: unique constraint violated
 
-FQL constraint failure:
+GQL constraint failure:
   CONSTRAINT_VIOLATION:
     constraint: evidence.source_url UNIQUE
     reason: "Document with source_url 'https://ons.gov.uk/cpi' already exists"
@@ -211,7 +211,7 @@ FQL constraint failure:
 
 === 4. Explain Everything
 
-FQL's EXPLAIN goes beyond query plans to include reasoning:
+GQL's EXPLAIN goes beyond query plans to include reasoning:
 
 [source,fql]
 ----
@@ -297,7 +297,7 @@ The schema change is:
 * Recorded in the journal
 * Attributed to an actor
 * Explained with rationale
-* Reversible (with proof in FQL-dt)
+* Reversible (with proof in GQL-dt)
 
 == Comparison with Other Query Languages
 
@@ -305,7 +305,7 @@ The schema change is:
 
 [cols="1,2,2"]
 |===
-| Aspect | SQL | FQL
+| Aspect | SQL | GQL
 
 | History
 | Optional (triggers, audit tables)
@@ -332,7 +332,7 @@ The schema change is:
 
 [cols="1,2,2"]
 |===
-| Aspect | GraphQL | FQL
+| Aspect | GraphQL | GQL
 
 | Purpose
 | API query language
@@ -340,7 +340,7 @@ The schema change is:
 
 | Type safety
 | Schema validation
-| Dependent types (FQL-dt)
+| Dependent types (GQL-dt)
 
 | Provenance
 | Not addressed
@@ -355,7 +355,7 @@ The schema change is:
 
 [cols="1,2,2"]
 |===
-| Aspect | Datalog | FQL
+| Aspect | Datalog | GQL
 
 | Paradigm
 | Logic programming
@@ -376,7 +376,7 @@ The schema change is:
 
 == Target Domains
 
-FQL's philosophy is designed for domains where understanding matters more than raw performance:
+GQL's philosophy is designed for domains where understanding matters more than raw performance:
 
 * **Investigative journalism**: Every claim needs traceable evidence
 * **Governance/compliance**: Audit trails are legally required
@@ -386,14 +386,14 @@ FQL's philosophy is designed for domains where understanding matters more than r
 
 == Non-Goals
 
-FQL explicitly does NOT optimize for:
+GQL explicitly does NOT optimize for:
 
 * Maximum throughput (use PostgreSQL)
 * Minimal latency (use Redis)
 * Massive scale (use Cassandra)
 * Drop-in SQL replacement (use CockroachDB)
 
-FQL optimizes for:
+GQL optimizes for:
 
 * Auditability over performance
 * Meaning over features
@@ -402,8 +402,8 @@ FQL optimizes for:
 
 == See Also
 
-* link:../README.adoc[README] - FormDB overview
+* link:../README.adoc[README] - Lithoglyph overview
 * link:../ARCHITECTURE.adoc[ARCHITECTURE] - System architecture
-* link:fql-dependent-types.md[FQL Dependent Types] - Compile-time verification
+* link:fql-dependent-types.md[GQL Dependent Types] - Compile-time verification
 * link:self-normalizing.adoc[Self-Normalizing] - Schema evolution
 * link:cloud-storage.adoc[Cloud Storage] - Sync safety guarantees

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-= FQL: FormDB Query Language
+= GQL: Lithoglyph Query Language
 :toc: macro
 :toc-title: Contents
 :toclevels: 3
@@ -8,19 +8,19 @@
 :source-highlighter: rouge
 
 [.lead]
-Specification for FQL (FormDB Query Language) - the narrative-first query language.
+Specification for GQL (Lithoglyph Query Language) - the narrative-first query language.
 
-**Status**: PROPOSED (resolves Q-FQL-POC-001)
+**Status**: PROPOSED (resolves Q-GQL-POC-001)
 
 toc::[]
 
 == Overview
 
-FQL is FormDB's query language. It is *not* SQL. Key differences:
+GQL is Lithoglyph's query language. It is *not* SQL. Key differences:
 
 [cols="1,2,2"]
 |===
-| Aspect | SQL | FQL
+| Aspect | SQL | GQL
 
 | Philosophy
 | Declarative data retrieval
@@ -57,7 +57,7 @@ The PoC implements a minimal subset sufficient for:
 
 [source,ebnf]
 ----
-(* FQL PoC Grammar *)
+(* GQL PoC Grammar *)
 
 query           = statement ";" ;
 
@@ -148,7 +148,7 @@ document_body   = json_object ;
 provenance_body = json_object ;
 schema_body     = json_object ;
 
-(* JSON embedded in FQL *)
+(* JSON embedded in GQL *)
 json_object     = "{" [ json_pair ( "," json_pair )* ] "}" ;
 json_pair       = string ":" json_value ;
 json_value      = string | number | json_object | json_array
@@ -544,7 +544,7 @@ All errors follow a standard structure:
 
 | 1004
 | `PARSE_ERROR`
-| FQL syntax error
+| GQL syntax error
 
 | 1005
 | `TYPE_MISMATCH`
@@ -626,7 +626,7 @@ TRAVERSE TRUE UNIQUE UPDATE WHERE WITH
 
 == Comments
 
-FQL supports single-line and multi-line comments:
+GQL supports single-line and multi-line comments:
 
 [source,fql]
 ----
@@ -664,4 +664,4 @@ Golden test vectors in `test-vectors/fql/`:
 * link:blocks.adoc[Block Storage Format]
 * link:journal.adoc[Journal Format]
 * link:encoding.adoc[Blob Encoding]
-* link:fql-philosophy.adoc[FQL Philosophy]
+* link:fql-philosophy.adoc[GQL Philosophy]

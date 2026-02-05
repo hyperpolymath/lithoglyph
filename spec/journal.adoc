@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-= FormDB Journal Format
+= Lithoglyph Journal Format
 :toc: macro
 :toc-title: Contents
 :toclevels: 3
@@ -7,7 +7,7 @@
 :sectnums:
 
 [.lead]
-Specification for FormDB's append-only journal format.
+Specification for Lithoglyph's append-only journal format.
 
 **Status**: PROPOSED (resolves Q-JOURNAL-ENTRY-001)
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-= FormDB Block Storage Format
+= Lithoglyph Block Storage Format
 :toc: macro
 :toc-title: Contents
 :toclevels: 3
@@ -7,7 +7,7 @@
 :sectnums:
 
 [.lead]
-Specification for FormDB's fixed-size block storage format.
+Specification for Lithoglyph's fixed-size block storage format.
 
 **Status**: PROPOSED (resolves Q-BLOCK-HEADER-001)
 
@@ -15,7 +15,7 @@ toc::[]
 
 == Overview
 
-FormDB stores all data in fixed-size blocks. Each block has a header that provides:
+Lithoglyph stores all data in fixed-size blocks. Each block has a header that provides:
 
 * **Renderability**: Deterministic text representation for audit
 * **Integrity**: Checksums and validation
@@ -316,7 +316,7 @@ CRC32C (Castagnoli) of the payload bytes (64-4095).
 
 === Repair Guidance
 
-When validation fails, FormDB provides structured guidance:
+When validation fails, Lithoglyph provides structured guidance:
 
 [source,text]
 ----
