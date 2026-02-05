@@ -1,8 +1,8 @@
-= FormBD
+= Lithoglyph
 
-image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:https://img.shields.io/badge/License-PMPL--1.0--or--later-indigo.svg[License: PMPL-1.0-or-later,link="https://github.com/hyperpolymath/palimpsest-license"]
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2025 hyperpolymath
+// SPDX-FileCopyrightText: 2025-2026 hyperpolymath
 
 :toc: macro
 :toc-title: Contents
@@ -10,19 +10,26 @@ image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,
 :icons: font
 :source-highlighter: rouge
 
+image:https://img.shields.io/badge/standard-RSR--compliant-green.svg[RSR Compliant]
+
 [.lead]
-*The database where the database is part of the story.*
+*Stone-carved data for the ages.*
+
+_Where Forth carves glyphs into permanence._
 
 toc::[]
 
 == Overview
 
-FormBD is a *narrative-first, reversible, audit-grade database core*. It treats schemas, constraints, migrations, blocks, and journals as narrative artefacts—the database is part of the story, not an opaque substrate.
+**Lithoglyph** (from Greek *lithos* "stone" + *glyphein* "to carve") is a *narrative-first, reversible, audit-grade database core*. Like ancient glyphs carved in stone, Lithoglyph treats schemas, constraints, migrations, blocks, and journals as permanent narrative artefacts—the database is part of the story, not an opaque substrate.
+
+The name reflects the core metaphor: **Forth code sculpts data onto disk**, carving each operation into permanent, auditable stone.
 
 === Core Thesis
 
 > Schemas, constraints, migrations, blocks, and journals are narrative artefacts.
 > The database is part of the story, not an opaque substrate.
+> Data is carved in stone—permanent, auditable, reversible.
 
 === Primary Values
 
@@ -45,7 +52,7 @@ FormBD is a *narrative-first, reversible, audit-grade database core*. It treats 
 
 == Architecture
 
-FormBD is structured in layers, each with a specific language and responsibility:
+Lithoglyph is structured in layers, each with a specific language and responsibility:
 
 [source,text]
 ----
