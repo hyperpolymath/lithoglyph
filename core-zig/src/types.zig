@@ -1,5 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // Form.Bridge - Type Definitions
+//
+// Part of Lithoglyph: Stone-carved data for the ages.
+// LgBlob = Lithoglyph Blob (abbreviated for C compatibility)
 
 const std = @import("std");
 
@@ -17,13 +20,13 @@ pub const BlobEncoding = enum(u8) {
 // Blob Structure
 // ============================================================
 
-pub const FdbBlob = extern struct {
+pub const LgBlob = extern struct {
     data: ?[*]const u8,
     len: usize,
     encoding: BlobEncoding,
     _padding: [7]u8 = [_]u8{0} ** 7,
 
-    pub fn empty() FdbBlob {
+    pub fn empty() LgBlob {
         return .{
             .data = null,
             .len = 0,
@@ -31,7 +34,7 @@ pub const FdbBlob = extern struct {
         };
     }
 
-    pub fn fromSlice(slice: []const u8) FdbBlob {
+    pub fn fromSlice(slice: []const u8) LgBlob {
         return .{
             .data = slice.ptr,
             .len = slice.len,
@@ -39,7 +42,7 @@ pub const FdbBlob = extern struct {
         };
     }
 
-    pub fn toSlice(self: FdbBlob) ?[]const u8 {
+    pub fn toSlice(self: LgBlob) ?[]const u8 {
         if (self.data) |ptr| {
             return ptr[0..self.len];
         }
@@ -197,34 +200,34 @@ pub const FdbRenderOpts = extern struct {
 // ============================================================
 
 pub const FdbResult = extern struct {
-    result_blob: FdbBlob,
-    provenance_blob: FdbBlob,
+    result_blob: LgBlob,
+    provenance_blob: LgBlob,
     status: FdbStatus,
     _padding: [4]u8 = [_]u8{0} ** 4,
-    err_blob: FdbBlob,
+    err_blob: LgBlob,
 
-    pub fn ok(result: FdbBlob) FdbResult {
+    pub fn ok(result: LgBlob) FdbResult {
         return .{
             .result_blob = result,
-            .provenance_blob = FdbBlob.empty(),
+            .provenance_blob = LgBlob.empty(),
             .status = .ok,
-            .err_blob = FdbBlob.empty(),
+            .err_blob = LgBlob.empty(),
         };
     }
 
-    pub fn okWithProvenance(result: FdbBlob, provenance: FdbBlob) FdbResult {
+    pub fn okWithProvenance(result: LgBlob, provenance: LgBlob) FdbResult {
         return .{
             .result_blob = result,
             .provenance_blob = provenance,
             .status = .ok,
-            .err_blob = FdbBlob.empty(),
+            .err_blob = LgBlob.empty(),
         };
     }
 
-    pub fn err(status: FdbStatus, err_blob: FdbBlob) FdbResult {
+    pub fn err(status: FdbStatus, err_blob: LgBlob) FdbResult {
         return .{
-            .result_blob = FdbBlob.empty(),
-            .provenance_blob = FdbBlob.empty(),
+            .result_blob = LgBlob.empty(),
+            .provenance_blob = LgBlob.empty(),
             .status = status,
             .err_blob = err_blob,
         };
@@ -235,15 +238,15 @@ pub const FdbResult = extern struct {
 // Tests
 // ============================================================
 
-test "FdbBlob empty" {
-    const blob = FdbBlob.empty();
+test "LgBlob empty" {
+    const blob = LgBlob.empty();
     try std.testing.expectEqual(@as(?[*]const u8, null), blob.data);
     try std.testing.expectEqual(@as(usize, 0), blob.len);
 }
 
-test "FdbBlob fromSlice" {
+test "LgBlob fromSlice" {
     const data = "test data";
-    const blob = FdbBlob.fromSlice(data);
+    const blob = LgBlob.fromSlice(data);
     try std.testing.expectEqual(@as(usize, 9), blob.len);
 
     if (blob.toSlice()) |slice| {

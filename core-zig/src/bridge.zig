@@ -1,26 +1,29 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // Form.Bridge - C ABI Layer
 //
-// Provides stable C-compatible API for runtimes to interact with FormDB.
+// Provides stable C-compatible API for runtimes to interact with Lithoglyph.
 // All blob arguments and return values use CBOR encoding.
+//
+// Part of Lithoglyph: Stone-carved data for the ages.
+// Lg* = Lithoglyph types (abbreviated for C compatibility)
 
 const std = @import("std");
 pub const types = @import("types.zig");
 pub const cbor = @import("cbor.zig");
 
 // Re-export types for C consumers
-pub const FdbBlob = types.FdbBlob;
-pub const FdbStatus = types.FdbStatus;
-pub const FdbResult = types.FdbResult;
-pub const FdbTxnMode = types.FdbTxnMode;
-pub const FdbRenderOpts = types.FdbRenderOpts;
+pub const LgBlob = types.LgBlob;
+pub const LgStatus = types.LgStatus;
+pub const LgResult = types.LgResult;
+pub const LgTxnMode = types.LgTxnMode;
+pub const LgRenderOpts = types.LgRenderOpts;
 
 // ============================================================
 // Opaque Handles
 // ============================================================
 
-pub const FdbDb = opaque {};
-pub const FdbTxn = opaque {};
+pub const LgDb = opaque {};
+pub const LgTxn = opaque {};
 
 // Internal state structures
 const DbState = struct {
@@ -34,7 +37,7 @@ const DbState = struct {
 
 const TxnState = struct {
     db: *DbState,
-    mode: FdbTxnMode,
+    mode: LgTxnMode,
     is_active: bool,
     sequence: u64,
 };
@@ -51,14 +54,14 @@ var txn_registry = std.AutoHashMap(*TxnState, void).init(global_allocator);
 // Error Blob Creation
 // ============================================================
 
-fn createErrorBlob(status: FdbStatus, message: []const u8) FdbBlob {
+fn createErrorBlob(status: LgStatus, message: []const u8) LgBlob {
     const err_data = cbor.encodeError(
         global_allocator,
         @intFromEnum(status),
         message,
-    ) catch return FdbBlob.empty();
+    ) catch return LgBlob.empty();
 
-    return FdbBlob.fromSlice(err_data);
+    return LgBlob.fromSlice(err_data);
 }
 
 // ============================================================
@@ -79,9 +82,9 @@ export fn fdb_db_open(
     path_len: usize,
     opts_ptr: ?[*]const u8,
     opts_len: usize,
-    out_db: *?*FdbDb,
-    out_err: *FdbBlob,
-) FdbStatus {
+    out_db: *?*LgDb,
+    out_err: *LgBlob,
+) LgStatus {
     _ = opts_ptr;
     _ = opts_len;
 
@@ -117,7 +120,7 @@ export fn fdb_db_open(
     };
 
     out_db.* = @ptrCast(db);
-    out_err.* = FdbBlob.empty();
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -125,7 +128,7 @@ export fn fdb_db_open(
 ///
 /// @param db Database handle
 /// @return Status code
-export fn fdb_db_close(db: ?*FdbDb) FdbStatus {
+export fn fdb_db_close(db: ?*LgDb) LgStatus {
     const state: *DbState = @ptrCast(@alignCast(db orelse return .err_invalid_argument));
 
     if (!db_registry.contains(state)) {
@@ -161,11 +164,11 @@ export fn fdb_db_close(db: ?*FdbDb) FdbStatus {
 /// @param out_err Output parameter for error blob
 /// @return Status code
 export fn fdb_txn_begin(
-    db: ?*FdbDb,
-    mode: FdbTxnMode,
-    out_txn: *?*FdbTxn,
-    out_err: *FdbBlob,
-) FdbStatus {
+    db: ?*LgDb,
+    mode: LgTxnMode,
+    out_txn: *?*LgTxn,
+    out_err: *LgBlob,
+) LgStatus {
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -196,7 +199,7 @@ export fn fdb_txn_begin(
     };
 
     out_txn.* = @ptrCast(txn);
-    out_err.* = FdbBlob.empty();
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -205,7 +208,7 @@ export fn fdb_txn_begin(
 /// @param txn Transaction handle
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_txn_commit(txn: ?*FdbTxn, out_err: *FdbBlob) FdbStatus {
+export fn fdb_txn_commit(txn: ?*LgTxn, out_err: *LgBlob) LgStatus {
     const state: *TxnState = @ptrCast(@alignCast(txn orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid transaction handle");
         return .err_invalid_argument;
@@ -229,7 +232,7 @@ export fn fdb_txn_commit(txn: ?*FdbTxn, out_err: *FdbBlob) FdbStatus {
     _ = txn_registry.remove(state);
     global_allocator.destroy(state);
 
-    out_err.* = FdbBlob.empty();
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -237,7 +240,7 @@ export fn fdb_txn_commit(txn: ?*FdbTxn, out_err: *FdbBlob) FdbStatus {
 ///
 /// @param txn Transaction handle
 /// @return Status code
-export fn fdb_txn_abort(txn: ?*FdbTxn) FdbStatus {
+export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
     const state: *TxnState = @ptrCast(@alignCast(txn orelse return .err_invalid_argument));
 
     if (!txn_registry.contains(state)) {
@@ -264,24 +267,24 @@ export fn fdb_txn_abort(txn: ?*FdbTxn) FdbStatus {
 /// @param op_len Length of operation
 /// @return Result containing result blob, provenance, status, and error
 export fn fdb_apply(
-    txn: ?*FdbTxn,
+    txn: ?*LgTxn,
     op_ptr: [*]const u8,
     op_len: usize,
-) FdbResult {
+) LgResult {
     const state: *TxnState = @ptrCast(@alignCast(txn orelse {
-        return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid transaction"));
+        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid transaction"));
     }));
 
     if (!txn_registry.contains(state)) {
-        return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Transaction not registered"));
+        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Transaction not registered"));
     }
 
     if (!state.is_active) {
-        return FdbResult.err(.err_txn_not_active, createErrorBlob(.err_txn_not_active, "Transaction not active"));
+        return LgResult.err(.err_txn_not_active, createErrorBlob(.err_txn_not_active, "Transaction not active"));
     }
 
     if (state.mode != .read_write) {
-        return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Read-only transaction"));
+        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Read-only transaction"));
     }
 
     // Parse the operation
@@ -290,23 +293,23 @@ export fn fdb_apply(
 
     // Read operation type (expect map with "op" key)
     const map_len = decoder.decodeMapLen() catch {
-        return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation format"));
+        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation format"));
     };
 
     var op_type: ?[]const u8 = null;
     var i: usize = 0;
     while (i < map_len) : (i += 1) {
         const key = decoder.decodeText() catch {
-            return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation key"));
+            return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation key"));
         };
 
         if (std.mem.eql(u8, key, "op")) {
             op_type = decoder.decodeText() catch {
-                return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation type"));
+                return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation type"));
             };
         } else {
             decoder.skip() catch {
-                return FdbResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Failed to skip value"));
+                return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Failed to skip value"));
             };
         }
     }
@@ -316,17 +319,17 @@ export fn fdb_apply(
         if (std.mem.eql(u8, op, "insert")) {
             // Create result blob
             var encoder = cbor.Encoder.init(global_allocator);
-            encoder.beginMap(2) catch return FdbResult.err(.err_internal, FdbBlob.empty());
-            encoder.encodeText("status") catch return FdbResult.err(.err_internal, FdbBlob.empty());
-            encoder.encodeText("ok") catch return FdbResult.err(.err_internal, FdbBlob.empty());
-            encoder.encodeText("doc_id") catch return FdbResult.err(.err_internal, FdbBlob.empty());
+            encoder.beginMap(2) catch return LgResult.err(.err_internal, LgBlob.empty());
+            encoder.encodeText("status") catch return LgResult.err(.err_internal, LgBlob.empty());
+            encoder.encodeText("ok") catch return LgResult.err(.err_internal, LgBlob.empty());
+            encoder.encodeText("doc_id") catch return LgResult.err(.err_internal, LgBlob.empty());
 
             // Generate doc ID
             state.db.next_block_id += 1;
-            encoder.encodeUint(state.db.next_block_id) catch return FdbResult.err(.err_internal, FdbBlob.empty());
+            encoder.encodeUint(state.db.next_block_id) catch return LgResult.err(.err_internal, LgBlob.empty());
 
             const result_data = global_allocator.dupe(u8, encoder.finish()) catch {
-                return FdbResult.err(.err_out_of_memory, FdbBlob.empty());
+                return LgResult.err(.err_out_of_memory, LgBlob.empty());
             };
             encoder.deinit();
 
@@ -337,16 +340,16 @@ export fn fdb_apply(
                 "system",
                 "Document inserted via bridge",
                 "2026-01-11T12:00:00Z",
-            ) catch return FdbResult.ok(FdbBlob.fromSlice(result_data));
+            ) catch return LgResult.ok(LgBlob.fromSlice(result_data));
 
-            return FdbResult.okWithProvenance(
-                FdbBlob.fromSlice(result_data),
-                FdbBlob.fromSlice(prov),
+            return LgResult.okWithProvenance(
+                LgBlob.fromSlice(result_data),
+                LgBlob.fromSlice(prov),
             );
         }
     }
 
-    return FdbResult.err(.err_not_implemented, createErrorBlob(.err_not_implemented, "Operation not implemented"));
+    return LgResult.err(.err_not_implemented, createErrorBlob(.err_not_implemented, "Operation not implemented"));
 }
 
 // ============================================================
@@ -362,12 +365,12 @@ export fn fdb_apply(
 /// @param out_err Output parameter for error blob
 /// @return Status code
 export fn fdb_render_block(
-    db: ?*FdbDb,
+    db: ?*LgDb,
     block_id: u64,
-    opts: FdbRenderOpts,
-    out_text: *FdbBlob,
-    out_err: *FdbBlob,
-) FdbStatus {
+    opts: LgRenderOpts,
+    out_text: *LgBlob,
+    out_err: *LgBlob,
+) LgStatus {
     _ = opts;
 
     const state: *DbState = @ptrCast(@alignCast(db orelse {
@@ -399,8 +402,8 @@ export fn fdb_render_block(
     };
     encoder.deinit();
 
-    out_text.* = FdbBlob.fromSlice(text_data);
-    out_err.* = FdbBlob.empty();
+    out_text.* = LgBlob.fromSlice(text_data);
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -413,12 +416,12 @@ export fn fdb_render_block(
 /// @param out_err Output parameter for error blob
 /// @return Status code
 export fn fdb_render_journal(
-    db: ?*FdbDb,
+    db: ?*LgDb,
     since: u64,
-    opts: FdbRenderOpts,
-    out_text: *FdbBlob,
-    out_err: *FdbBlob,
-) FdbStatus {
+    opts: LgRenderOpts,
+    out_text: *LgBlob,
+    out_err: *LgBlob,
+) LgStatus {
     _ = opts;
 
     const state: *DbState = @ptrCast(@alignCast(db orelse {
@@ -450,8 +453,8 @@ export fn fdb_render_journal(
     };
     encoder.deinit();
 
-    out_text.* = FdbBlob.fromSlice(text_data);
-    out_err.* = FdbBlob.empty();
+    out_text.* = LgBlob.fromSlice(text_data);
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -462,10 +465,10 @@ export fn fdb_render_journal(
 /// @param out_err Output parameter for error blob
 /// @return Status code
 export fn fdb_introspect_schema(
-    db: ?*FdbDb,
-    out_schema: *FdbBlob,
-    out_err: *FdbBlob,
-) FdbStatus {
+    db: ?*LgDb,
+    out_schema: *LgBlob,
+    out_err: *LgBlob,
+) LgStatus {
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -493,8 +496,8 @@ export fn fdb_introspect_schema(
     };
     encoder.deinit();
 
-    out_schema.* = FdbBlob.fromSlice(schema_data);
-    out_err.* = FdbBlob.empty();
+    out_schema.* = LgBlob.fromSlice(schema_data);
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -505,10 +508,10 @@ export fn fdb_introspect_schema(
 /// @param out_err Output parameter for error blob
 /// @return Status code
 export fn fdb_introspect_constraints(
-    db: ?*FdbDb,
-    out_constraints: *FdbBlob,
-    out_err: *FdbBlob,
-) FdbStatus {
+    db: ?*LgDb,
+    out_constraints: *LgBlob,
+    out_err: *LgBlob,
+) LgStatus {
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -536,8 +539,8 @@ export fn fdb_introspect_constraints(
     };
     encoder.deinit();
 
-    out_constraints.* = FdbBlob.fromSlice(constraint_data);
-    out_err.* = FdbBlob.empty();
+    out_constraints.* = LgBlob.fromSlice(constraint_data);
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -546,16 +549,16 @@ export fn fdb_introspect_constraints(
 // ============================================================
 
 /// Proof verifier callback type
-pub const FdbProofVerifier = *const fn (
+pub const LgProofVerifier = *const fn (
     proof_ptr: [*]const u8,
     proof_len: usize,
     context_ptr: ?*anyopaque,
-) callconv(.C) FdbStatus;
+) callconv(.C) LgStatus;
 
 /// Proof verifier registration entry
 const VerifierEntry = struct {
     verifier_type: []const u8,
-    callback: FdbProofVerifier,
+    callback: LgProofVerifier,
     context: ?*anyopaque,
 };
 
@@ -572,9 +575,9 @@ var verifier_registry = std.StringHashMap(VerifierEntry).init(global_allocator);
 export fn fdb_proof_register_verifier(
     type_ptr: [*]const u8,
     type_len: usize,
-    callback: FdbProofVerifier,
+    callback: LgProofVerifier,
     context: ?*anyopaque,
-) FdbStatus {
+) LgStatus {
     const verifier_type = type_ptr[0..type_len];
 
     const type_copy = global_allocator.dupe(u8, verifier_type) catch {
@@ -603,7 +606,7 @@ export fn fdb_proof_register_verifier(
 export fn fdb_proof_unregister_verifier(
     type_ptr: [*]const u8,
     type_len: usize,
-) FdbStatus {
+) LgStatus {
     const verifier_type = type_ptr[0..type_len];
 
     if (verifier_registry.fetchRemove(verifier_type)) |entry| {
@@ -625,8 +628,8 @@ export fn fdb_proof_verify(
     proof_ptr: [*]const u8,
     proof_len: usize,
     out_valid: *bool,
-    out_err: *FdbBlob,
-) FdbStatus {
+    out_err: *LgBlob,
+) LgStatus {
     const proof_data = proof_ptr[0..proof_len];
 
     // Parse proof to extract type
@@ -685,7 +688,7 @@ export fn fdb_proof_verify(
     const status = entry.callback(verify_data.ptr, verify_data.len, entry.context);
 
     out_valid.* = (status == .ok);
-    out_err.* = FdbBlob.empty();
+    out_err.* = LgBlob.empty();
     return .ok;
 }
 
@@ -694,7 +697,7 @@ fn builtin_fd_verifier(
     _: [*]const u8,
     _: usize,
     _: ?*anyopaque,
-) callconv(.C) FdbStatus {
+) callconv(.C) LgStatus {
     // In production, this would actually verify the proof
     // For PoC, we accept all well-formed proofs
     return .ok;
@@ -705,14 +708,14 @@ fn builtin_normalization_verifier(
     _: [*]const u8,
     _: usize,
     _: ?*anyopaque,
-) callconv(.C) FdbStatus {
+) callconv(.C) LgStatus {
     // In production, this would verify losslessness and dependency preservation
     // For PoC, we accept all well-formed proofs
     return .ok;
 }
 
 /// Initialize built-in proof verifiers
-export fn fdb_proof_init_builtins() FdbStatus {
+export fn fdb_proof_init_builtins() LgStatus {
     // Register FD-holds verifier
     const fd_type = "fd-holds";
     var status = fdb_proof_register_verifier(fd_type.ptr, fd_type.len, builtin_fd_verifier, null);
@@ -737,11 +740,11 @@ export fn fdb_proof_init_builtins() FdbStatus {
 /// Free a blob allocated by the bridge
 ///
 /// @param blob Blob to free
-export fn fdb_blob_free(blob: *FdbBlob) void {
+export fn fdb_blob_free(blob: *LgBlob) void {
     if (blob.toSlice()) |slice| {
         global_allocator.free(@constCast(slice));
     }
-    blob.* = FdbBlob.empty();
+    blob.* = LgBlob.empty();
 }
 
 /// Get FormDB version
@@ -756,37 +759,37 @@ export fn fdb_version() u32 {
 // ============================================================
 
 test "database lifecycle" {
-    var db: ?*FdbDb = null;
-    var err_blob: FdbBlob = undefined;
+    var db: ?*LgDb = null;
+    var err_blob: LgBlob = undefined;
 
     const path = "test.fdb";
     const status = fdb_db_open(path.ptr, path.len, null, 0, &db, &err_blob);
 
-    try std.testing.expectEqual(FdbStatus.ok, status);
+    try std.testing.expectEqual(LgStatus.ok, status);
     try std.testing.expect(db != null);
 
     const close_status = fdb_db_close(db);
-    try std.testing.expectEqual(FdbStatus.ok, close_status);
+    try std.testing.expectEqual(LgStatus.ok, close_status);
 }
 
 test "transaction lifecycle" {
-    var db: ?*FdbDb = null;
-    var err_blob: FdbBlob = undefined;
+    var db: ?*LgDb = null;
+    var err_blob: LgBlob = undefined;
 
     const path = "test_txn.fdb";
     _ = fdb_db_open(path.ptr, path.len, null, 0, &db, &err_blob);
     defer _ = fdb_db_close(db);
 
-    var txn: ?*FdbTxn = null;
-    var txn_err: FdbBlob = undefined;
+    var txn: ?*LgTxn = null;
+    var txn_err: LgBlob = undefined;
 
     const begin_status = fdb_txn_begin(db, .read_write, &txn, &txn_err);
-    try std.testing.expectEqual(FdbStatus.ok, begin_status);
+    try std.testing.expectEqual(LgStatus.ok, begin_status);
     try std.testing.expect(txn != null);
 
-    var commit_err: FdbBlob = undefined;
+    var commit_err: LgBlob = undefined;
     const commit_status = fdb_txn_commit(txn, &commit_err);
-    try std.testing.expectEqual(FdbStatus.ok, commit_status);
+    try std.testing.expectEqual(LgStatus.ok, commit_status);
 }
 
 test "version" {

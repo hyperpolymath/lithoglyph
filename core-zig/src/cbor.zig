@@ -1,8 +1,10 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // Form.Bridge - CBOR Encoding/Decoding
 //
 // Minimal CBOR implementation following RFC 8949.
 // Supports deterministic encoding per Section 4.2.
+//
+// Part of Lithoglyph: Stone-carved data for the ages.
 
 const std = @import("std");
 const types = @import("types.zig");
