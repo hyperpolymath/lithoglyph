@@ -23,7 +23,7 @@
 
     (current-position
      (phase "production-hardening")
-     (overall-completion 75)
+     (overall-completion 80)
      (components
       ((name "Form.Blocks")
        (completion 100)
@@ -153,8 +153,7 @@
     (critical-next-actions
      (immediate
       ("Complete ReScript client library"
-       "Complete PHP client library"
-       "Update all references formbd → lithoglyph"))
+       "Complete PHP client library"))
      (this-week
       ("Test language bindings with API server"
        "Update related repos (formbase, analytics, geo, etc.)"))
