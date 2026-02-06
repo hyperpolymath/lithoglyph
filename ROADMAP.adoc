@@ -36,7 +36,7 @@ Development phases from concept to production.
 
 === Deliverables
 
-* [x] `lithoglyph.scm` - Unified specification (formerly formbd.scm)
+* [x] `lithoglyph.scm` - Unified specification (formerly lithoglyph.scm)
 * [x] Repository structure
 * [x] `spec/blocks.adoc` - Block format spec (4 KiB blocks, 64-byte headers)
 * [x] `spec/journal.adoc` - Journal format spec (append-only, sequence numbers)
@@ -203,7 +203,7 @@ See link:spec/self-normalizing.adoc[Self-Normalizing Specification] for full det
 
 === Deliverables
 
-* [x] API server binary (`formbd-server`) in Zig
+* [x] API server binary (`lithoglyph-server`) in Zig
 * [x] REST API with OpenAPI 3.1 specification (`api/spec/openapi.yaml`)
 * [x] gRPC API with Protocol Buffers (`api/proto/formbd.proto`)
 * [x] GraphQL API with SDL schema (`api/graphql/schema.graphql`)
@@ -287,7 +287,7 @@ type Subscription {
 
 *Dependencies*: Phase 9 (HTTP API) complete ✅
 
-=== ReScript Client (`@formbd/rescript`)
+=== ReScript Client (`@lithoglyph/rescript`)
 
 * [ ] HTTP client using Fetch API
 * [ ] Type-safe FQL query builder
@@ -305,7 +305,7 @@ let result = await FormBD.query(
 )
 ----
 
-=== PHP Client (`formbd/formbd-php`)
+=== PHP Client (`lithoglyph/lithoglyph-php`)
 
 * [ ] PSR-18 HTTP client compatibility
 * [ ] Composer package
@@ -317,7 +317,7 @@ let result = await FormBD.query(
 ----
 <?php
 // Example usage
-$result = $formbd->query()
+$result = $lithoglyph->query()
     ->collection('articles')
     ->where('status', '=', 'published')
     ->withProvenance('editor@news.org', 'Daily review')
@@ -326,7 +326,7 @@ $result = $formbd->query()
 
 === Acceptance Criteria
 
-* Both clients pass integration tests against formbd-server
+* Both clients pass integration tests against lithoglyph-server
 * ReScript client works with Deno
 * PHP client installable via Composer
 * Documentation with examples
@@ -341,7 +341,7 @@ $result = $formbd->query()
 
 === Deliverables
 
-* [ ] WordPress plugin (`formbd-wordpress`)
+* [ ] WordPress plugin (`lithoglyph-wordpress`)
 * [ ] Custom post type backed by FormBD
 * [ ] Edit history with provenance (who changed what, why)
 * [ ] Time-travel: view any historical version

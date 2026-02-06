@@ -2,7 +2,7 @@
 ;; META.scm - Architectural decisions and project meta-information
 ;; Media-Type: application/meta+scheme
 
-(define-meta formbd-beam
+(define-meta lithoglyph-beam
   (version "1.0.0")
 
   (architecture-decisions

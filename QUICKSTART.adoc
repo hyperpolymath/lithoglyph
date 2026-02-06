@@ -107,11 +107,11 @@ sudo pacman -S gforth zig just
 
 [source,bash]
 ----
-git clone https://github.com/hyperpolymath/formbd.git
+git clone https://github.com/hyperpolymath/lithoglyph.git
 cd formbd
 
 # Verify Gforth works with our Forth code
-gforth core-forth/src/formbd-blocks.fs -e "cr .\" Form.Blocks loaded successfully\" cr bye"
+gforth core-forth/src/lithoglyph-blocks.fs -e "cr .\" Form.Blocks loaded successfully\" cr bye"
 ----
 
 Expected output:
@@ -640,7 +640,7 @@ The Forth code resets the vocabulary to avoid conflicts with Gforth's built-in B
 
 [source,bash]
 ----
-gforth -e "only forth definitions" core-forth/src/formbd-blocks.fs
+gforth -e "only forth definitions" core-forth/src/lithoglyph-blocks.fs
 ----
 
 === "Permission denied on journal"
@@ -683,14 +683,14 @@ WITH PROVENANCE {
 
 == Getting Help
 
-* https://github.com/hyperpolymath/formbd/issues[GitHub Issues] - Report bugs, request features
-* https://github.com/hyperpolymath/formbd/discussions[GitHub Discussions] - Ask questions
+* https://github.com/hyperpolymath/lithoglyph/issues[GitHub Issues] - Report bugs, request features
+* https://github.com/hyperpolymath/lithoglyph/discussions[GitHub Discussions] - Ask questions
 * link:CONTRIBUTING.adoc[Contributing Guide] - Join development
 * link:ROADMAP.adoc[Roadmap] - See what's planned
 
 == Related Projects
 
 * https://github.com/hyperpolymath/fqldt[FQLdt] - Dependently-typed FQL (compile-time verified queries)
-* https://github.com/hyperpolymath/formbd-studio[FormBD Studio] - Zero-friction GUI
-* https://github.com/hyperpolymath/formbd-debugger[FormBD Debugger] - Proof-carrying debugger
+* https://github.com/hyperpolymath/lithoglyph-studio[FormBD Studio] - Zero-friction GUI
+* https://github.com/hyperpolymath/lithoglyph-debugger[FormBD Debugger] - Proof-carrying debugger
 * https://github.com/hyperpolymath/formbase[FormBase] - Open-source Airtable alternative with provenance

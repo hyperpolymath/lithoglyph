@@ -22,7 +22,7 @@
       (status "accepted")
       (date "2025-01-16")
       (context "FormBD philosophy prioritizes auditability over performance; spatial queries need fast lookups")
-      (decision "formbd-geo is a materialized projection that reads from FormBD but does not persist spatial data independently")
+      (decision "lithoglyph-geo is a materialized projection that reads from FormBD but does not persist spatial data independently")
       (consequences
         ("Spatial index must be rebuilt from FormBD on restart")
         ("No risk of data divergence - FormBD is always authoritative")
@@ -95,4 +95,4 @@
     (why-in-memory-index
       "Spatial data is derived from FormBD, so persistence would duplicate data. In-memory index with rebuild-on-demand keeps the system simple and prevents data divergence.")
     (why-http-api
-      "HTTP provides language-agnostic integration. formbd-studio (ReScript), formbd-analytics (Julia), and other tools can all consume the same spatial API.")))
+      "HTTP provides language-agnostic integration. lithoglyph-studio (ReScript), lithoglyph-analytics (Julia), and other tools can all consume the same spatial API.")))

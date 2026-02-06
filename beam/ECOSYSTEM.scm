@@ -1,10 +1,10 @@
 ;; SPDX-License-Identifier: AGPL-3.0-or-later
-;; ECOSYSTEM.scm - Ecosystem relationships for formbd-beam
+;; ECOSYSTEM.scm - Ecosystem relationships for lithoglyph-beam
 ;; Media-Type: application/vnd.ecosystem+scm
 
 (ecosystem
   (version "1.0.0")
-  (name "formbd-beam")
+  (name "lithoglyph-beam")
   (type "library")  ;; or: application, library, specification, template
   (purpose "Hyperpolymath ecosystem component")
 

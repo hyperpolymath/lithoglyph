@@ -8,8 +8,8 @@
     (schema-version "1.0")
     (created "2025-01-16")
     (updated "2025-01-16")
-    (project "formbd-geo")
-    (repo "https://github.com/hyperpolymath/formbd-geo"))
+    (project "lithoglyph-geo")
+    (repo "https://github.com/hyperpolymath/lithoglyph-geo"))
 
   (project-context
     (name "FormBD-Geo")
@@ -29,7 +29,7 @@
         (status "core-implemented")
         (notes "R-tree with bbox, radius, nearest queries"))
       (component
-        (name "formbd-client")
+        (name "lithoglyph-client")
         (completion 70)
         (status "core-implemented")
         (notes "HTTP client with location extraction"))
@@ -70,7 +70,7 @@
         ("Fix any compilation errors")
         ("Run with default config")))
     (milestone
-      (name "formbd-integration")
+      (name "lithoglyph-integration")
       (status "pending")
       (items
         ("Test against real FormBD instance")
@@ -118,7 +118,7 @@
     (this-month
       ("Performance benchmarks")
       ("OpenAPI documentation")
-      ("Coordinate with formbd-studio for map viz")))
+      ("Coordinate with lithoglyph-studio for map viz")))
 
   (session-history
     (snapshot

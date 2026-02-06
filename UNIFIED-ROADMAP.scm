@@ -5,10 +5,10 @@
 ; This file is distributed to all FormBD ecosystem repos:
 ; - formbd (core database)
 ; - fbql-dt (dependently-typed query language)
-; - formbd-studio (GUI)
-; - formbd-debugger (recovery tool)
-; - formbd-geo (geospatial projection layer)
-; - formbd-analytics (OLAP analytics projection layer)
+; - lithoglyph-studio (GUI)
+; - lithoglyph-debugger (recovery tool)
+; - lithoglyph-geo (geospatial projection layer)
+; - lithoglyph-analytics (OLAP analytics projection layer)
 
 (unified-roadmap
   (metadata
@@ -33,22 +33,22 @@
         (completion 65)
         (role "Dependently-typed query language")
         (tech "Lean 4 + Zig"))
-      (formbd-studio
+      (lithoglyph-studio
         (version "0.1.0")
         (completion 45)
         (role "Zero-friction GUI")
         (tech "ReScript + Tauri 2.0 + Rust"))
-      (formbd-debugger
+      (lithoglyph-debugger
         (version "0.1.0")
         (completion 55)
         (role "Proof-carrying recovery tool")
         (tech "Lean 4 + Idris 2 + Rust"))
-      (formbd-geo
+      (lithoglyph-geo
         (version "0.1.0")
         (completion 15)
         (role "Geospatial projection layer")
         (tech "Rust (rstar, axum, geo)"))
-      (formbd-analytics
+      (lithoglyph-analytics
         (version "0.1.0")
         (completion 15)
         (role "OLAP analytics projection layer")
@@ -73,7 +73,7 @@
       "│  FormBD + FQLdt                                             │"
       "├─────────────────────────────────────────────────────────────┤"
       "│  Projection Layers (read from FormBD HTTP API)              │"
-      "│    formbd-geo (R-tree spatial)  formbd-analytics (OLAP)     │"
+      "│    lithoglyph-geo (R-tree spatial)  lithoglyph-analytics (OLAP)     │"
       "└─────────────────────────────────────────────────────────────┘"))
 
   ;; ============================================================================
@@ -84,7 +84,7 @@
       (duration "weeks 1-6")
       (focus "FormBD + FQLdt integration")
 
-      (formbd-tasks
+      (lithoglyph-tasks
         (task "Complete M11: HTTP API Server" priority: critical status: complete)
         (task "M12: Language bindings (ReScript, PHP)" priority: critical status: next)
         (task "M13: CMS integration (WordPress)" priority: high status: pending)
@@ -114,10 +114,10 @@
         (task "Integration: proof verification before recovery" priority: medium status: pending))
 
       (projection-layer-tasks
-        (task "formbd-geo: Integration test with real FormBD" priority: high status: pending)
-        (task "formbd-geo: Docker deployment" priority: medium status: pending)
-        (task "formbd-analytics: Integration test with real FormBD" priority: high status: pending)
-        (task "formbd-analytics: PROMPT score dashboard endpoints" priority: medium status: pending))
+        (task "lithoglyph-geo: Integration test with real FormBD" priority: high status: pending)
+        (task "lithoglyph-geo: Docker deployment" priority: medium status: pending)
+        (task "lithoglyph-analytics: Integration test with real FormBD" priority: high status: pending)
+        (task "lithoglyph-analytics: PROMPT score dashboard endpoints" priority: medium status: pending))
 
       (checkpoint "Users can create schemas in Studio, debug with Debugger, query spatial/analytics"))
 
@@ -138,7 +138,7 @@
   ;; DEPENDENCY GRAPH
   ;; ============================================================================
   (dependencies
-    (formbd-m11
+    (lithoglyph-m11
       (name "FormBD HTTP API Server")
       (blocks "Studio M2" "Debugger FormBD adapter")
       (priority critical))
@@ -165,15 +165,15 @@
       (blocks "Real debugging")
       (priority high))
 
-    (formbd-geo-integration
-      (name "formbd-geo FormBD Integration")
-      (depends-on "formbd-m11")
+    (lithoglyph-geo-integration
+      (name "lithoglyph-geo FormBD Integration")
+      (depends-on "lithoglyph-m11")
       (blocks "Spatial queries in Studio")
       (priority medium))
 
-    (formbd-analytics-integration
-      (name "formbd-analytics FormBD Integration")
-      (depends-on "formbd-m11")
+    (lithoglyph-analytics-integration
+      (name "lithoglyph-analytics FormBD Integration")
+      (depends-on "lithoglyph-m11")
       (blocks "Analytics dashboards in Studio")
       (priority medium)))
 
@@ -210,8 +210,8 @@
         "Three-phase migration workflow (Announce/Shadow/Commit)"
         "Studio: visual normalization wizard"
         "Debugger: migration rollback proofs"
-        "formbd-geo: Polygon and region queries"
-        "formbd-analytics: Time-series dashboards in Studio"))
+        "lithoglyph-geo: Polygon and region queries"
+        "lithoglyph-analytics: Time-series dashboards in Studio"))
 
     (release (version "1.2.0") (name "Multi-Database Support")
       (features

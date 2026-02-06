@@ -1,5 +1,5 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; STATE.scm - Project state for formbd-beam
+;; STATE.scm - Project state for lithoglyph-beam
 
 (state
   (metadata
@@ -7,8 +7,8 @@
     (schema-version "1.0")
     (created "2024-06-01")
     (updated "2025-01-17")
-    (project "formbd-beam")
-    (repo "hyperpolymath/formbd-beam"))
+    (project "lithoglyph-beam")
+    (repo "hyperpolymath/lithoglyph-beam"))
 
   (project-context
     (name "FormDB BEAM")

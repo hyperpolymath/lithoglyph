@@ -225,7 +225,7 @@ defmodule FormBD.Core do
   use GenServer
 
   def init(_) do
-    port = Port.open({:spawn, "formbd-core"}, [:binary])
+    port = Port.open({:spawn, "lithoglyph-core"}, [:binary])
     {:ok, %{port: port}}
   end
 end

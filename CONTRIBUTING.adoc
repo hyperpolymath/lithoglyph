@@ -10,7 +10,7 @@ Be respectful, inclusive, and constructive. We value diverse perspectives and co
 == Getting Started
 
 1. Read link:README.adoc[README.adoc] for project overview
-2. Read link:formbd.scm[formbd.scm] for detailed specification
+2. Read link:lithoglyph.scm[lithoglyph.scm] for detailed specification
 3. Review link:META.scm[META.scm] for architecture decisions
 4. Check link:STATE.scm[STATE.scm] for current project state
 
@@ -25,14 +25,14 @@ Be respectful, inclusive, and constructive. We value diverse perspectives and co
 === Proposing Changes
 
 1. Open an issue to discuss the change
-2. Reference relevant open questions from `formbd.scm`
+2. Reference relevant open questions from `lithoglyph.scm`
 3. Fork and create a feature branch
 4. Follow the coding conventions below
 5. Submit a pull request
 
 === Closing Open Questions
 
-If your contribution addresses an open question from `formbd.scm`:
+If your contribution addresses an open question from `lithoglyph.scm`:
 
 1. Add a decision record to the `(decisions ...)` section
 2. Document rationale and impacts

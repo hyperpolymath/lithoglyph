@@ -28,19 +28,19 @@
       ((name "Form.Blocks")
        (completion 100)
        (status "complete")
-       (files "core-forth/src/formbd-blocks.fs")
+       (files "core-forth/src/lithoglyph-blocks.fs")
        (notes "348 lines, fixed-size blocks, CRC32C checksums"))
 
       ((name "Form.Journal")
        (completion 100)
        (status "complete")
-       (files "core-forth/src/formbd-journal.fs")
+       (files "core-forth/src/lithoglyph-journal.fs")
        (notes "370 lines, append-only, sequence numbers, crash recovery"))
 
       ((name "Form.Model")
        (completion 100)
        (status "complete")
-       (files "core-forth/src/formbd-model.fs")
+       (files "core-forth/src/lithoglyph-model.fs")
        (notes "297 lines, documents, edges, schemas, constraints"))
 
       ((name "Form.Bridge")
@@ -97,7 +97,7 @@
        (name "Core Specifications")
        (status "complete")
        (completion 100)
-       (items "formbd.scm" "specs/" "Repository structure"))
+       (items "lithoglyph.scm" "specs/" "Repository structure"))
 
       ((milestone-id "m2-m5")
        (name "Forth PoC Implementation")

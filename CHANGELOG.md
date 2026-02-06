@@ -460,7 +460,7 @@ This release completes Milestone M13, delivering official CMS integration plugin
 |------|-------------|
 | `bidirectional` | Sync changes both ways |
 | `cms-to-formbd` | Only sync CMS changes to FormBD |
-| `formbd-to-cms` | Only sync FormBD changes to CMS |
+| `lithoglyph-to-cms` | Only sync FormBD changes to CMS |
 
 #### Provenance Tracking
 
@@ -730,7 +730,7 @@ This release completes Milestones M8-M10, delivering a fully functional query en
   - Runtime backend selection
 
 #### Ecosystem Alignment
-- Updated ECOSYSTEM.scm with alignment status for fbql-dt and formbd-debugger
+- Updated ECOSYSTEM.scm with alignment status for fbql-dt and lithoglyph-debugger
 - Cross-repo STATE.scm synchronization with integration points
 - Documented FFI compatibility (CBOR proof blobs)
 - Identified alignment gaps for future work
@@ -824,19 +824,19 @@ This release completes Milestones M1-M6, establishing FormBD as a functional pro
   - Constraints as ethics
 
 #### Forth Implementation (M2-M5)
-- **Form.Blocks** (`core-forth/src/formbd-blocks.fs`)
+- **Form.Blocks** (`core-forth/src/lithoglyph-blocks.fs`)
   - Fixed-size block storage layer
   - Block header structure with magic, version, type, checksums
   - Memory buffer management
   - CRC32C implementation (Castagnoli polynomial)
 
-- **Form.Journal** (`core-forth/src/formbd-journal.fs`)
+- **Form.Journal** (`core-forth/src/lithoglyph-journal.fs`)
   - Append-only journal implementation
   - Sequence numbering
   - Operation logging with inverses
   - Crash recovery primitives
 
-- **Form.Model** (`core-forth/src/formbd-model.fs`)
+- **Form.Model** (`core-forth/src/lithoglyph-model.fs`)
   - Document collection support
   - Edge collection support
   - Schema metadata storage
@@ -948,21 +948,21 @@ FormBD is in pre-1.0 development. APIs, formats, and interfaces may change witho
 
 ## Links
 
-[Unreleased]: https://github.com/hyperpolymath/formbd/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/hyperpolymath/formbd/compare/v1.2.0...v2.0.0
-[1.2.0]: https://github.com/hyperpolymath/formbd/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/hyperpolymath/formbd/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/hyperpolymath/formbd/compare/v0.0.10...v1.0.0
-[0.0.10]: https://github.com/hyperpolymath/formbd/compare/v0.0.9...v0.0.10
-[0.0.9]: https://github.com/hyperpolymath/formbd/compare/v0.0.8...v0.0.9
-[0.0.8]: https://github.com/hyperpolymath/formbd/compare/v0.0.7...v0.0.8
-[0.0.7]: https://github.com/hyperpolymath/formbd/compare/v0.0.6...v0.0.7
-[0.0.6]: https://github.com/hyperpolymath/formbd/compare/v0.0.5...v0.0.6
-[0.0.5]: https://github.com/hyperpolymath/formbd/compare/v0.0.4...v0.0.5
-[0.0.4]: https://github.com/hyperpolymath/formbd/compare/v0.0.3...v0.0.4
-[0.0.3]: https://github.com/hyperpolymath/formbd/compare/v0.0.2...v0.0.3
-[0.0.2]: https://github.com/hyperpolymath/formbd/compare/v0.0.1...v0.0.2
-[0.0.1]: https://github.com/hyperpolymath/formbd/releases/tag/v0.0.1
+[Unreleased]: https://github.com/hyperpolymath/lithoglyph/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/hyperpolymath/lithoglyph/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/hyperpolymath/lithoglyph/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/hyperpolymath/lithoglyph/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.10...v1.0.0
+[0.0.10]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.9...v0.0.10
+[0.0.9]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.8...v0.0.9
+[0.0.8]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.7...v0.0.8
+[0.0.7]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.6...v0.0.7
+[0.0.6]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.5...v0.0.6
+[0.0.5]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.4...v0.0.5
+[0.0.4]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.2...v0.0.3
+[0.0.2]: https://github.com/hyperpolymath/lithoglyph/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/hyperpolymath/lithoglyph/releases/tag/v0.0.1
 
 ## Related Documentation
 

@@ -1,7 +1,7 @@
 # Security contact for FormBD
 # See https://securitytxt.org/
 
-Contact: https://github.com/hyperpolymath/formbd/security/advisories/new
+Contact: https://github.com/hyperpolymath/lithoglyph/security/advisories/new
 Preferred-Languages: en
-Canonical: https://github.com/hyperpolymath/formbd/.well-known/security.txt
-Policy: https://github.com/hyperpolymath/formbd/blob/main/SECURITY.md
+Canonical: https://github.com/hyperpolymath/lithoglyph/.well-known/security.txt
+Policy: https://github.com/hyperpolymath/lithoglyph/blob/main/SECURITY.md

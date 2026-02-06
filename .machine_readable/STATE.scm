@@ -11,7 +11,7 @@
     (created "2026-02-01")
     (updated "2026-02-01")
     (project "FormBD")
-    (repo "https://github.com/hyperpolymath/formbd"))
+    (repo "https://github.com/hyperpolymath/lithoglyph"))
 
   (project-context
     (name "FormBD: Narrative-First, Reversible, Audit-Grade Database")
@@ -36,7 +36,7 @@
         (completion 100)
         (version "v0.0.2")
         (files
-          "core-forth/src/formbd-blocks.fs"
+          "core-forth/src/lithoglyph-blocks.fs"
           "core-forth/test/test-blocks.fs"
           "spec/blocks.adoc"))
       (form-journal
@@ -44,14 +44,14 @@
         (completion 100)
         (version "v0.0.2")
         (files
-          "core-forth/src/formbd-journal.fs"
+          "core-forth/src/lithoglyph-journal.fs"
           "spec/journal.adoc"))
       (form-model
         (status complete)
         (completion 100)
         (version "v0.0.2")
         (files
-          "core-forth/src/formbd-model.fs"
+          "core-forth/src/lithoglyph-model.fs"
           "spec/encoding.adoc"))
       (form-bridge
         (status complete)
@@ -128,7 +128,7 @@
         (completed-date "2025")
         (version "v0.0.2")
         (items
-          (item "formbd.scm unified specification" status: complete)
+          (item "lithoglyph.scm unified specification" status: complete)
           (item "spec/blocks.adoc" status: complete)
           (item "spec/journal.adoc" status: complete)
           (item "spec/fbql.adoc" status: complete)
@@ -275,23 +275,23 @@
         (notes "Current: Zig bridge exists, but Idris2 ABI layer may be missing")))
     (low ()))
 
-  (formbd-ecosystem
+  (lithoglyph-ecosystem
     (reference "ECOSYSTEM.scm")
     (core-repos
       "formbd - Database core (this repo)"
       "fbql-dt - Dependently-typed query language"
       "formbase - Airtable alternative UI"
-      "formbd-studio - Admin GUI"
-      "formbd-debugger - Proof-carrying recovery tool"
-      "formbd-analytics - Analytics layer"
-      "formbd-beam - BEAM/Elixir ecosystem integration"
-      "formbd-geo - Geospatial extensions"
+      "lithoglyph-studio - Admin GUI"
+      "lithoglyph-debugger - Proof-carrying recovery tool"
+      "lithoglyph-analytics - Analytics layer"
+      "lithoglyph-beam - BEAM/Elixir ecosystem integration"
+      "lithoglyph-geo - Geospatial extensions"
       "zotero-formbd - Reference manager integration")
     (integration-status
       (fbql-dt "Spec-aligned, implementation pending M7+M8")
       (formbase "Depends on FormBD, needs API bindings")
-      (formbd-studio "Planned for M13+")
-      (formbd-debugger "Planned for production hardening")))
+      (lithoglyph-studio "Planned for M13+")
+      (lithoglyph-debugger "Planned for production hardening")))
 
   (critical-next-actions
     (immediate

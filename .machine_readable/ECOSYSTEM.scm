@@ -56,17 +56,17 @@
       (dependency "Requires FormBD language bindings (M12) for integration")
       (roadmap "v0.1.0 Core Grid view in progress"))
 
-    (formbd-studio
+    (lithoglyph-studio
       (relationship "sibling-tool")
-      (repo "github.com/hyperpolymath/formbd-studio")
+      (repo "github.com/hyperpolymath/lithoglyph-studio")
       (status "planned")
       (description "Zero-friction admin GUI for FormBD. Visual schema designer,
                     FQL query builder, provenance explorer, journal viewer, and
                     normalization proof visualizer."))
 
-    (formbd-debugger
+    (lithoglyph-debugger
       (relationship "sibling-tool")
-      (repo "github.com/hyperpolymath/formbd-debugger")
+      (repo "github.com/hyperpolymath/lithoglyph-debugger")
       (status "scaffolding-complete")
       (completion 35)
       (description "Proof-carrying debugger. Step through FQL queries, inspect
@@ -77,23 +77,23 @@
         (provenance "Need Confidence + ProofBlob types from fbql-dt")
         (proofs "LosslessProof stubs need real Lean 4 implementations")))
 
-    (formbd-analytics
+    (lithoglyph-analytics
       (relationship "sibling-extension")
-      (repo "github.com/hyperpolymath/formbd-analytics")
+      (repo "github.com/hyperpolymath/lithoglyph-analytics")
       (status "planned")
       (description "Analytics layer for FormBD. OLAP-style queries, time-series
                     analysis, provenance-aware aggregations."))
 
-    (formbd-beam
+    (lithoglyph-beam
       (relationship "sibling-integration")
-      (repo "github.com/hyperpolymath/formbd-beam")
+      (repo "github.com/hyperpolymath/lithoglyph-beam")
       (status "planned")
       (description "Erlang/BEAM ecosystem integration. Native Elixir/Gleam bindings,
                     OTP supervision tree, distributed FormBD clusters."))
 
-    (formbd-geo
+    (lithoglyph-geo
       (relationship "sibling-extension")
-      (repo "github.com/hyperpolymath/formbd-geo")
+      (repo "github.com/hyperpolymath/lithoglyph-geo")
       (status "planned")
       (description "Geospatial extensions for FormBD. PostGIS-style spatial types,
                     indexes, and queries with provenance tracking."))
@@ -164,7 +164,7 @@
 
   (what-this-is-not
     "Not a drop-in SQL replacement (FBQL is intentionally different)"
-    "Not optimized for OLAP workloads (narrative overhead, use formbd-analytics for that)"
+    "Not optimized for OLAP workloads (narrative overhead, use lithoglyph-analytics for that)"
     "Not a distributed database yet (single-node PoC complete, clustering in M14)"
     "Not a real-time streaming platform (use CDC integration for streaming)"
     "Not a full-text search engine (integrate with Meilisearch/Typesense)"

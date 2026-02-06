@@ -4,14 +4,14 @@
 
 (ecosystem
   (version "1.0.0")
-  (name "formbd-geo")
+  (name "lithoglyph-geo")
   (type "projection-service")
   (purpose "Spatial indexing and geospatial queries over FormBD documents")
 
   (position-in-ecosystem
     (layer "query-projection")
     (role "Provides R-tree spatial indexing as a materialized projection over FormBD")
-    (data-flow "FormBD → formbd-geo (read-only projection)")
+    (data-flow "FormBD → lithoglyph-geo (read-only projection)")
     (integration-point "HTTP API consuming FormBD collections"))
 
   (related-projects
@@ -22,13 +22,13 @@
       (integration "HTTP API fetch from collections"))
 
     (project
-      (name "formbd-studio")
+      (name "lithoglyph-studio")
       (relationship "sibling-service")
       (description "GUI for FormBD - may consume geo API for map visualization")
       (integration "Could call /geo/* endpoints for location-based UI"))
 
     (project
-      (name "formbd-analytics")
+      (name "lithoglyph-analytics")
       (relationship "sibling-service")
       (description "OLAP analytics layer - may use geo data for spatial aggregations")
       (integration "Could share spatial projections"))
