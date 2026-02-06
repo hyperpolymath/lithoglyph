@@ -1,6 +1,6 @@
 {
-  "name": "@formdb/rescript",
-  "version": "0.0.6",
+  "name": "@lithoglyph/rescript",
+  "version": "1.0.0",
   "sources": [
     {
       "dir": "src",

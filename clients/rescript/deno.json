@@ -1,7 +1,7 @@
 {
-  "name": "@formdb/rescript",
-  "version": "0.0.6",
-  "exports": "./src/FormDB.res.js",
+  "name": "@lithoglyph/rescript",
+  "version": "1.0.0",
+  "exports": "./src/Lithoglyph.res.js",
   "tasks": {
     "build": "rescript build",
     "clean": "rescript clean",
@@ -12,6 +12,9 @@
     "@rescript/core": "npm:@rescript/core@^1.0.0"
   },
   "compilerOptions": {
-    "lib": ["deno.window", "dom"]
+    "lib": [
+      "deno.window",
+      "dom"
+    ]
   }
 }
