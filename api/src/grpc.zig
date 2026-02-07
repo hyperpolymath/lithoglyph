@@ -423,7 +423,6 @@ fn handleDiscoverDependencies(allocator: std.mem.Allocator, request: *std.http.S
         }
     }
 
-    _ = collection;
 
     // Return placeholder response
     var encoder = ProtobufEncoder.init(allocator);

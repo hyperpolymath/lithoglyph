@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // Lithoglyph API Server - Bridge Client
 //
 // Wraps Form.Bridge FFI calls for the API server, converting between

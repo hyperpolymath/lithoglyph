@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // Lithoglyph API Server - Multi-Protocol (REST, gRPC, GraphQL)
 
 const std = @import("std");
@@ -13,8 +13,8 @@ const metrics = @import("metrics.zig");
 const auth = @import("auth.zig");
 const bridge_client = @import("bridge_client.zig");
 
-pub const std_options = struct {
-    pub const log_level: std.log.Level = .info;
+pub const std_options: std.Options = .{
+    .log_level = .info,
 };
 
 const log = std.log.scoped(.lithoglyph_server);

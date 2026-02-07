@@ -142,7 +142,7 @@ fn computeAcceptKey(allocator: std.mem.Allocator, key: []const u8) ![]const u8 {
 
     // Base64 encode
     const encoded_len = std.base64.standard.Encoder.calcSize(20);
-    var encoded = try allocator.alloc(u8, encoded_len);
+    const encoded = try allocator.alloc(u8, encoded_len);
     _ = std.base64.standard.Encoder.encode(encoded, &hash);
 
     return encoded;

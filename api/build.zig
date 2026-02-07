@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// FormDB API Server - Build Configuration
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Lithoglyph API Server - Build Configuration
 
 const std = @import("std");
 
@@ -8,15 +8,23 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Main server executable
-    const exe = b.addExecutable(.{
-        .name = "formdb-server",
+    const exe_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
 
+    const exe = b.addExecutable(.{
+        .name = "lithoglyph-server",
+        .root_module = exe_mod,
+    });
+
     // Link libc for networking
     exe.linkLibC();
+
+    // Link bridge library (from core-zig)
+    exe.addLibraryPath(b.path("../core-zig"));
+    exe.linkSystemLibrary("bridge");
 
     b.installArtifact(exe);
 
@@ -33,9 +41,11 @@ pub fn build(b: *std.Build) void {
 
     // Tests
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = .{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        },
     });
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
@@ -59,9 +69,11 @@ pub fn build(b: *std.Build) void {
 
     for (modules) |mod| {
         const mod_test = b.addTest(.{
-            .root_source_file = b.path(mod),
-            .target = target,
-            .optimize = optimize,
+            .root_module = .{
+                .root_source_file = b.path(mod),
+                .target = target,
+                .optimize = optimize,
+            },
         });
         const run_mod_test = b.addRunArtifact(mod_test);
         test_step.dependOn(&run_mod_test.step);
