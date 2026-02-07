@@ -28,8 +28,8 @@
       (containers "Podman/Nerdctl")))
 
   (current-position
-    (phase "zig-integration")
-    (overall-completion 75)
+    (phase "factor-ffi-integration")
+    (overall-completion 80)
     (components
       (form-blocks
         (status complete)
@@ -83,6 +83,27 @@
           "Zig 0.15.2 compatible"
           "12/12 tests passing"
           "End-to-end execution test verified"))
+      (factor-ffi-bindings
+        (status in-progress)
+        (completion 80)
+        (version "v0.0.7-phase3")
+        (description "Factor FFI bindings to Zig bridge - Phase 3")
+        (files
+          "core-factor/gql/storage-backend.factor"
+          "core-factor/test-ffi.factor")
+        (features
+          "FFI library loading (cross-platform)"
+          "All bridge functions declared (fdb_db_open, fdb_apply, etc.)"
+          "Helper functions (blob>string, check-fdb-status)"
+          "Database open/close via FFI"
+          "Transaction management (begin/commit/rollback)"
+          "Insert operations with fdb_apply"
+          "Schema introspection"
+          "Built libbridge.so (2.6MB)")
+        (remaining-work
+          "Test FFI with Factor runtime"
+          "Implement query operations"
+          "Full integration testing"))
       (form-runtime
         (status complete)
         (completion 100)
