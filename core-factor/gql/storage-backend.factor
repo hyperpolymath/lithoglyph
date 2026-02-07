@@ -1,16 +1,26 @@
-! SPDX-License-Identifier: AGPL-3.0-or-later
+! SPDX-License-Identifier: PMPL-1.0-or-later
 ! Form.Runtime - Storage Backend Abstraction
 !
 ! Pluggable storage layer for FDQL executor.
 ! - memory: In-memory storage (default, for testing)
 ! - bridge: Persistent storage via Form.Bridge (production)
 
-USING: accessors alien alien.c-types alien.data alien.strings arrays
-assocs byte-arrays classes.struct combinators formatting hashtables
+USING: accessors alien alien.c-types alien.data alien.libraries alien.strings
+arrays assocs byte-arrays classes.struct combinators formatting hashtables
 io io.encodings.utf8 kernel locals math namespaces sequences strings
 vectors ;
 
 IN: storage-backend
+
+! ============================================================
+! Lithoglyph Bridge FFI Library
+! ============================================================
+
+<< "lithoglyph-bridge" {
+    { [ os linux? ] [ "libbridge.so" ] }
+    { [ os macosx? ] [ "libbridge.dylib" ] }
+    { [ os windows? ] [ "bridge.dll" ] }
+} cond cdecl add-library >>
 
 ! ============================================================
 ! Storage Backend Protocol
@@ -104,13 +114,80 @@ STRUCT: fdb-blob
     { ptr void* }
     { len size_t } ;
 
-! Status codes matching bridge.zig FdbStatus
+STRUCT: fdb-result
+    { value fdb-blob }
+    { error fdb-blob }
+    { status int } ;
+
+! Status codes matching bridge.zig LgStatus
 CONSTANT: FDB_OK 0
 CONSTANT: FDB_ERR_INTERNAL 1
 CONSTANT: FDB_ERR_NOT_FOUND 2
 CONSTANT: FDB_ERR_INVALID_ARGUMENT 3
 CONSTANT: FDB_ERR_OUT_OF_MEMORY 4
 CONSTANT: FDB_ERR_NOT_IMPLEMENTED 5
+CONSTANT: FDB_ERR_TXN_NOT_ACTIVE 6
+CONSTANT: FDB_ERR_TXN_ALREADY_COMMITTED 7
+
+! ============================================================
+! FFI Function Declarations
+! ============================================================
+
+LIBRARY: lithoglyph-bridge
+
+! Database lifecycle
+FUNCTION: int fdb_db_open ( void* path ulong path_len void** out_db fdb-blob* out_err )
+FUNCTION: void fdb_db_close ( void* db )
+FUNCTION: int fdb_get_version ( )
+
+! Transaction management
+FUNCTION: int fdb_txn_begin ( void* db bool read_only void** out_txn fdb-blob* out_err )
+FUNCTION: int fdb_txn_commit ( void* txn fdb-blob* out_err )
+FUNCTION: int fdb_txn_rollback ( void* txn fdb-blob* out_err )
+
+! Operations
+FUNCTION: fdb-result fdb_apply ( void* txn void* op ulong op_len )
+
+! Introspection
+FUNCTION: int fdb_introspect_schema ( void* db fdb-blob* out_schema fdb-blob* out_err )
+FUNCTION: int fdb_introspect_constraints ( void* db fdb-blob* out_constraints fdb-blob* out_err )
+FUNCTION: int fdb_render_journal ( void* db ulong since fdb-blob* out_text fdb-blob* out_err )
+FUNCTION: int fdb_render_block ( void* db ulong block_id fdb-blob* out_text fdb-blob* out_err )
+
+! Resource cleanup
+FUNCTION: void fdb_free_blob ( fdb-blob* blob )
+
+! ============================================================
+! FFI Helper Functions
+! ============================================================
+
+: make-fdb-blob ( -- blob )
+    fdb-blob malloc-struct
+        f >>ptr
+        0 >>len ;
+
+: blob>string ( blob -- str/f )
+    dup ptr>> [
+        [ ptr>> ] [ len>> ] bi memory>byte-array utf8 decode
+    ] [ drop f ] if ;
+
+: string>fdb-input ( str -- ptr len )
+    utf8 encode [ underlying>> ] [ length ] bi ;
+
+: check-fdb-status ( status err-blob -- )
+    swap FDB_OK = [
+        drop
+    ] [
+        blob>string "FFI Error: %s\n" sprintf throw
+    ] if ;
+
+: with-fdb-error ( quot -- )
+    [ make-fdb-blob swap [ drop ] ] dip
+    [ call check-fdb-status ] 2curry recover ; inline
+
+! ============================================================
+! Bridge Backend Tuple
+! ============================================================
 
 TUPLE: bridge-backend
     db-handle
@@ -125,26 +202,34 @@ TUPLE: bridge-backend
 
 INSTANCE: bridge-backend storage-backend
 
-! Bridge backend methods - placeholder implementations
-! In production, these would FFI to bridge.zig
+! Bridge backend methods - FFI implementations
 
-M:: bridge-backend backend-init ( backend -- )
-    ! In production: call fdb_db_open via FFI
+M:: backend-init ( backend -- ) bridge-backend
     backend db-path>> :> path
-    "Opening database: %s (bridge backend not fully wired)\n" path sprintf print
-    t backend is-open<< ;
+    f :> db-handle!
+    make-fdb-blob :> err-blob
+
+    path string>fdb-input { void* } [
+        db-handle! err-blob fdb_db_open
+    ] with-out-parameters
+
+    err-blob check-fdb-status
+    db-handle backend db-handle<<
+    t backend is-open<<
+    "Database opened: %s\n" path sprintf print ;
 
 M:: bridge-backend backend-close ( backend -- )
-    ! In production: call fdb_db_close via FFI
-    backend is-open>> [
-        "Closing database\n" print
+    backend is-open>> backend db-handle>> and [
+        backend db-handle>> fdb_db_close
+        f backend db-handle<<
         f backend is-open<<
+        "Database closed\n" print
     ] when ;
 
 M:: bridge-backend backend-get-collection ( name backend -- data )
-    ! In production: call fdb_apply with query operation via FFI
+    ! TODO: Implement query operation via fdb_apply
     ! For now, return empty vector
-    "Bridge backend: get-collection %s (stub)\n" name sprintf print
+    "Bridge backend: get-collection %s (FFI wired, query TODO)\n" name sprintf print
     V{ } clone ;
 
 M:: bridge-backend backend-set-collection ( data name backend -- )
@@ -152,19 +237,50 @@ M:: bridge-backend backend-set-collection ( data name backend -- )
     "Bridge backend: set-collection %s with %d docs (stub)\n"
     name data length 2array vsprintf print ;
 
-M: bridge-backend backend-list-collections
-    ! In production: call fdb_introspect_schema via FFI
-    "Bridge backend: list-collections (stub)\n" print
-    { } ;
+M:: bridge-backend backend-list-collections ( backend -- names )
+    backend db-handle>> [
+        make-fdb-blob :> schema-blob
+        make-fdb-blob :> err-blob
+
+        backend db-handle>> schema-blob err-blob fdb_introspect_schema
+        err-blob check-fdb-status
+
+        ! Parse JSON schema and extract collection names
+        schema-blob blob>string [ "{\"version\":0,\"block_count\":0,\"collections\":[]}" ] unless*
+        ! For now, return empty list (TODO: parse JSON)
+        { }
+    ] [ { } ] if ;
 
 M:: bridge-backend backend-delete-collection ( name backend -- )
     ! In production: call fdb_apply with drop operation via FFI
     "Bridge backend: delete-collection %s (stub)\n" name sprintf print ;
 
 M:: bridge-backend backend-insert ( doc collection backend -- id )
-    ! In production: call fdb_apply with insert operation via FFI
-    "Bridge backend: insert into %s (stub)\n" collection sprintf print
-    0 ;
+    backend db-handle>> [
+        ! Begin transaction
+        f :> txn-handle!
+        make-fdb-blob :> err-blob
+
+        backend db-handle>> f txn-handle! err-blob fdb_txn_begin
+        err-blob check-fdb-status
+
+        ! Create insert operation (simple JSON for now)
+        doc >json :> doc-json
+        "{\"op\":\"insert\",\"collection\":\"%s\",\"doc\":%s}"
+        collection doc-json 2array vsprintf :> op-json
+
+        ! Apply operation
+        op-json string>fdb-input [
+            txn-handle fdb_apply
+        ] 2keep 2drop :> result
+
+        ! Commit transaction
+        txn-handle err-blob fdb_txn_commit
+        err-blob check-fdb-status
+
+        ! Return generated ID (for now, use timestamp)
+        nano-count
+    ] [ 0 ] if ;
 
 M:: bridge-backend backend-update ( doc id collection backend -- success? )
     ! In production: call fdb_apply with update operation via FFI
