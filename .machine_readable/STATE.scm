@@ -28,8 +28,8 @@
       (containers "Podman/Nerdctl")))
 
   (current-position
-    (phase "language-bindings")
-    (overall-completion 65)
+    (phase "zig-integration")
+    (overall-completion 75)
     (components
       (form-blocks
         (status complete)
@@ -53,15 +53,36 @@
         (files
           "core-forth/src/lithoglyph-model.fs"
           "spec/encoding.adoc"))
+      (form-blocks-zig
+        (status complete)
+        (completion 100)
+        (version "v0.0.7-phase1")
+        (description "Industrial-grade Zig block I/O layer - Phase 1")
+        (files
+          "core-zig/src/blocks.zig"
+          "core-zig/test_install_blocks.sh"
+          "core-zig/test-execution.sh")
+        (features
+          "4 KiB block storage with 64-byte headers"
+          "CRC32C checksums (Castagnoli polynomial)"
+          "Block types: document, edge, journal, schema, superblock"
+          "Superblock management and persistence"
+          "Journal append with linkage"
+          "9/9 tests passing"))
       (form-bridge
         (status complete)
         (completion 100)
-        (version "v0.0.2")
+        (version "v0.0.7-phase2")
+        (description "C ABI bridge wired to persistent BlockStorage - Phase 2")
         (files
           "core-zig/src/bridge.zig"
-          "core-zig/src/types.zig"
-          "core-zig/src/cbor.zig"
-          "core-zig/build.zig"))
+          "core-zig/test-install.sh")
+        (features
+          "Persistent block storage (no more in-memory stubs)"
+          "JSON introspection (CBOR removed)"
+          "Zig 0.15.2 compatible"
+          "12/12 tests passing"
+          "End-to-end execution test verified"))
       (form-runtime
         (status complete)
         (completion 100)
@@ -110,12 +131,15 @@
         (files "control-plane/README.adoc")))
     (working-features
       "Fixed-size block storage (4 KiB blocks)"
-      "Append-only journal with sequence numbering"
+      "Persistent block I/O with CRC32C checksums"
+      "Append-only journal with sequence numbering and linkage"
       "Multi-model layer (documents + edges + schemas)"
-      "Zig FFI bridge with C-compatible calling convention"
+      "Zig FFI bridge with persistent BlockStorage backend"
+      "C-compatible ABI (callconv .c)"
       "FQL parser and executor in Factor"
       "Self-normalizing database with FD discovery"
-      "Multi-protocol API server"))
+      "Multi-protocol API server"
+      "End-to-end block allocation, write, read, journal tested"))
 
   (route-to-mvp
     (target-version "1.0.0")
