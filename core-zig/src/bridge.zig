@@ -8,15 +8,83 @@
 // Lg* = Lithoglyph types (abbreviated for C compatibility)
 
 const std = @import("std");
-pub const types = @import("types.zig");
-pub const cbor = @import("cbor.zig");
+const blocks = @import("blocks.zig");
 
-// Re-export types for C consumers
-pub const LgBlob = types.LgBlob;
-pub const LgStatus = types.LgStatus;
-pub const LgResult = types.LgResult;
-pub const LgTxnMode = types.LgTxnMode;
-pub const LgRenderOpts = types.LgRenderOpts;
+// Simplified types for C ABI (no external dependencies)
+pub const LgBlob = extern struct {
+    ptr: ?[*]const u8,
+    len: usize,
+
+    pub fn empty() LgBlob {
+        return .{ .ptr = null, .len = 0 };
+    }
+
+    pub fn fromSlice(slice: []const u8) LgBlob {
+        return .{ .ptr = slice.ptr, .len = slice.len };
+    }
+
+    pub fn toSlice(self: LgBlob) ?[]const u8 {
+        if (self.ptr) |ptr| {
+            return ptr[0..self.len];
+        }
+        return null;
+    }
+};
+
+pub const LgStatus = enum(c_int) {
+    ok = 0,
+    err_internal = 1,
+    err_not_found = 2,
+    err_invalid_argument = 3,
+    err_out_of_memory = 4,
+    err_not_implemented = 5,
+    err_txn_not_active = 6,
+    err_txn_already_committed = 7,
+};
+
+pub const LgResult = extern struct {
+    data: LgBlob,
+    provenance: LgBlob,
+    status: LgStatus,
+    error_blob: LgBlob,
+
+    pub fn ok(data_blob: LgBlob) LgResult {
+        return .{
+            .data = data_blob,
+            .provenance = LgBlob.empty(),
+            .status = .ok,
+            .error_blob = LgBlob.empty(),
+        };
+    }
+
+    pub fn okWithProvenance(data_blob: LgBlob, prov_blob: LgBlob) LgResult {
+        return .{
+            .data = data_blob,
+            .provenance = prov_blob,
+            .status = .ok,
+            .error_blob = LgBlob.empty(),
+        };
+    }
+
+    pub fn err(status: LgStatus, error_blob: LgBlob) LgResult {
+        return .{
+            .data = LgBlob.empty(),
+            .provenance = LgBlob.empty(),
+            .status = status,
+            .error_blob = error_blob,
+        };
+    }
+};
+
+pub const LgTxnMode = enum(c_int) {
+    read_only = 0,
+    read_write = 1,
+};
+
+pub const LgRenderOpts = extern struct {
+    format: c_int,
+    include_metadata: bool,
+};
 
 // ============================================================
 // Opaque Handles
@@ -28,11 +96,7 @@ pub const LgTxn = opaque {};
 // Internal state structures
 const DbState = struct {
     allocator: std.mem.Allocator,
-    path: []const u8,
-    is_open: bool,
-    journal_head: u64,
-    next_block_id: u64,
-    superblock_loaded: bool,
+    storage: *blocks.BlockStorage,
 };
 
 const TxnState = struct {
@@ -55,12 +119,13 @@ var txn_registry = std.AutoHashMap(*TxnState, void).init(global_allocator);
 // ============================================================
 
 fn createErrorBlob(status: LgStatus, message: []const u8) LgBlob {
-    const err_data = cbor.encodeError(
-        global_allocator,
-        @intFromEnum(status),
-        message,
-    ) catch return LgBlob.empty();
+    // Format error as simple JSON
+    var buf: [512]u8 = undefined;
+    const err_str = std.fmt.bufPrint(&buf,
+        \\{{"status":{d},"error":"{s}"}}
+    , .{ @intFromEnum(status), message }) catch return LgBlob.empty();
 
+    const err_data = global_allocator.dupe(u8, err_str) catch return LgBlob.empty();
     return LgBlob.fromSlice(err_data);
 }
 
@@ -90,30 +155,33 @@ export fn fdb_db_open(
 
     const path = path_ptr[0..path_len];
 
-    // Create database state
-    const db = global_allocator.create(DbState) catch {
-        out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate database state");
-        return .err_out_of_memory;
+    // Open or create block storage
+    const storage = blocks.BlockStorage.open(global_allocator, path) catch |err| {
+        const msg = switch (err) {
+            error.OutOfMemory => "Out of memory",
+            error.FileNotFound => "Database not found",
+            error.InvalidDatabase => "Invalid database format",
+            else => "Failed to open database",
+        };
+        out_err.* = createErrorBlob(.err_internal, msg);
+        return .err_internal;
     };
 
-    const path_copy = global_allocator.dupe(u8, path) catch {
-        global_allocator.destroy(db);
-        out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate path");
+    // Create database state
+    const db = global_allocator.create(DbState) catch {
+        storage.deinit();
+        out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate database state");
         return .err_out_of_memory;
     };
 
     db.* = .{
         .allocator = global_allocator,
-        .path = path_copy,
-        .is_open = true,
-        .journal_head = 0,
-        .next_block_id = 1,
-        .superblock_loaded = false,
+        .storage = storage,
     };
 
     // Register handle
     db_registry.put(db, {}) catch {
-        global_allocator.free(path_copy);
+        storage.deinit();
         global_allocator.destroy(db);
         out_err.* = createErrorBlob(.err_internal, "Failed to register database handle");
         return .err_internal;
@@ -144,9 +212,11 @@ export fn fdb_db_close(db: ?*LgDb) LgStatus {
         }
     }
 
+    // Close block storage
+    state.storage.deinit();
+
     // Clean up database state
     _ = db_registry.remove(state);
-    global_allocator.free(state.path);
     global_allocator.destroy(state);
 
     return .ok;
@@ -189,7 +259,7 @@ export fn fdb_txn_begin(
         .db = state,
         .mode = mode,
         .is_active = true,
-        .sequence = state.journal_head + 1,
+        .sequence = state.storage.superblock.journal_head + 1,
     };
 
     txn_registry.put(txn, {}) catch {
@@ -224,8 +294,7 @@ export fn fdb_txn_commit(txn: ?*LgTxn, out_err: *LgBlob) LgStatus {
         return .err_txn_already_committed;
     }
 
-    // Update journal head
-    state.db.journal_head = state.sequence;
+    // Update journal head (already updated by storage operations)
     state.is_active = false;
 
     // Clean up transaction
@@ -263,9 +332,9 @@ export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
 /// Apply an operation within a transaction
 ///
 /// @param txn Transaction handle
-/// @param op_ptr CBOR-encoded operation
-/// @param op_len Length of operation
-/// @return Result containing result blob, provenance, status, and error
+/// @param op_ptr Raw data to store
+/// @param op_len Length of data
+/// @return Result containing block ID and status
 export fn fdb_apply(
     txn: ?*LgTxn,
     op_ptr: [*]const u8,
@@ -287,69 +356,46 @@ export fn fdb_apply(
         return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Read-only transaction"));
     }
 
-    // Parse the operation
-    const op_data = op_ptr[0..op_len];
-    var decoder = cbor.Decoder.init(global_allocator, op_data);
-
-    // Read operation type (expect map with "op" key)
-    const map_len = decoder.decodeMapLen() catch {
-        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation format"));
+    // Allocate a new document block
+    const block_id = state.db.storage.allocateBlock(.document) catch {
+        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to allocate block"));
     };
 
-    var op_type: ?[]const u8 = null;
-    var i: usize = 0;
-    while (i < map_len) : (i += 1) {
-        const key = decoder.decodeText() catch {
-            return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation key"));
-        };
+    // Write data to block
+    const op_data = op_ptr[0..op_len];
+    var block = state.db.storage.readBlock(block_id) catch {
+        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to read block"));
+    };
 
-        if (std.mem.eql(u8, key, "op")) {
-            op_type = decoder.decodeText() catch {
-                return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid operation type"));
-            };
-        } else {
-            decoder.skip() catch {
-                return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Failed to skip value"));
-            };
-        }
-    }
+    block.setPayload(op_data) catch {
+        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Payload too large"));
+    };
 
-    // Dispatch operation (placeholder for PoC)
-    if (op_type) |op| {
-        if (std.mem.eql(u8, op, "insert")) {
-            // Create result blob
-            var encoder = cbor.Encoder.init(global_allocator);
-            encoder.beginMap(2) catch return LgResult.err(.err_internal, LgBlob.empty());
-            encoder.encodeText("status") catch return LgResult.err(.err_internal, LgBlob.empty());
-            encoder.encodeText("ok") catch return LgResult.err(.err_internal, LgBlob.empty());
-            encoder.encodeText("doc_id") catch return LgResult.err(.err_internal, LgBlob.empty());
+    state.db.storage.writeBlock(block_id, &block) catch {
+        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to write block"));
+    };
 
-            // Generate doc ID
-            state.db.next_block_id += 1;
-            encoder.encodeUint(state.db.next_block_id) catch return LgResult.err(.err_internal, LgBlob.empty());
+    // Append journal entry
+    var journal_buf: [100]u8 = undefined;
+    const journal_entry = std.fmt.bufPrint(&journal_buf, "INSERT block_id={d} size={d}", .{ block_id, op_len }) catch {
+        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to format journal"));
+    };
 
-            const result_data = global_allocator.dupe(u8, encoder.finish()) catch {
-                return LgResult.err(.err_out_of_memory, LgBlob.empty());
-            };
-            encoder.deinit();
+    _ = state.db.storage.appendJournal(journal_entry) catch {
+        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to append journal"));
+    };
 
-            // Create provenance
-            const prov = cbor.encodeProvenance(
-                global_allocator,
-                "bridge",
-                "system",
-                "Document inserted via bridge",
-                "2026-01-11T12:00:00Z",
-            ) catch return LgResult.ok(LgBlob.fromSlice(result_data));
+    // Return block ID as result
+    var result_buf: [50]u8 = undefined;
+    const result_str = std.fmt.bufPrint(&result_buf, "{{\"block_id\":{d}}}", .{block_id}) catch {
+        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to format result"));
+    };
 
-            return LgResult.okWithProvenance(
-                LgBlob.fromSlice(result_data),
-                LgBlob.fromSlice(prov),
-            );
-        }
-    }
+    const result_data = global_allocator.dupe(u8, result_str) catch {
+        return LgResult.err(.err_out_of_memory, LgBlob.empty());
+    };
 
-    return LgResult.err(.err_not_implemented, createErrorBlob(.err_not_implemented, "Operation not implemented"));
+    return LgResult.ok(LgBlob.fromSlice(result_data));
 }
 
 // ============================================================
@@ -383,24 +429,37 @@ export fn fdb_render_block(
         return .err_invalid_argument;
     }
 
-    // Generate canonical block rendering (placeholder)
-    var encoder = cbor.Encoder.init(global_allocator);
-    encoder.beginMap(3) catch {
-        out_err.* = createErrorBlob(.err_internal, "Encoding failed");
+    // Read block from storage
+    const block = state.storage.readBlock(block_id) catch |err| {
+        const msg = switch (err) {
+            error.InvalidBlock => "Block not found or invalid",
+            error.ChecksumMismatch => "Block checksum mismatch",
+            else => "Failed to read block",
+        };
+        out_err.* = createErrorBlob(.err_internal, msg);
         return .err_internal;
     };
-    encoder.encodeText("block_id") catch return .err_internal;
-    encoder.encodeUint(block_id) catch return .err_internal;
-    encoder.encodeText("type") catch return .err_internal;
-    encoder.encodeText("document") catch return .err_internal;
-    encoder.encodeText("status") catch return .err_internal;
-    encoder.encodeText("rendered") catch return .err_internal;
 
-    const text_data = global_allocator.dupe(u8, encoder.finish()) catch {
+    // Format block as JSON (show payload size only, not content)
+    _ = block.getPayload(); // Validate payload exists
+    var buf: [8192]u8 = undefined;
+    const text = std.fmt.bufPrint(&buf,
+        \\{{"block_id":{d},"type":"{s}","sequence":{d},"size":{d},"payload":"[{d} bytes]"}}
+    , .{
+        block.header.block_id,
+        @tagName(@as(blocks.BlockType, @enumFromInt(block.header.block_type))),
+        block.header.sequence,
+        block.header.payload_len,
+        block.header.payload_len,
+    }) catch {
+        out_err.* = createErrorBlob(.err_internal, "Failed to format block");
+        return .err_internal;
+    };
+
+    const text_data = global_allocator.dupe(u8, text) catch {
         out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate result");
         return .err_out_of_memory;
     };
-    encoder.deinit();
 
     out_text.* = LgBlob.fromSlice(text_data);
     out_err.* = LgBlob.empty();
@@ -434,24 +493,23 @@ export fn fdb_render_journal(
         return .err_invalid_argument;
     }
 
-    // Generate journal rendering (placeholder)
-    var encoder = cbor.Encoder.init(global_allocator);
-    encoder.beginMap(3) catch {
-        out_err.* = createErrorBlob(.err_internal, "Encoding failed");
+    // Format journal info as JSON
+    var buf: [512]u8 = undefined;
+    const text = std.fmt.bufPrint(&buf,
+        \\{{"since":{d},"head":{d},"tail":{d},"entries":[]}}
+    , .{
+        since,
+        state.storage.superblock.journal_head,
+        state.storage.superblock.journal_tail,
+    }) catch {
+        out_err.* = createErrorBlob(.err_internal, "Failed to format journal");
         return .err_internal;
     };
-    encoder.encodeText("since") catch return .err_internal;
-    encoder.encodeUint(since) catch return .err_internal;
-    encoder.encodeText("head") catch return .err_internal;
-    encoder.encodeUint(state.journal_head) catch return .err_internal;
-    encoder.encodeText("entries") catch return .err_internal;
-    encoder.beginArray(0) catch return .err_internal;
 
-    const text_data = global_allocator.dupe(u8, encoder.finish()) catch {
+    const text_data = global_allocator.dupe(u8, text) catch {
         out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate result");
         return .err_out_of_memory;
     };
-    encoder.deinit();
 
     out_text.* = LgBlob.fromSlice(text_data);
     out_err.* = LgBlob.empty();
@@ -479,22 +537,22 @@ export fn fdb_introspect_schema(
         return .err_invalid_argument;
     }
 
-    // Generate schema introspection (placeholder - no schema yet)
-    var encoder = cbor.Encoder.init(global_allocator);
-    encoder.beginMap(2) catch {
-        out_err.* = createErrorBlob(.err_internal, "Encoding failed");
+    // Format schema as JSON
+    var buf: [512]u8 = undefined;
+    const schema_str = std.fmt.bufPrint(&buf,
+        \\{{"version":{d},"block_count":{d},"collections":[]}}
+    , .{
+        state.storage.superblock.version,
+        state.storage.superblock.block_count,
+    }) catch {
+        out_err.* = createErrorBlob(.err_internal, "Failed to format schema");
         return .err_internal;
     };
-    encoder.encodeText("collections") catch return .err_internal;
-    encoder.beginArray(0) catch return .err_internal;
-    encoder.encodeText("version") catch return .err_internal;
-    encoder.encodeUint(1) catch return .err_internal;
 
-    const schema_data = global_allocator.dupe(u8, encoder.finish()) catch {
+    const schema_data = global_allocator.dupe(u8, schema_str) catch {
         out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate result");
         return .err_out_of_memory;
     };
-    encoder.deinit();
 
     out_schema.* = LgBlob.fromSlice(schema_data);
     out_err.* = LgBlob.empty();
@@ -523,21 +581,11 @@ export fn fdb_introspect_constraints(
     }
 
     // Generate constraint introspection (placeholder - no constraints yet)
-    var encoder = cbor.Encoder.init(global_allocator);
-    encoder.beginMap(2) catch {
-        out_err.* = createErrorBlob(.err_internal, "Encoding failed");
-        return .err_internal;
-    };
-    encoder.encodeText("constraints") catch return .err_internal;
-    encoder.beginArray(0) catch return .err_internal;
-    encoder.encodeText("functional_dependencies") catch return .err_internal;
-    encoder.beginArray(0) catch return .err_internal;
-
-    const constraint_data = global_allocator.dupe(u8, encoder.finish()) catch {
+    const constraint_json = "{\"constraints\":[],\"functional_dependencies\":[]}";
+    const constraint_data = global_allocator.dupe(u8, constraint_json) catch {
         out_err.* = createErrorBlob(.err_out_of_memory, "Failed to allocate result");
         return .err_out_of_memory;
     };
-    encoder.deinit();
 
     out_constraints.* = LgBlob.fromSlice(constraint_data);
     out_err.* = LgBlob.empty();
@@ -553,7 +601,7 @@ pub const LgProofVerifier = *const fn (
     proof_ptr: [*]const u8,
     proof_len: usize,
     context_ptr: ?*anyopaque,
-) callconv(.C) LgStatus;
+) callconv(.c) LgStatus;
 
 /// Proof verifier registration entry
 const VerifierEntry = struct {
@@ -632,59 +680,54 @@ export fn fdb_proof_verify(
 ) LgStatus {
     const proof_data = proof_ptr[0..proof_len];
 
-    // Parse proof to extract type
-    var decoder = cbor.Decoder.init(global_allocator, proof_data);
-
-    // Expect map with "type" and "data" keys
-    const map_len = decoder.decodeMapLen() catch {
-        out_err.* = createErrorBlob(.err_invalid_argument, "Invalid proof format: expected map");
+    // Parse JSON proof to extract type and data
+    // Expected format: {"type":"proof_type","data":"base64_data"}
+    const parsed = std.json.parseFromSlice(
+        std.json.Value,
+        global_allocator,
+        proof_data,
+        .{},
+    ) catch {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Invalid JSON proof format");
         return .err_invalid_argument;
     };
+    defer parsed.deinit();
 
-    var proof_type: ?[]const u8 = null;
-    var proof_data_start: usize = 0;
-    var proof_data_end: usize = 0;
-
-    var i: usize = 0;
-    while (i < map_len) : (i += 1) {
-        const key = decoder.decodeText() catch {
-            out_err.* = createErrorBlob(.err_invalid_argument, "Invalid proof key");
-            return .err_invalid_argument;
-        };
-
-        if (std.mem.eql(u8, key, "type")) {
-            proof_type = decoder.decodeText() catch {
-                out_err.* = createErrorBlob(.err_invalid_argument, "Invalid proof type");
-                return .err_invalid_argument;
-            };
-        } else if (std.mem.eql(u8, key, "data")) {
-            proof_data_start = decoder.position;
-            decoder.skip() catch {
-                out_err.* = createErrorBlob(.err_invalid_argument, "Failed to read proof data");
-                return .err_invalid_argument;
-            };
-            proof_data_end = decoder.position;
-        } else {
-            decoder.skip() catch {
-                out_err.* = createErrorBlob(.err_invalid_argument, "Failed to skip value");
-                return .err_invalid_argument;
-            };
-        }
+    const root = parsed.value;
+    if (root != .object) {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Proof must be JSON object");
+        return .err_invalid_argument;
     }
 
-    // Look up verifier
-    const ptype = proof_type orelse {
-        out_err.* = createErrorBlob(.err_invalid_argument, "Proof missing type field");
+    const type_value = root.object.get("type") orelse {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Proof missing 'type' field");
         return .err_invalid_argument;
     };
+
+    if (type_value != .string) {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Proof 'type' must be string");
+        return .err_invalid_argument;
+    }
+
+    const ptype = type_value.string;
 
     const entry = verifier_registry.get(ptype) orelse {
         out_err.* = createErrorBlob(.err_not_found, "No verifier registered for proof type");
         return .err_not_found;
     };
 
-    // Call verifier with proof data
-    const verify_data = proof_data[proof_data_start..proof_data_end];
+    // Extract proof data (as string for now)
+    const data_value = root.object.get("data") orelse {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Proof missing 'data' field");
+        return .err_invalid_argument;
+    };
+
+    if (data_value != .string) {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Proof 'data' must be string");
+        return .err_invalid_argument;
+    }
+
+    const verify_data = data_value.string;
     const status = entry.callback(verify_data.ptr, verify_data.len, entry.context);
 
     out_valid.* = (status == .ok);
@@ -697,7 +740,7 @@ fn builtin_fd_verifier(
     _: [*]const u8,
     _: usize,
     _: ?*anyopaque,
-) callconv(.C) LgStatus {
+) callconv(.c) LgStatus {
     // In production, this would actually verify the proof
     // For PoC, we accept all well-formed proofs
     return .ok;
@@ -708,7 +751,7 @@ fn builtin_normalization_verifier(
     _: [*]const u8,
     _: usize,
     _: ?*anyopaque,
-) callconv(.C) LgStatus {
+) callconv(.c) LgStatus {
     // In production, this would verify losslessness and dependency preservation
     // For PoC, we accept all well-formed proofs
     return .ok;
