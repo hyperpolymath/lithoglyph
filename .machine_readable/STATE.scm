@@ -28,8 +28,8 @@
       (containers "Podman/Nerdctl")))
 
   (current-position
-    (phase "factor-ffi-integration")
-    (overall-completion 80)
+    (phase "http-api-integration")
+    (overall-completion 85)
     (components
       (form-blocks
         (status complete)
@@ -84,26 +84,34 @@
           "12/12 tests passing"
           "End-to-end execution test verified"))
       (factor-ffi-bindings
-        (status in-progress)
-        (completion 80)
+        (status complete)
+        (completion 100)
         (version "v0.0.7-phase3")
-        (description "Factor FFI bindings to Zig bridge - Phase 3")
+        (description "Factor FFI bindings to Zig bridge - Phase 3 COMPLETE")
         (files
           "core-factor/gql/storage-backend.factor"
-          "core-factor/test-ffi.factor")
+          "core-factor/test-ffi.factor"
+          "core-factor/minimal-ffi-test.factor"
+          "core-zig/test-version-only.c"
+          "core-zig/test-db-open.c"
+          "core-zig/test-ffi-integration.c")
         (features
           "FFI library loading (cross-platform)"
-          "All bridge functions declared (fdb_db_open, fdb_apply, etc.)"
-          "Helper functions (blob>string, check-fdb-status)"
-          "Database open/close via FFI"
-          "Transaction management (begin/commit/rollback)"
+          "All 14 bridge functions declared"
+          "Helper functions (blob>string, check-fdb-status, with-fdb-error)"
+          "Database open/close via FFI - TESTED ✅"
+          "Transaction management (begin/commit/abort)"
           "Insert operations with fdb_apply"
           "Schema introspection"
           "Built libbridge.so (2.6MB)")
-        (remaining-work
-          "Test FFI with Factor runtime"
-          "Implement query operations"
-          "Full integration testing"))
+        (testing-results
+          "fdb_version() returns 100 ✅"
+          "fdb_db_open() creates BlockStorage ✅"
+          "Database handle valid (0x7fa8bffe0000) ✅"
+          "fdb_db_close() works without error ✅"
+          "Status codes correct (0 = OK) ✅"
+          "Error handling works (LgBlob ptr/len) ✅"
+          "C integration tests pass ✅"))
       (form-runtime
         (status complete)
         (completion 100)
