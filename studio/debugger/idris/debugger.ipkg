@@ -1,0 +1,5 @@
+package debugger
+version = 0.1.0
+sourcedir = "src"
+main = Main
+executable = "formbd-debug-repl"

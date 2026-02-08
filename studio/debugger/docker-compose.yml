@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Docker Compose for Lithoglyph Debugger development/testing
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: formdb-test-db
+    environment:
+      POSTGRES_USER: formdb
+      POSTGRES_PASSWORD: formdb_dev
+      POSTGRES_DB: formdb_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-demo.sql:/docker-entrypoint-initdb.d/init.sql:ro,Z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U formdb -d formdb_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

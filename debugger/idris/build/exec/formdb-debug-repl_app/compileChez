@@ -1,0 +1,1 @@
+(parameterize ([optimize-level 3] [compile-file-message #f]) (compile-program "/var/mnt/eclipse/repos/formdb-debugger/idris/build/exec/formdb-debug-repl_app/formdb-debug-repl.ss"))

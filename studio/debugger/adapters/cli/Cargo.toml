@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+
+[package]
+name = "lithoglyph-debugger-cli"
+description = "CLI bridge for FormBD Debugger IPC"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "fdb-debug"
+path = "src/main.rs"
+
+[dependencies]
+lithoglyph-debugger-postgres = { path = "../postgres" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+clap = { version = "4.5", features = ["derive"] }
