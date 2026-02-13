@@ -7,8 +7,8 @@
 
 USING: accessors alien alien.c-types alien.data alien.libraries alien.strings
 arrays assocs byte-arrays classes.struct combinators formatting hashtables
-io io.encodings.utf8 kernel locals math namespaces sequences strings
-vectors ;
+io io.encodings.utf8 json.reader json.writer kernel locals math namespaces
+sequences strings vectors ;
 
 IN: storage-backend
 
@@ -143,10 +143,15 @@ FUNCTION: int fdb_get_version ( )
 ! Transaction management
 FUNCTION: int fdb_txn_begin ( void* db bool read_only void** out_txn fdb-blob* out_err )
 FUNCTION: int fdb_txn_commit ( void* txn fdb-blob* out_err )
-FUNCTION: int fdb_txn_rollback ( void* txn fdb-blob* out_err )
+FUNCTION: int fdb_txn_abort ( void* txn )
 
-! Operations
+! Operations (buffered until commit)
 FUNCTION: fdb-result fdb_apply ( void* txn void* op ulong op_len )
+FUNCTION: int fdb_update_block ( void* txn ulong block_id void* data ulong data_len fdb-blob* out_err )
+FUNCTION: int fdb_delete_block ( void* txn ulong block_id fdb-blob* out_err )
+
+! Query (full block scan)
+FUNCTION: int fdb_read_blocks ( void* db ushort block_type fdb-blob* out_data fdb-blob* out_err )
 
 ! Introspection
 FUNCTION: int fdb_introspect_schema ( void* db fdb-blob* out_schema fdb-blob* out_err )
@@ -155,7 +160,7 @@ FUNCTION: int fdb_render_journal ( void* db ulong since fdb-blob* out_text fdb-b
 FUNCTION: int fdb_render_block ( void* db ulong block_id fdb-blob* out_text fdb-blob* out_err )
 
 ! Resource cleanup
-FUNCTION: void fdb_free_blob ( fdb-blob* blob )
+FUNCTION: void fdb_blob_free ( fdb-blob* blob )
 
 ! ============================================================
 ! FFI Helper Functions
@@ -181,9 +186,59 @@ FUNCTION: void fdb_free_blob ( fdb-blob* blob )
         blob>string "FFI Error: %s\n" sprintf throw
     ] if ;
 
-: with-fdb-error ( quot -- )
-    [ make-fdb-blob swap [ drop ] ] dip
-    [ call check-fdb-status ] 2curry recover ; inline
+! Block type constant for documents (0x0011)
+CONSTANT: BLOCK_TYPE_DOCUMENT 0x0011
+
+! Parse JSON array of block results into Factor vector of hashtables.
+! Input: JSON string like [{"block_id":1,"size":42,"data":"..."},...]
+! Output: Vector of hashtables (the "data" field is parsed as JSON if possible)
+: parse-block-results ( json-str -- vec )
+    json> dup array? [
+        >vector
+        [
+            dup hashtable? [
+                ! Try to parse the "data" field as JSON
+                dup "data" swap at [
+                    [ json> ] [ drop f ] recover
+                    dup hashtable? [
+                        ! Successfully parsed document JSON
+                        swap "data" pick set-at
+                    ] [ drop ] if
+                ] when*
+            ] when
+        ] map
+    ] [ drop V{ } clone ] if ;
+
+! ============================================================
+! Bridge Transaction Helper
+! ============================================================
+
+! Execute a single-operation transaction: begin → apply → commit
+! Returns the block ID from fdb_apply result, or 0 on failure.
+: with-bridge-txn ( doc-json backend -- block-id )
+    db-handle>> :> db
+    f :> txn-handle!
+    make-fdb-blob :> err-blob
+
+    ! Begin read-write transaction
+    db f txn-handle! err-blob fdb_txn_begin
+    err-blob check-fdb-status
+
+    ! Apply the operation (buffered, not written until commit)
+    swap string>fdb-input [
+        txn-handle fdb_apply
+    ] 2keep 2drop :> result
+
+    ! Commit transaction (WAL: journal → sync → blocks → sync)
+    txn-handle err-blob fdb_txn_commit
+    err-blob check-fdb-status
+
+    ! Extract block_id from result (JSON: {"block_id":N,"status":"pending"})
+    result value>> blob>string [
+        json> dup hashtable? [
+            "block_id" swap at [ 0 ] unless*
+        ] [ drop 0 ] if
+    ] [ 0 ] if* ;
 
 ! ============================================================
 ! Bridge Backend Tuple
@@ -227,15 +282,29 @@ M:: bridge-backend backend-close ( backend -- )
     ] when ;
 
 M:: bridge-backend backend-get-collection ( name backend -- data )
-    ! TODO: Implement query operation via fdb_apply
-    ! For now, return empty vector
-    "Bridge backend: get-collection %s (FFI wired, query TODO)\n" name sprintf print
-    V{ } clone ;
+    backend db-handle>> [
+        make-fdb-blob :> data-blob
+        make-fdb-blob :> err-blob
+
+        ! Read all document blocks via fdb_read_blocks (type = 0x0011)
+        backend db-handle>> BLOCK_TYPE_DOCUMENT data-blob err-blob fdb_read_blocks
+        err-blob check-fdb-status
+
+        ! Parse JSON result into vector of documents
+        data-blob blob>string [ "[]" ] unless*
+        parse-block-results
+
+        ! Free the blob
+        data-blob fdb_blob_free
+    ] [ V{ } clone ] if ;
 
 M:: bridge-backend backend-set-collection ( data name backend -- )
-    ! In production: call fdb_apply with bulk insert via FFI
-    "Bridge backend: set-collection %s with %d docs (stub)\n"
-    name data length 2array vsprintf print ;
+    backend db-handle>> [
+        ! Insert each document via individual transactions
+        data [
+            >json backend with-bridge-txn drop
+        ] each
+    ] when ;
 
 M:: bridge-backend backend-list-collections ( backend -- names )
     backend db-handle>> [
@@ -246,51 +315,72 @@ M:: bridge-backend backend-list-collections ( backend -- names )
         err-blob check-fdb-status
 
         ! Parse JSON schema and extract collection names
-        schema-blob blob>string [ "{\"version\":0,\"block_count\":0,\"collections\":[]}" ] unless*
-        ! For now, return empty list (TODO: parse JSON)
-        { }
+        schema-blob blob>string [ "{\"version\":0,\"collections\":[]}" ] unless*
+        json> dup hashtable? [
+            "collections" swap at [ { } ] unless*
+        ] [ drop { } ] if
+
+        schema-blob fdb_blob_free
     ] [ { } ] if ;
 
 M:: bridge-backend backend-delete-collection ( name backend -- )
-    ! In production: call fdb_apply with drop operation via FFI
-    "Bridge backend: delete-collection %s (stub)\n" name sprintf print ;
+    backend db-handle>> [
+        ! Read all blocks and delete those matching the collection
+        ! (For PoC, collection filtering is not yet implemented at block level)
+        "Bridge backend: delete-collection %s (requires collection metadata)\n"
+        name sprintf print
+    ] when ;
 
 M:: bridge-backend backend-insert ( doc collection backend -- id )
     backend db-handle>> [
-        ! Begin transaction
-        f :> txn-handle!
-        make-fdb-blob :> err-blob
-
-        backend db-handle>> f txn-handle! err-blob fdb_txn_begin
-        err-blob check-fdb-status
-
-        ! Create insert operation (simple JSON for now)
+        ! Serialize document to JSON for storage
         doc >json :> doc-json
-        "{\"op\":\"insert\",\"collection\":\"%s\",\"doc\":%s}"
-        collection doc-json 2array vsprintf :> op-json
 
-        ! Apply operation
-        op-json string>fdb-input [
-            txn-handle fdb_apply
-        ] 2keep 2drop :> result
-
-        ! Commit transaction
-        txn-handle err-blob fdb_txn_commit
-        err-blob check-fdb-status
-
-        ! Return generated ID (for now, use timestamp)
-        nano-count
+        ! Execute insert through bridge transaction
+        doc-json backend with-bridge-txn
     ] [ 0 ] if ;
 
 M:: bridge-backend backend-update ( doc id collection backend -- success? )
-    ! In production: call fdb_apply with update operation via FFI
-    "Bridge backend: update %s in %s (stub)\n" id collection 2array vsprintf print
-    f ;
+    backend db-handle>> [
+        f :> txn-handle!
+        make-fdb-blob :> err-blob
+
+        ! Begin transaction
+        backend db-handle>> f txn-handle! err-blob fdb_txn_begin
+        err-blob check-fdb-status
+
+        ! Serialize new document data
+        doc >json :> doc-json
+        doc-json string>fdb-input :> ( data-ptr data-len )
+
+        ! Update the block
+        txn-handle id data-ptr data-len err-blob fdb_update_block
+        err-blob check-fdb-status
+
+        ! Commit
+        txn-handle err-blob fdb_txn_commit
+        err-blob check-fdb-status
+        t
+    ] [ f ] if ;
 
 M:: bridge-backend backend-delete ( id collection backend -- success? )
-    ! In production: call fdb_apply with delete operation via FFI
-    "Bridge backend: delete %s from %s (stub)\n" id collection 2array vsprintf print
-    f ;
+    backend db-handle>> [
+        f :> txn-handle!
+        make-fdb-blob :> err-blob
+
+        ! Begin transaction
+        backend db-handle>> f txn-handle! err-blob fdb_txn_begin
+        err-blob check-fdb-status
+
+        ! Delete the block
+        txn-handle id err-blob fdb_delete_block
+        err-blob check-fdb-status
+
+        ! Commit
+        txn-handle err-blob fdb_txn_commit
+        err-blob check-fdb-status
+        t
+    ] [ f ] if ;
 
 M: bridge-backend backend-query
     backend-get-collection ;

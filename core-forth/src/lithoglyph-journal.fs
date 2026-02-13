@@ -142,6 +142,10 @@ create entry-buffer MAX-ENTRY-SIZE allot
 : close-journal ( -- )
   journal-file-id @ close-file drop ;
 
+\ Flush journal to disk (ensure durability)
+: flush-journal ( -- )
+  journal-file-id @ flush-file drop ;
+
 \ ============================================================
 \ Journal Entry Creation
 \ ============================================================
@@ -273,18 +277,91 @@ create entry-buffer MAX-ENTRY-SIZE allot
 \ Journal Replay (Crash Recovery)
 \ ============================================================
 
-\ Replay uncommitted entries
+\ Apply a single journal entry by replaying its forward payload
+: replay-entry ( -- flag )
+  entry-buffer entry-op-type w@
+  case
+    OP-DOC-INSERT of
+      \ Recreate document block from forward payload
+      entry-buffer entry-affected @
+      TYPE-DOCUMENT over init-block-header
+      entry-buffer entry-forward
+      entry-buffer entry-forward-len @
+      dup 0> if
+        set-block-payload
+        block-buffer write-block
+      else
+        2drop drop true  \ Empty payload, skip
+      then
+    endof
+    OP-DOC-UPDATE of
+      \ Overwrite block with forward payload (new data)
+      entry-buffer entry-affected @
+      block-buffer read-block if
+        entry-buffer entry-forward
+        entry-buffer entry-forward-len @
+        dup 0> if
+          set-block-payload
+          entry-buffer entry-affected @
+          block-buffer write-block
+        else
+          2drop true
+        then
+      else
+        false
+      then
+    endof
+    OP-DOC-DELETE of
+      \ Mark block as deleted
+      entry-buffer entry-affected @ free-block true
+    endof
+    OP-SCHEMA-CREATE of
+      \ Recreate schema block from forward payload
+      entry-buffer entry-affected @
+      TYPE-SCHEMA over init-block-header
+      entry-buffer entry-forward
+      entry-buffer entry-forward-len @
+      dup 0> if
+        set-block-payload
+        block-buffer write-block
+      else
+        2drop drop true
+      then
+    endof
+    OP-COLLECTION-CREATE of
+      \ Collection metadata is in-memory only; skip block replay
+      true
+    endof
+    OP-CHECKPOINT of
+      true  \ Checkpoints are markers, nothing to replay
+    endof
+    \ Default: skip unknown operations
+    true swap
+  endcase ;
+
+\ Replay uncommitted entries for crash recovery
 : replay-journal ( -- )
-  BLOCK-SIZE  \ Start after header
+  0 >r  \ r: replayed count
+  BLOCK-SIZE  \ Start after journal header block
   begin
     dup journal-file-size @ <
   while
     dup read-entry-at if
       validate-entry if
-        entry-buffer entry-flags w@ EFLAG-COMMITTED and 0= if
-          \ Entry not committed - apply it
-          \ (This would call into Form.Model)
-          ." Replaying entry seq=" entry-buffer entry-sequence @ . cr
+        entry-buffer entry-flags w@
+        dup EFLAG-COMMITTED and 0= swap
+        EFLAG-ROLLED-BACK and 0= and if
+          \ Entry not committed and not rolled back — replay it
+          ." Replaying entry seq=" entry-buffer entry-sequence @ .
+          ."  op=" entry-buffer entry-op-type w@ .op-type cr
+          replay-entry if
+            \ Mark as committed after successful replay
+            commit-entry
+            r> 1+ >r
+          else
+            ." Warning: failed to replay entry seq="
+            entry-buffer entry-sequence @ . cr
+          then
         then
       else
         ." Warning: corrupt entry at offset " dup . cr
@@ -292,10 +369,16 @@ create entry-buffer MAX-ENTRY-SIZE allot
       entry-buffer entry-len @ +
     else
       ." Error reading entry at offset " dup . cr
-      drop exit
+      drop r> drop exit
     then
   repeat
-  drop ;
+  drop
+  r> dup 0> if
+    ." Replay complete: " . ." entries recovered" cr
+    flush-db  \ Ensure all replayed data is durable
+  else
+    drop ." No entries to replay" cr
+  then ;
 
 \ ============================================================
 \ Canonical Rendering
@@ -356,6 +439,24 @@ create entry-buffer MAX-ENTRY-SIZE allot
 : rollback-journal-op ( -- )
   EFLAG-ROLLED-BACK entry-buffer entry-flags w@ or
   entry-buffer entry-flags w! ;
+
+\ Write-ahead log pattern: journal → flush → write block → commit → flush
+\ Caller must have already called begin-journal-op and set payloads.
+\ ( block-id addr -- flag )
+: wal-write-block
+  \ Step 1: Append journal entry to disk
+  append-entry 0= if 2drop false exit then
+  \ Step 2: Flush journal for durability (WAL guarantee)
+  flush-journal
+  \ Step 3: Write the actual data block
+  write-block 0= if
+    rollback-journal-op false exit
+  then
+  \ Step 4: Mark journal entry as committed
+  commit-entry
+  \ Step 5: Flush commit marker
+  flush-journal
+  true ;
 
 \ ============================================================
 \ Initialization

@@ -7,6 +7,8 @@
     "test:watch": "deno test --watch --allow-read --allow-env src/"
   },
   "imports": {
-    "@formdb/api": "../../api/src/mod.ts"
+    "@formdb/api": "../../api/src/mod.ts",
+    "@rescript/core": "npm:@rescript/core@^1.6.1",
+    "rescript": "npm:rescript@^11.1.4"
   }
 }

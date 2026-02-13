@@ -112,6 +112,7 @@ create doc-id-buffer DOC-ID-SIZE allot
   doc-id-buffer ;
 
 \ Insert document into collection
+\ WAL pattern: journal → flush → write block → commit → flush
 : insert-document ( coll-addr payload-addr payload-len -- doc-id | 0 )
   \ Validate collection exists
   over 0= if 2drop drop 0 exit then
@@ -119,57 +120,69 @@ create doc-id-buffer DOC-ID-SIZE allot
   alloc-block-id >r
   \ Initialize document block
   TYPE-DOCUMENT r@ init-block-header
-  \ Set payload
+  \ Link document to collection via prev_block_id
+  3 pick coll-block-id @ block-buffer block-prev !
+  \ Keep a copy of payload for forward journal payload
+  2dup
+  \ Set payload into block buffer (consumes top copy)
   set-block-payload
-  \ Create journal entry
+  \ Begin journal entry
   OP-DOC-INSERT r@ begin-journal-op
-  \ TODO: Set forward/inverse/provenance payloads
-  \ Write block
-  r@ block-buffer write-block if
-    \ Commit journal
-    end-journal-op if
-      \ Increment document count
-      1 swap coll-doc-count +!
-      gen-doc-id
-    else
-      0
-    then
+  \ Set forward payload (the document data being inserted)
+  set-forward-payload
+  \ WAL: journal first, then write block
+  r@ block-buffer wal-write-block if
+    \ Increment document count
+    1 swap coll-doc-count +!
+    gen-doc-id
   else
-    rollback-journal-op
-    0
+    drop 0
   then
   r> drop ;
 
 \ Update document
+\ WAL pattern with inverse payload for undo capability
 : update-document ( doc-block-id field-addr field-len value-addr value-len -- flag )
   \ Read existing block
   4 pick block-buffer read-block 0= if 2drop 2drop drop false exit then
-  \ Create journal entry with inverse (old values)
+  \ Begin journal entry
   OP-DOC-UPDATE 4 pick begin-journal-op
-  \ TODO: Parse CBOR, update field, reserialize
-  \ For now, just replace entire payload
-  2drop  \ field
+  \ Capture inverse payload (old block data, before overwrite)
+  block-buffer block-payload block-buffer block-payload-len l@
+  set-inverse-payload
+  \ Drop field name (field-level update not yet implemented)
+  \ Stack: doc-block-id field-addr field-len value-addr value-len
+  2swap 2drop
+  \ Stack: doc-block-id value-addr value-len
+  \ Set forward payload (new data) and update block buffer
+  2dup set-forward-payload
   set-block-payload
-  \ Write block
-  swap block-buffer write-block if
-    end-journal-op
-  else
-    rollback-journal-op
-    false
-  then ;
+  \ Stack: doc-block-id
+  \ WAL: journal first, then write block
+  dup block-buffer wal-write-block
+  nip ;
 
 \ Delete document
+\ WAL pattern with inverse payload for undo capability
 : delete-document ( coll-addr doc-block-id -- flag )
-  \ Read block to capture for inverse
+  \ Read block to capture inverse payload
   dup block-buffer read-block 0= if 2drop false exit then
-  \ Create journal entry
+  \ Begin journal entry
   OP-DOC-DELETE over begin-journal-op
-  \ TODO: Set inverse payload with full document content
-  \ Mark block as deleted
+  \ Save inverse payload (full document content for undo)
+  block-buffer block-payload block-buffer block-payload-len l@
+  set-inverse-payload
+  \ WAL: Journal first
+  append-entry 0= if 2drop false exit then
+  flush-journal
+  \ Now safe to mark block as deleted
   free-block
+  \ Commit journal entry
+  commit-entry
+  flush-journal
   \ Update collection count
-  swap -1 swap coll-doc-count +!
-  end-journal-op ;
+  -1 swap coll-doc-count +!
+  true ;
 
 \ ============================================================
 \ Edge Operations
@@ -230,21 +243,23 @@ create edge-buffer PAYLOAD-SIZE allot
 \ - fields (variable: name + type + constraints)
 
 \ Create schema
+\ WAL pattern: journal → flush → write block → commit
 : create-schema ( coll-addr schema-payload-addr schema-len -- flag )
   \ Allocate block for schema
   alloc-block-id >r
   TYPE-SCHEMA r@ init-block-header
+  \ Keep copy for forward payload
+  2dup set-forward-payload
   set-block-payload
-  \ Journal
+  \ Begin journal entry
   OP-SCHEMA-CREATE r@ begin-journal-op
-  \ Write block
-  r@ block-buffer write-block if
+  \ WAL: journal first, then write block
+  r@ block-buffer wal-write-block if
     \ Link schema to collection
     r> swap coll-schema-id !
-    end-journal-op
+    true
   else
     r> drop drop
-    rollback-journal-op
     false
   then ;
 
@@ -255,12 +270,29 @@ create edge-buffer PAYLOAD-SIZE allot
 \ Callback type for iteration
 \ ( block-addr -- continue? )
 
+\ Variables for foreach-document iteration
+variable foreach-coll-block
+variable foreach-callback
+
 \ Iterate all documents in collection
+\ Scans all blocks and filters by type=DOCUMENT, matching collection via prev_block_id.
+\ The callback receives block-buffer address and returns true to continue, false to stop.
 : foreach-document ( coll-addr xt -- )
-  swap coll-block-id @  \ Get collection block ID
-  \ TODO: Iterate through document chain
-  \ For now, just a placeholder
-  2drop ;
+  foreach-callback !
+  coll-block-id @ foreach-coll-block !
+  next-block-id @ 1 ?do
+    i block-buffer read-block if
+      block-buffer block-type w@ TYPE-DOCUMENT = if
+        block-buffer block-flags l@ FLAG-DELETED and 0= if
+          block-buffer block-prev @ foreach-coll-block @ = if
+            block-buffer foreach-callback @ execute 0= if
+              unloop exit
+            then
+          then
+        then
+      then
+    then
+  loop ;
 
 \ ============================================================
 \ Canonical Rendering

@@ -164,9 +164,9 @@ variable next-block-id
 variable current-sequence
 
 \ Get current timestamp (Unix microseconds)
-\ Note: This is a placeholder - real implementation needs system call
+\ gforth's utime returns double-cell microseconds since epoch
 : now-microseconds ( -- u )
-  1736553600000000 ;  \ 2026-01-11T00:00:00Z as placeholder
+  utime drop ;  \ On 64-bit, low cell holds full value
 
 \ Initialize a new block header
 \ Note: Use l! for 32-bit fields, w! for 16-bit, ! for 64-bit
@@ -216,6 +216,10 @@ variable db-file-id
 \ Close database file
 : close-db ( -- )
   db-file-id @ close-file drop ;
+
+\ Flush database file to disk (ensure durability)
+: flush-db ( -- )
+  db-file-id @ flush-file drop ;
 
 \ Read block from file
 : read-block ( block-id addr -- flag )

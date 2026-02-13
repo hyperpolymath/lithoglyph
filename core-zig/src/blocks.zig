@@ -418,7 +418,7 @@ pub const BlockStorage = struct {
         try self.file.sync();
     }
 
-    /// Allocate a new block
+    /// Allocate a new block (writes to disk immediately)
     pub fn allocateBlock(self: *BlockStorage, block_type: BlockType) !u64 {
         // TODO: Use free list for production
         // For now, just append to end
@@ -434,6 +434,19 @@ pub const BlockStorage = struct {
         try self.writeBlock(new_id, &block);
 
         return new_id;
+    }
+
+    /// Reserve a block ID without writing to disk (for transaction buffering)
+    pub fn reserveBlockId(self: *BlockStorage) u64 {
+        const new_id = self.superblock.block_count;
+        self.superblock.block_count += 1;
+        return new_id;
+    }
+
+    /// Flush superblock to disk (after batch operations)
+    pub fn flushSuperblock(self: *BlockStorage) !void {
+        const sb_block = try self.superblock.toBlock();
+        try self.writeBlock(0, &sb_block);
     }
 
     /// Append to journal
@@ -470,7 +483,7 @@ pub const BlockStorage = struct {
         var block = try self.readBlock(block_id);
         block.header.block_type = @intFromEnum(BlockType.free);
         block.header.prev_block_id = self.superblock.free_list_head;
-        block.header.flags |= @intFromEnum(BlockFlags{ .deleted = true });
+        block.header.flags |= @as(u32, @as(u8, @bitCast(BlockFlags{ .deleted = true })));
 
         try self.writeBlock(block_id, &block);
 

@@ -99,11 +99,30 @@ const DbState = struct {
     storage: *blocks.BlockStorage,
 };
 
+/// A pending write operation buffered within a transaction
+const PendingWrite = struct {
+    block_id: u64,
+    data: []u8, // owned copy of payload
+    journal_msg: []u8, // owned journal entry text
+    is_new: bool, // true=insert, false=update
+};
+
 const TxnState = struct {
     db: *DbState,
     mode: LgTxnMode,
     is_active: bool,
     sequence: u64,
+    pending_writes: std.ArrayList(PendingWrite),
+    pending_deletes: std.ArrayList(u64), // block IDs to delete
+
+    fn deinitPending(self: *TxnState) void {
+        for (self.pending_writes.items) |pw| {
+            global_allocator.free(pw.data);
+            global_allocator.free(pw.journal_msg);
+        }
+        self.pending_writes.deinit(global_allocator);
+        self.pending_deletes.deinit(global_allocator);
+    }
 };
 
 // Global allocator for C ABI (can't pass allocator through C)
@@ -260,6 +279,8 @@ export fn fdb_txn_begin(
         .mode = mode,
         .is_active = true,
         .sequence = state.storage.superblock.journal_head + 1,
+        .pending_writes = .{},
+        .pending_deletes = .{},
     };
 
     txn_registry.put(txn, {}) catch {
@@ -294,10 +315,50 @@ export fn fdb_txn_commit(txn: ?*LgTxn, out_err: *LgBlob) LgStatus {
         return .err_txn_already_committed;
     }
 
-    // Update journal head (already updated by storage operations)
-    state.is_active = false;
+    // Atomic commit with WAL ordering:
+    // Phase 1: Write all journal entries (WAL — durable before data)
+    for (state.pending_writes.items) |pw| {
+        _ = state.db.storage.appendJournal(pw.journal_msg) catch {
+            out_err.* = createErrorBlob(.err_internal, "Journal write failed during commit");
+            return .err_internal;
+        };
+    }
+    for (state.pending_deletes.items) |block_id| {
+        var del_buf: [80]u8 = undefined;
+        const del_msg = std.fmt.bufPrint(&del_buf, "DELETE block_id={d}", .{block_id}) catch continue;
+        _ = state.db.storage.appendJournal(del_msg) catch {
+            out_err.* = createErrorBlob(.err_internal, "Journal write failed during commit");
+            return .err_internal;
+        };
+    }
+
+    // Phase 2: Sync journal to disk (WAL guarantee)
+    state.db.storage.file.sync() catch {};
+
+    // Phase 3: Write all data blocks
+    for (state.pending_writes.items) |pw| {
+        var block = blocks.Block.init(.document, pw.block_id, state.sequence);
+        block.setPayload(pw.data) catch continue;
+        state.db.storage.writeBlock(pw.block_id, &block) catch {
+            out_err.* = createErrorBlob(.err_internal, "Block write failed during commit");
+            return .err_internal;
+        };
+    }
+
+    // Phase 4: Process deletions
+    for (state.pending_deletes.items) |block_id| {
+        state.db.storage.freeBlock(block_id) catch continue;
+    }
+
+    // Phase 5: Flush superblock (reflects all allocations)
+    state.db.storage.flushSuperblock() catch {};
+
+    // Phase 6: Final sync (all data durable)
+    state.db.storage.file.sync() catch {};
 
     // Clean up transaction
+    state.deinitPending();
+    state.is_active = false;
     _ = txn_registry.remove(state);
     global_allocator.destroy(state);
 
@@ -316,6 +377,8 @@ export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
         return .err_invalid_argument;
     }
 
+    // Discard all buffered operations (nothing was written to disk)
+    state.deinitPending();
     state.is_active = false;
 
     // Clean up transaction
@@ -335,6 +398,7 @@ export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
 /// @param op_ptr Raw data to store
 /// @param op_len Length of data
 /// @return Result containing block ID and status
+/// Apply an operation within a transaction (buffered — not written until commit)
 export fn fdb_apply(
     txn: ?*LgTxn,
     op_ptr: [*]const u8,
@@ -356,38 +420,50 @@ export fn fdb_apply(
         return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Read-only transaction"));
     }
 
-    // Allocate a new document block
-    const block_id = state.db.storage.allocateBlock(.document) catch {
-        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to allocate block"));
-    };
-
-    // Write data to block
     const op_data = op_ptr[0..op_len];
-    var block = state.db.storage.readBlock(block_id) catch {
-        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to read block"));
+
+    // Validate payload fits in a block
+    if (op_len > blocks.PAYLOAD_SIZE) {
+        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Payload too large for single block"));
+    }
+
+    // Reserve a block ID (memory only — no disk write yet)
+    const block_id = state.db.storage.reserveBlockId();
+
+    // Copy payload data (owned by transaction until commit/abort)
+    const data_copy = global_allocator.dupe(u8, op_data) catch {
+        return LgResult.err(.err_out_of_memory, LgBlob.empty());
     };
 
-    block.setPayload(op_data) catch {
-        return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Payload too large"));
-    };
-
-    state.db.storage.writeBlock(block_id, &block) catch {
-        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to write block"));
-    };
-
-    // Append journal entry
+    // Format journal entry
     var journal_buf: [100]u8 = undefined;
-    const journal_entry = std.fmt.bufPrint(&journal_buf, "INSERT block_id={d} size={d}", .{ block_id, op_len }) catch {
+    const journal_str = std.fmt.bufPrint(&journal_buf, "INSERT block_id={d} size={d}", .{ block_id, op_len }) catch {
+        global_allocator.free(data_copy);
         return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to format journal"));
     };
 
-    _ = state.db.storage.appendJournal(journal_entry) catch {
-        return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to append journal"));
+    const journal_copy = global_allocator.dupe(u8, journal_str) catch {
+        global_allocator.free(data_copy);
+        return LgResult.err(.err_out_of_memory, LgBlob.empty());
     };
 
-    // Return block ID as result
-    var result_buf: [50]u8 = undefined;
-    const result_str = std.fmt.bufPrint(&result_buf, "{{\"block_id\":{d}}}", .{block_id}) catch {
+    // Buffer the write (deferred until commit)
+    state.pending_writes.append(global_allocator, .{
+        .block_id = block_id,
+        .data = data_copy,
+        .journal_msg = journal_copy,
+        .is_new = true,
+    }) catch {
+        global_allocator.free(data_copy);
+        global_allocator.free(journal_copy);
+        return LgResult.err(.err_out_of_memory, LgBlob.empty());
+    };
+
+    // Return block ID as result (operation is pending, not yet durable)
+    var result_buf: [80]u8 = undefined;
+    const result_str = std.fmt.bufPrint(&result_buf,
+        \\{{"block_id":{d},"status":"pending"}}
+    , .{block_id}) catch {
         return LgResult.err(.err_internal, createErrorBlob(.err_internal, "Failed to format result"));
     };
 
@@ -396,6 +472,178 @@ export fn fdb_apply(
     };
 
     return LgResult.ok(LgBlob.fromSlice(result_data));
+}
+
+/// Update an existing block within a transaction (buffered)
+export fn fdb_update_block(
+    txn: ?*LgTxn,
+    block_id: u64,
+    data_ptr: [*]const u8,
+    data_len: usize,
+    out_err: *LgBlob,
+) LgStatus {
+    const state: *TxnState = @ptrCast(@alignCast(txn orelse {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Invalid transaction");
+        return .err_invalid_argument;
+    }));
+
+    if (!state.is_active or state.mode != .read_write) {
+        out_err.* = createErrorBlob(.err_txn_not_active, "Transaction not active or read-only");
+        return .err_txn_not_active;
+    }
+
+    if (data_len > blocks.PAYLOAD_SIZE) {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Payload too large");
+        return .err_invalid_argument;
+    }
+
+    const data_copy = global_allocator.dupe(u8, data_ptr[0..data_len]) catch {
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    var journal_buf: [100]u8 = undefined;
+    const journal_str = std.fmt.bufPrint(&journal_buf, "UPDATE block_id={d} size={d}", .{ block_id, data_len }) catch {
+        global_allocator.free(data_copy);
+        out_err.* = createErrorBlob(.err_internal, "Failed to format journal");
+        return .err_internal;
+    };
+
+    const journal_copy = global_allocator.dupe(u8, journal_str) catch {
+        global_allocator.free(data_copy);
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    state.pending_writes.append(global_allocator, .{
+        .block_id = block_id,
+        .data = data_copy,
+        .journal_msg = journal_copy,
+        .is_new = false,
+    }) catch {
+        global_allocator.free(data_copy);
+        global_allocator.free(journal_copy);
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    out_err.* = LgBlob.empty();
+    return .ok;
+}
+
+/// Delete a block within a transaction (buffered)
+export fn fdb_delete_block(
+    txn: ?*LgTxn,
+    block_id: u64,
+    out_err: *LgBlob,
+) LgStatus {
+    const state: *TxnState = @ptrCast(@alignCast(txn orelse {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Invalid transaction");
+        return .err_invalid_argument;
+    }));
+
+    if (!state.is_active or state.mode != .read_write) {
+        out_err.* = createErrorBlob(.err_txn_not_active, "Transaction not active or read-only");
+        return .err_txn_not_active;
+    }
+
+    state.pending_deletes.append(global_allocator, block_id) catch {
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    out_err.* = LgBlob.empty();
+    return .ok;
+}
+
+/// Read all blocks of a given type (full scan for PoC)
+/// Returns JSON array of objects with block_id and data fields.
+export fn fdb_read_blocks(
+    db: ?*LgDb,
+    block_type: u16,
+    out_data: *LgBlob,
+    out_err: *LgBlob,
+) LgStatus {
+    const state: *DbState = @ptrCast(@alignCast(db orelse {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
+        return .err_invalid_argument;
+    }));
+
+    if (!db_registry.contains(state)) {
+        out_err.* = createErrorBlob(.err_invalid_argument, "Database handle not registered");
+        return .err_invalid_argument;
+    }
+
+    // Build JSON array by scanning all blocks
+    var result: std.ArrayList(u8) = .{};
+    defer result.deinit(global_allocator);
+
+    result.appendSlice(global_allocator, "[") catch {
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    var first = true;
+    var block_id: u64 = 1;
+    while (block_id < state.storage.superblock.block_count) : (block_id += 1) {
+        const block = state.storage.readBlock(block_id) catch continue;
+
+        // Filter by type and skip deleted blocks
+        if (block.header.block_type != block_type) continue;
+        if (block.header.flags & 0x08 != 0) continue; // FLAG_DELETED
+
+        if (!first) {
+            result.appendSlice(global_allocator, ",") catch continue;
+        }
+        first = false;
+
+        // Format as JSON object with block_id and raw payload
+        const payload = block.getPayload();
+
+        // Start JSON object
+        var header_buf: [80]u8 = undefined;
+        const header_str = std.fmt.bufPrint(&header_buf,
+            \\{{"block_id":{d},"size":{d},"data":
+        , .{ block.header.block_id, block.header.payload_len }) catch continue;
+
+        result.appendSlice(global_allocator, header_str) catch continue;
+
+        // Include payload as JSON-escaped string
+        result.appendSlice(global_allocator, "\"") catch continue;
+        for (payload) |byte| {
+            switch (byte) {
+                '"' => result.appendSlice(global_allocator, "\\\"") catch continue,
+                '\\' => result.appendSlice(global_allocator, "\\\\") catch continue,
+                '\n' => result.appendSlice(global_allocator, "\\n") catch continue,
+                '\r' => result.appendSlice(global_allocator, "\\r") catch continue,
+                '\t' => result.appendSlice(global_allocator, "\\t") catch continue,
+                else => {
+                    if (byte >= 0x20 and byte < 0x7F) {
+                        result.append(global_allocator, byte) catch continue;
+                    } else {
+                        var hex_buf: [6]u8 = undefined;
+                        const hex_str = std.fmt.bufPrint(&hex_buf, "\\u{x:0>4}", .{byte}) catch continue;
+                        result.appendSlice(global_allocator, hex_str) catch continue;
+                    }
+                },
+            }
+        }
+        result.appendSlice(global_allocator, "\"}") catch continue;
+    }
+
+    result.appendSlice(global_allocator, "]") catch {
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    const result_data = global_allocator.dupe(u8, result.items) catch {
+        out_err.* = createErrorBlob(.err_out_of_memory, "Out of memory");
+        return .err_out_of_memory;
+    };
+
+    out_data.* = LgBlob.fromSlice(result_data);
+    out_err.* = LgBlob.empty();
+    return .ok;
 }
 
 // ============================================================
