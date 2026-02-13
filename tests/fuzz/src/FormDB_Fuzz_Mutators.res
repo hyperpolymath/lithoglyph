@@ -16,7 +16,7 @@ let makeRng = (seed: int): rng => {seed: seed}
 
 /** Generate next random int */
 let nextInt = (rng: rng): int => {
-  rng.seed = mod(rng.seed * 1103515245 + 12345, 2147483648)
+  rng.seed = land(rng.seed * 1103515245 + 12345, 0x7FFFFFFF)
   rng.seed
 }
 
@@ -71,8 +71,8 @@ let bitFlip = (rng: rng, input: string): string => {
     let bit = intInRange(rng, ~min=0, ~max=8)
     switch bytes[pos] {
     | Some(b) => {
-        bytes[pos] = Some(lxor(b, lsl(1, bit)))
-        fromBytes(bytes->Array.filterMap(x => x))
+        bytes->Array.setUnsafe(pos, lxor(b, lsl(1, bit)))
+        fromBytes(bytes)
       }
     | None => input
     }
@@ -87,8 +87,8 @@ let byteFlip = (rng: rng, input: string): string => {
     input
   } else {
     let pos = intInRange(rng, ~min=0, ~max=len)
-    bytes[pos] = Some(lxor(bytes[pos]->Option.getOr(0), 255))
-    fromBytes(bytes->Array.filterMap(x => x))
+    bytes->Array.setUnsafe(pos, lxor(bytes[pos]->Option.getOr(0), 255))
+    fromBytes(bytes)
   }
 }
 
@@ -145,8 +145,8 @@ let byteReplace = (rng: rng, input: string): string => {
     input
   } else {
     let pos = intInRange(rng, ~min=0, ~max=len)
-    bytes[pos] = Some(randomByte(rng))
-    fromBytes(bytes->Array.filterMap(x => x))
+    bytes->Array.setUnsafe(pos, randomByte(rng))
+    fromBytes(bytes)
   }
 }
 
@@ -187,8 +187,8 @@ let arithmetic = (rng: rng, input: string): string => {
     switch bytes[pos] {
     | Some(b) => {
         let newVal = mod(b + delta + 256, 256)
-        bytes[pos] = Some(newVal)
-        fromBytes(bytes->Array.filterMap(x => x))
+        bytes->Array.setUnsafe(pos, newVal)
+        fromBytes(bytes)
       }
     | None => input
     }

@@ -16,8 +16,8 @@ let makeRng = (seed: int): rng => {seed: seed}
 
 /** Generate next random int (LCG algorithm) */
 let nextInt = (rng: rng): int => {
-  // Linear Congruential Generator
-  rng.seed = mod(rng.seed * 1103515245 + 12345, 2147483648)
+  // Linear Congruential Generator (mask to 31 bits to stay in int range)
+  rng.seed = land(rng.seed * 1103515245 + 12345, 0x7FFFFFFF)
   rng.seed
 }
 

@@ -85,3 +85,15 @@ ai-cli-crash-capture/
 # Sync reports
 sync_report*.txt
 sync_repos_report*.txt
+
+# Satellite build artifacts
+studio/node_modules/
+studio/dist/
+studio/.zig-cache/
+geo/target/
+beam/ebin/
+
+# Test package artifacts
+tests/*/node_modules/
+tests/*/package.json
+tests/*/.deno/

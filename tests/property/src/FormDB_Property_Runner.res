@@ -84,7 +84,7 @@ let isPassing = (result: propertyResult): bool =>
 let runSuite = (
   ~config: propertyConfig=defaultConfig,
   tests: array<(string, unit => propertyResult)>,
-): {passed: int, failed: int, errored: int} => {
+): suiteSummary => {
   let passed = ref(0)
   let failed = ref(0)
   let errored = ref(0)

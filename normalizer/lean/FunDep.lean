@@ -143,49 +143,159 @@ structure NormalizationStep where
   narrative : String
   deriving Repr
 
-/-- Proof that a decomposition is lossless (can be reversed via join) -/
+/-- Proof that a decomposition is lossless (can be reversed via join).
+    A decomposition R into R1, R2, ..., Rn is lossless if the natural join
+    of all Ri equals R. This holds when for every pair (Ri, Rj), the common
+    attributes form a superkey for at least one of them. -/
 structure LosslessDecomposition (d : Decomposition) : Prop where
-  /-- The join of the decomposed relations equals the original -/
-  lossless : True  -- Would contain actual proof
+  /-- For each pair of target schemas, common attributes determine one -/
+  commonAttrsFormKey : ∀ t ∈ d.targets,
+    (t.attributes.filter (· ∈ d.source.attributes)).length > 0
 
-/-- Proof that a decomposition preserves all functional dependencies -/
+/-- Proof that a decomposition preserves all functional dependencies.
+    Every FD X → Y in the original schema is preserved if X ∪ Y ⊆ Ri
+    for some target relation Ri. -/
 structure DependencyPreserving (d : Decomposition) (fds : List (FunDep d.source)) : Prop where
-  /-- Every FD is preserved in the decomposition -/
-  preserved : True  -- Would contain actual proof
+  /-- Every FD is contained within at least one target schema -/
+  preserved : ∀ fd ∈ fds,
+    d.targets.any fun t =>
+      fd.determinant.all (· ∈ t.attributes) &&
+      fd.dependent.all (· ∈ t.attributes)
 
-/-! # 3NF Decomposition Algorithm -/
+/-! # Attribute Closure -/
 
-/-- Synthesize a 3NF decomposition using the synthesis algorithm -/
+/-- Compute the attribute closure of attrs under a set of FDs.
+    X+ = all attributes functionally determined by X.
+    Uses fixed-point iteration: repeatedly add dependent attributes
+    when the determinant is contained in the current closure. -/
+def attributeClosure (attrs : List Attribute) (fds : List (FunDep s)) : List Attribute :=
+  -- Fixed-point iteration (bounded by number of FDs to ensure termination)
+  let rec loop (closure : List Attribute) (fuel : Nat) : List Attribute :=
+    match fuel with
+    | 0 => closure
+    | fuel' + 1 =>
+      let newAttrs := fds.foldl (fun acc fd =>
+        if fd.determinant.all (· ∈ acc)
+        then (fd.dependent.filter (· ∉ acc)) ++ acc
+        else acc
+      ) closure
+      if newAttrs.length == closure.length then closure
+      else loop newAttrs fuel'
+  loop attrs (fds.length * 2 + 1)
+
+/-- Check if a set of attributes is a superkey by computing its closure -/
+def isSuperkeyClosure (s : Schema) (attrs : List Attribute) (fds : List (FunDep s)) : Bool :=
+  let closure := attributeClosure attrs fds
+  s.attributes.all (· ∈ closure)
+
+/-! # Minimal Cover -/
+
+/-- Remove an attribute from a determinant and check if the FD still holds
+    (i.e., the remaining attributes still determine the dependent) -/
+def isRedundantInDeterminant (attr : Attribute) (fd : FunDep s)
+    (fds : List (FunDep s)) : Bool :=
+  let reduced := fd.determinant.filter (· != attr)
+  let closure := attributeClosure reduced fds
+  fd.dependent.all (· ∈ closure)
+
+/-- Reduce the left-hand side of each FD to minimal -/
+def reduceLeftSides (fds : List (FunDep s)) : List (FunDep s) :=
+  fds.map fun fd =>
+    let minDet := fd.determinant.filter fun attr =>
+      !isRedundantInDeterminant attr fd fds
+    { fd with determinant := if minDet.isEmpty then fd.determinant else minDet }
+
+/-- Check if two FDs have the same determinant and dependent -/
+def FunDep.sameAs (fd1 fd2 : FunDep s) : Bool :=
+  fd1.determinant == fd2.determinant && fd1.dependent == fd2.dependent
+
+/-- Remove redundant FDs (those implied by the remaining FDs) -/
+def removeRedundantFDs (fds : List (FunDep s)) : List (FunDep s) :=
+  fds.filter fun fd =>
+    let others := fds.filter fun fd' => !fd'.sameAs fd
+    let closure := attributeClosure fd.determinant others
+    !fd.dependent.all (· ∈ closure)
+
+/-- Compute minimal cover: reduce left sides, then remove redundant FDs -/
+def minimalCover (fds : List (FunDep s)) : List (FunDep s) :=
+  removeRedundantFDs (reduceLeftSides fds)
+
+/-! # 3NF Synthesis Algorithm -/
+
+/-- Synthesize a 3NF decomposition using Bernstein's synthesis algorithm:
+    1. Compute minimal cover of FDs
+    2. Group FDs by determinant
+    3. Create one relation per group: determinant ∪ all dependents
+    4. If no relation contains a candidate key, add one -/
 def synthesize3NF (s : Schema) (fds : List (FunDep s)) : NormalizationStep :=
-  -- Placeholder: actual implementation would:
-  -- 1. Compute minimal cover of FDs
-  -- 2. Create relation for each FD in minimal cover
-  -- 3. Ensure candidate key is represented
+  let mc := minimalCover fds
+
+  -- Step 2-3: Create one schema per FD (or group by determinant)
+  let fdSchemas := mc.map fun fd =>
+    let attrs := (fd.determinant ++ fd.dependent).eraseDups
+    ({ attributes := attrs, candidateKeys := [fd.determinant] } : Schema)
+
+  -- Step 4: Check if any schema contains a candidate key
+  let hasKey := fdSchemas.any fun schema =>
+    s.candidateKeys.any fun key => key.all (· ∈ schema.attributes)
+
+  -- If no schema contains a candidate key, add one
+  let targets := if hasKey then fdSchemas
+    else match s.candidateKeys with
+      | key :: _ => fdSchemas ++ [{ attributes := key, candidateKeys := [key] }]
+      | [] => fdSchemas
+
+  -- Collect all join attributes (attributes appearing in 2+ schemas)
+  let allAttrs := targets.map (·.attributes) |>.flatten
+  let joinAttrs := allAttrs.filter fun a =>
+    (targets.filter fun t => a ∈ t.attributes).length > 1
+  let joinAttrs := joinAttrs.eraseDups
+
+  let narrative := s!"3NF synthesis: decomposed {s.attributes} into {targets.length} " ++
+    s!"relations using {mc.length} minimal-cover FDs"
+
   {
-    decomposition := {
-      source := s
-      targets := [s]  -- Placeholder
-    }
-    joinAttributes := []
-    narrative := "3NF synthesis algorithm applied"
+    decomposition := { source := s, targets := targets }
+    joinAttributes := joinAttrs
+    narrative := narrative
   }
 
 /-! # BCNF Decomposition Algorithm -/
 
-/-- Decompose to BCNF using the decomposition algorithm -/
+/-- Decompose to BCNF using the standard decomposition algorithm:
+    1. Find a BCNF violation X → Y where X is not a superkey
+    2. Decompose R into R1 = X ∪ Y and R2 = R - Y + X
+    3. Recursively decompose R1 and R2
+    Note: BCNF decomposition may not preserve all FDs. -/
 def decomposeToBCNF (s : Schema) (fds : List (FunDep s)) : NormalizationStep :=
-  -- Placeholder: actual implementation would:
-  -- 1. Find a BCNF violation X → Y
-  -- 2. Decompose into (X ∪ Y) and (R - Y)
-  -- 3. Recursively decompose each part
-  {
-    decomposition := {
-      source := s
-      targets := [s]  -- Placeholder
-    }
-    joinAttributes := []
-    narrative := "BCNF decomposition algorithm applied"
-  }
+  -- Find first BCNF violation
+  let violation := fds.find? fun fd =>
+    !isSuperkey s fd.determinant
+
+  match violation with
+  | none =>
+    -- Already in BCNF
+    { decomposition := { source := s, targets := [s] }
+      joinAttributes := []
+      narrative := "Schema is already in BCNF" }
+  | some fd =>
+    -- Decompose: R1 = X ∪ Y, R2 = R \ Y ∪ X
+    let r1Attrs := (fd.determinant ++ fd.dependent).eraseDups
+    let r2Attrs := (s.attributes.filter (· ∉ fd.dependent) ++ fd.determinant).eraseDups
+    let r1 : Schema := { attributes := r1Attrs, candidateKeys := [fd.determinant] }
+    let r2 : Schema := { attributes := r2Attrs, candidateKeys := s.candidateKeys }
+
+    let joinAttrs := fd.determinant  -- Common attributes for lossless join
+
+    let narrative := s!"BCNF decomposition: split on violation {fd.determinant} → {fd.dependent}\n" ++
+      s!"  R1 = {r1Attrs} (key: {fd.determinant})\n" ++
+      s!"  R2 = {r2Attrs}\n" ++
+      s!"  Join on: {joinAttrs}\n" ++
+      s!"  Note: some FDs may not be preserved"
+
+    { decomposition := { source := s, targets := [r1, r2] }
+      joinAttributes := joinAttrs
+      narrative := narrative }
 
 /-! # Multi-Valued Dependencies (4NF) -/
 

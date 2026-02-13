@@ -104,7 +104,7 @@ let prop_balancedQuotes = (stmt: string): bool => {
 }
 
 /** Run all FDQL property tests */
-let runFDQLProperties = (~config: propertyConfig=defaultConfig): {passed: int, failed: int, errored: int} => {
+let runFDQLProperties = (~config: propertyConfig=defaultConfig): suiteSummary => {
   let tests = [
     (
       "SELECT statements have FROM clause",

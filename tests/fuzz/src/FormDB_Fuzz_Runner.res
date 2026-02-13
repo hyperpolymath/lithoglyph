@@ -85,7 +85,7 @@ let runFuzz = (
     | Accepted => {
         accepted := accepted.contents + 1
         // Add to corpus if new and interesting
-        if !corpus->Array.includes(input) && String.length(input) < config.maxInputLength {
+        if !(corpus->Array.includes(input)) && String.length(input) < config.maxInputLength {
           corpus->Array.push(input)->ignore
         }
       }

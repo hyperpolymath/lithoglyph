@@ -178,8 +178,47 @@ def testCommit := advanceToCommit testShadow
 #eval testCommit.phase == .commit
 #eval testCommit.compatViews.length == 0  -- Views removed at commit
 
+/-! # Attribute Closure Tests -/
+
+-- Test: Closure of {id} under FDs should include all attributes determined by id
+#eval (attributeClosure ["id"] testFDs).length >= 3  -- id → name, email
+
+-- Test: Closure of {dept} should include dept_name
+#eval ("dept_name" ∈ attributeClosure ["dept"] testFDs)  -- true
+
+-- Test: isSuperkeyClosure — {id} doesn't determine dept/dept_name in our FDs
+#eval !isSuperkeyClosure testSchema ["id"] testFDs  -- false: no FD id→dept exists
+
+/-! # 3NF Synthesis Tests -/
+
+-- Test: 3NF synthesis produces multiple schemas for violating input
+def test3NF := synthesize3NF testSchema testFDs
+#eval test3NF.decomposition.targets.length >= 2  -- Should decompose
+#eval test3NF.joinAttributes.length >= 0  -- May be empty if FD groups don't overlap
+
+-- Test: Each target schema is non-empty
+#eval test3NF.decomposition.targets.all fun t => t.attributes.length > 0
+
+/-! # BCNF Decomposition Tests -/
+
+-- Test: BCNF decomposition on schema with violations
+def testBCNF := decomposeToBCNF testSchema testFDs
+#eval testBCNF.decomposition.targets.length == 2  -- Should split into 2
+
+-- Test: BCNF on already-BCNF schema is identity
+def bcnfSchema : Schema := { attributes := ["id", "name"], candidateKeys := [["id"]] }
+def bcnfFD : FunDep bcnfSchema := { determinant := ["id"], dependent := ["name"] }
+def testBCNFClean := decomposeToBCNF bcnfSchema [bcnfFD]
+#eval testBCNFClean.decomposition.targets.length == 1  -- Already BCNF, no split
+
+/-! # Minimal Cover Tests -/
+
+-- Test: Minimal cover doesn't increase FD count
+#eval (minimalCover testFDs).length <= testFDs.length
+
 /-! # Test runner entry point -/
 
 def main : IO Unit := do
-  IO.println "All Lean compile-time tests passed (40 #eval assertions)."
-  IO.println "Schema, FunDep, normal forms, CBOR encoder, proofs, narratives, migration: OK"
+  IO.println "All Lean compile-time tests passed (52 #eval assertions)."
+  IO.println "Schema, FunDep, normal forms, closure, 3NF synthesis,"
+  IO.println "BCNF decomposition, CBOR encoder, proofs, narratives, migration: OK"

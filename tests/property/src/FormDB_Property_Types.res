@@ -97,8 +97,11 @@ let compareOpToString = (op: compareOp): string =>
 /** All compare ops */
 let allCompareOps: array<compareOp> = [Eq, Ne, Lt, Le, Gt, Ge, Like, In]
 
+/** Test suite summary */
+type suiteSummary = {passed: int, failed: int, errored: int}
+
 /** Value types for generation */
-type valueType =
+type rec valueType =
   | StringVal(string)
   | IntVal(int)
   | FloatVal(float)
