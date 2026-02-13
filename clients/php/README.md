@@ -369,4 +369,4 @@ All types are in the `FormDB\Types` namespace:
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

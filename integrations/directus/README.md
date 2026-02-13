@@ -144,4 +144,4 @@ For high-volume sync, consider:
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

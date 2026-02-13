@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! Constraint violation detection via SQL queries
 //!
 //! Checks each constraint type against actual database data to find violations.

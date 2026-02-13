@@ -1,5 +1,5 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; SPDX-FileCopyrightText: 2025 hyperpolymath
+;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;
 ;; STATE.scm - Project state tracking for FormBD
 ;; Media-Type: application/vnd.state+scm
@@ -9,7 +9,7 @@
     (version "0.0.6")
     (schema-version "1.0.0")
     (created "2026-02-01")
-    (updated "2026-02-01")
+    (updated "2026-02-13")
     (project "FormBD")
     (repo "https://github.com/hyperpolymath/lithoglyph"))
 
@@ -28,8 +28,9 @@
       (containers "Podman/Nerdctl")))
 
   (current-position
-    (phase "production-ready")
-    (overall-completion 100)
+    (phase "core-complete")
+    (overall-completion 65)
+    (note "Core database phases 1-4 are 100% complete; satellites, bindings, clustering remain")
     (components
       (form-blocks
         (status complete)

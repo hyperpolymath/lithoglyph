@@ -3,7 +3,8 @@
 name = "formdb_beam"
 version = "0.1.0"
 description = "BEAM bindings for Lithoglyph - the narrative-first database"
-licences = ["AGPL-3.0-or-later"]
+# PMPL-1.0-or-later preferred; MPL-2.0 required for valid SPDX in Gleam ecosystem
+licences = ["MPL-2.0"]
 repository = { type = "github", user = "hyperpolymath", repo = "formdb-beam" }
 
 [dependencies]

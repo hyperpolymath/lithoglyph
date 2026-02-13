@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! FormBD Studio - Zero-friction interface for FormBD with FBQLdt
 //!
 //! This is the Tauri backend that bridges the ReScript UI to FormBD.
@@ -469,7 +469,7 @@ fn get_app_info() -> AppInfo {
         name: "FormBD Studio".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
         description: "Zero-friction interface for FormBD with dependently-typed GQL".to_string(),
-        license: "AGPL-3.0-or-later".to_string(),
+        license: "PMPL-1.0-or-later".to_string(),
         repository: "https://github.com/hyperpolymath/lithoglyph-studio".to_string(),
     }
 }

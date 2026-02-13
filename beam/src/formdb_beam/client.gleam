@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 // FormDB client - Gleam interface to FormDB via NIF
 
 import gleam/dynamic.{type Dynamic}

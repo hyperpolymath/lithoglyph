@@ -267,4 +267,4 @@ let userRanks = execute(users, PercentRank, {
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

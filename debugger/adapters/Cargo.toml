@@ -12,7 +12,7 @@ members = [
 [workspace.package]
 version = "1.0.0"
 edition = "2021"
-license = "AGPL-3.0-or-later"
+license = "PMPL-1.0-or-later"
 repository = "https://github.com/hyperpolymath/lithoglyph-debugger"
 keywords = ["database", "debugging", "verification", "lithoglyph"]
 categories = ["database", "development-tools::debugging"]

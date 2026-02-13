@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! Lithoglyph Debugger CLI - IPC Bridge
 //!
 //! Provides JSON-based IPC for the Idris 2 REPL to communicate with database adapters.

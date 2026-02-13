@@ -1,4 +1,4 @@
-! SPDX-License-Identifier: AGPL-3.0-or-later
+! SPDX-License-Identifier: PMPL-1.0-or-later
 ! Form.Normalizer - Three-Phase Migration Framework
 !
 ! Implements the Announce -> Shadow -> Commit migration pattern

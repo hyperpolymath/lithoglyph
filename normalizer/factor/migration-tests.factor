@@ -1,4 +1,4 @@
-! SPDX-License-Identifier: AGPL-3.0-or-later
+! SPDX-License-Identifier: PMPL-1.0-or-later
 ! Form.Normalizer - Three-Phase Migration Tests
 !
 ! End-to-end tests for the migration framework per D-NORM-005.

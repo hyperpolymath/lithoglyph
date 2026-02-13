@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! FormBD Debugger Terminal UI
 //!
 //! A Ratatui-based terminal interface for database debugging,

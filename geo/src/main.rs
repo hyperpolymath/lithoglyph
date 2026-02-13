@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! FormBD-Geo: Geospatial extension for FormBD
 //!
 //! Provides spatial indexing and queries while preserving FormBD's

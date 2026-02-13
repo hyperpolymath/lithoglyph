@@ -3,7 +3,7 @@
     "description": "PHP client for FormDB - the narrative-first, reversible, audit-grade database",
     "version": "0.0.6",
     "type": "library",
-    "license": "AGPL-3.0-or-later",
+    "license": "PMPL-1.0-or-later",
     "authors": [
         {
             "name": "Jonathan D.A. Jewell",

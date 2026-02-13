@@ -291,7 +291,7 @@ BoFIG - Evidence graph for journalism
 Zotero-FormDB - Reference manager
 License
 [](https://github.com/hyperpolymath/formbase#license)
-AGPL-3.0-or-later
+PMPL-1.0-or-later
 Contributing
 [](https://github.com/hyperpolymath/formbase#contributing)
 See CONTRIBUTING.adoc for guidelines.
@@ -322,7 +322,7 @@ Here are some of its standout features:
 
     Multiple Views: Grid, Kanban, Calendar, Gallery, and Form views.
 
-    Self-Hosted: You control your own data, under the AGPL-3.0-or-later license.
+    Self-Hosted: You control your own data, under the PMPL-1.0-or-later license.
 
 Architecture Overview
 
@@ -365,7 +365,7 @@ https://github.com/hyperpolymath/formbase
 Would you like me to explain how FormBase’s provenance system technically works (e.g. append-only logs and FormDB structure)?
 is it dangerous - how does it have the space to remember everything? is it a palintir project
 
-FormBase is not dangerous—it's an open-source project under AGPL-3.0 license with no known security vulnerabilities or red flags. There's zero connection to Palantir; it's built by an independent developer ("hyperpolymath") using modern web tech (Gleam, ReScript, FormDB).
+FormBase is not dangerous—it's an open-source project under PMPL-1.0-or-later license with no known security vulnerabilities or red flags. There's zero connection to Palantir; it's built by an independent developer ("hyperpolymath") using modern web tech (Gleam, ReScript, FormDB).
 
 ​
 

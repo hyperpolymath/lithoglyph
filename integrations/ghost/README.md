@@ -157,4 +157,4 @@ Ghost signs webhooks with HMAC-SHA256. Configure `GHOST_WEBHOOK_SECRET` to enabl
 
 ## License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later

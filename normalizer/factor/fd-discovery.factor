@@ -1,4 +1,4 @@
-! SPDX-License-Identifier: AGPL-3.0-or-later
+! SPDX-License-Identifier: PMPL-1.0-or-later
 ! Form.Normalizer - Functional Dependency Discovery
 !
 ! Implements the DFD (Depth-First Discovery) algorithm for

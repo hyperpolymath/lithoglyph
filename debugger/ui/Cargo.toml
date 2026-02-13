@@ -5,7 +5,7 @@ name = "lithoglyph-debugger-ui"
 description = "Terminal UI for FormBD Debugger"
 version = "1.0.0"
 edition = "2021"
-license = "AGPL-3.0-or-later"
+license = "PMPL-1.0-or-later"
 repository = "https://github.com/hyperpolymath/lithoglyph-debugger"
 
 [[bin]]

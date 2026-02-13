@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! PostgreSQL schema introspection via pg_catalog and information_schema
 //!
 //! Provides complete schema extraction including tables, columns, constraints,

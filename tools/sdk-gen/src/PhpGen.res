@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 
 /**
  * PHP Code Generator
@@ -91,7 +91,7 @@ let generateTypesFile = (spec: apiSpec): generatedFile => {
 
 declare(strict_types=1);
 
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 
 /**
  * FormDB Types
@@ -167,7 +167,7 @@ let generateClientFile = (spec: apiSpec): generatedFile => {
 
 declare(strict_types=1);
 
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 
 /**
  * FormDB PHP Client

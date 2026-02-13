@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: AGPL-3.0-or-later
+-- SPDX-License-Identifier: PMPL-1.0-or-later
 ||| IPC Bridge - Communication with the Rust CLI backend
 module IPC.Bridge
 

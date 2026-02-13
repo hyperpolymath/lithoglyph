@@ -4,7 +4,7 @@ name = "lithoglyph-studio"
 version = "0.1.0"
 description = "Zero-friction interface for FormBD with dependently-typed FBQL"
 authors = ["Hyperpolymath"]
-license = "AGPL-3.0-or-later"
+license = "PMPL-1.0-or-later"
 repository = "https://github.com/hyperpolymath/lithoglyph-studio"
 edition = "2021"
 

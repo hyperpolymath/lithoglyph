@@ -1,4 +1,5 @@
-# FormBD .gitignore
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Lithoglyph .gitignore
 
 # Build outputs
 /target/
@@ -55,6 +56,16 @@ Thumbs.db
 .env.local
 formdb/
 core-zig/.zig-cache/
+
+# Node modules (satellite components)
+node_modules/
+
+# Build artifacts (satellite components)
+target/
+.build/
+_build/
+dist/
+lib/
 
 # Crash recovery artifacts
 ai-cli-crash-capture/

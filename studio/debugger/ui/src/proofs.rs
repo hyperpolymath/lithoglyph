@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: PMPL-1.0-or-later
 //! Lean 4 proof integration for recovery plans
 //!
 //! Maps recovery operations to their formal proofs in the Lean 4 core library.
