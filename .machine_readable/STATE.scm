@@ -1,166 +1,174 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
 ;; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 ;;
-;; STATE.scm - Project state tracking for FormBD
+;; STATE.scm - Project state tracking for Lithoglyph (formerly FormBD)
 ;; Media-Type: application/vnd.state+scm
 
 (state
   (metadata
-    (version "0.0.6")
+    (version "0.0.7")
     (schema-version "1.0.0")
     (created "2026-02-01")
     (updated "2026-02-13")
-    (project "FormBD")
+    (project "Lithoglyph")
+    (former-name "FormBD")
+    (naming-note "IP claim on 'Form'/'FormDB'. Code still uses FormBD internally — rename to Lith/Litho PENDING.")
     (repo "https://github.com/hyperpolymath/lithoglyph"))
 
   (project-context
-    (name "FormBD: Narrative-First, Reversible, Audit-Grade Database")
+    (name "Lithoglyph: Narrative-First, Reversible, Audit-Grade Database")
     (tagline "The database where the database is part of the story")
-    (naming-note "Temporary name - Google owns 'FormDB' trademark. Rename before v1.0.0")
     (tech-stack
-      (storage-layer "Forth" "Form.Blocks + Form.Model")
-      (bridge-layer "Zig" "Form.Bridge - Zig-only ABI, no C dependency")
-      (runtime-layer "Factor" "Form.Runtime - FQL parser/planner/executor")
-      (normalizer-layer "Factor + Lean 4" "Form.Normalizer - FD discovery with proofs")
-      (control-plane "Elixir/OTP" "Form.ControlPlane - clustering, supervision")
+      (storage-layer "Forth" "Lith.Blocks + Lith.Model (17 passing tests)")
+      (bridge-layer "Zig" "Lith.Bridge - C ABI, 19 functions, WAL commit, all tests pass")
+      (abi-layer "Idris2" "Dependent-type ABI proofs, zero believe_me, compiles clean")
+      (runtime-layer "Factor" "Lith.Runtime - FQL parser/planner/executor")
+      (normalizer-layer "Factor + Lean 4" "Lith.Normalizer - FD discovery with 52 proofs")
+      (beam-layer "Zig + Rust" "BEAM NIFs for Elixir/Erlang integration, both build clean")
+      (control-plane "Elixir/OTP" "Lith.ControlPlane - clustering, supervision (planned)")
       (query-language "FBQLdt" "github.com/hyperpolymath/fbql-dt - dependently-typed")
       (config "Nickel")
-      (containers "Podman/Nerdctl")))
+      (containers "Podman + selur-compose")))
 
   (current-position
-    (phase "core-complete")
-    (overall-completion 65)
-    (note "Core database phases 1-4 are 100% complete; satellites, bindings, clustering remain")
+    (phase "abi-hardened")
+    (overall-completion 70)
+    (note "Core phases 1-4 complete. ABI formally verified. BEAM NIFs compile. API layer needs Zig 0.15.2 HTTP migration. FormBD→Lith rename pending.")
     (components
-      (form-blocks
+      (lith-blocks
         (status complete)
         (completion 100)
         (version "v0.0.2")
+        (build-status "17/17 tests pass")
         (files
           "core-forth/src/lithoglyph-blocks.fs"
           "core-forth/test/test-blocks.fs"
           "spec/blocks.adoc"))
-      (form-journal
+      (lith-bridge
         (status complete)
         (completion 100)
-        (version "v0.0.2")
-        (files
-          "core-forth/src/lithoglyph-journal.fs"
-          "spec/journal.adoc"))
-      (form-model
-        (status complete)
-        (completion 100)
-        (version "v0.0.2")
-        (files
-          "core-forth/src/lithoglyph-model.fs"
-          "spec/encoding.adoc"))
-      (form-blocks-zig
-        (status complete)
-        (completion 100)
-        (version "v0.0.7-phase1")
-        (description "Industrial-grade Zig block I/O layer - Phase 1")
-        (files
-          "core-zig/src/blocks.zig"
-          "core-zig/test_install_blocks.sh"
-          "core-zig/test-execution.sh")
-        (features
-          "4 KiB block storage with 64-byte headers"
-          "CRC32C checksums (Castagnoli polynomial)"
-          "Block types: document, edge, journal, schema, superblock"
-          "Superblock management and persistence"
-          "Journal append with linkage"
-          "9/9 tests passing"))
-      (form-bridge
-        (status complete)
-        (completion 100)
-        (version "v0.0.7-phase2")
-        (description "C ABI bridge wired to persistent BlockStorage - Phase 2")
+        (version "v0.0.7")
+        (build-status "BUILD + TEST PASS (Zig 0.15.2)")
+        (description "C ABI bridge with persistent BlockStorage, WAL commit, 6-phase sync")
         (files
           "core-zig/src/bridge.zig"
-          "core-zig/test-install.sh")
-        (features
-          "Persistent block storage (no more in-memory stubs)"
-          "JSON introspection (CBOR removed)"
-          "Zig 0.15.2 compatible"
-          "12/12 tests passing"
-          "End-to-end execution test verified"))
-      (factor-ffi-bindings
-        (status complete)
-        (completion 100)
-        (version "v0.0.7-phase3")
-        (description "Factor FFI bindings to Zig bridge - Phase 3 COMPLETE")
-        (files
-          "core-factor/gql/storage-backend.factor"
-          "core-factor/test-ffi.factor"
-          "core-factor/minimal-ffi-test.factor"
-          "core-zig/test-version-only.c"
-          "core-zig/test-db-open.c"
+          "core-zig/src/blocks.zig"
           "core-zig/test-ffi-integration.c")
         (features
-          "FFI library loading (cross-platform)"
-          "All 14 bridge functions declared"
-          "Helper functions (blob>string, check-fdb-status, with-fdb-error)"
-          "Database open/close via FFI - TESTED ✅"
-          "Transaction management (begin/commit/abort)"
-          "Insert operations with fdb_apply"
-          "Schema introspection"
-          "Built libbridge.so (2.6MB)")
-        (testing-results
-          "fdb_version() returns 100 ✅"
-          "fdb_db_open() creates BlockStorage ✅"
-          "Database handle valid (0x7fa8bffe0000) ✅"
-          "fdb_db_close() works without error ✅"
-          "Status codes correct (0 = OK) ✅"
-          "Error handling works (LgBlob ptr/len) ✅"
-          "C integration tests pass ✅"))
-      (http-api-server
+          "19 real functions (open, close, apply, commit, abort, read, update, delete, ...)"
+          "WAL commit protocol"
+          "Block allocator with compaction"
+          "Schema and constraint introspection"
+          "Proof verifier registration"
+          "All unsafe casts annotated with // SAFETY:"))
+      (idris2-abi
         (status complete)
         (completion 100)
-        (version "v0.0.7-phase4")
-        (description "HTTP API Server - Phase 4 COMPLETE")
+        (version "v0.0.7")
+        (build-status "All 3 files type-check clean (idris2 --check)")
+        (description "Dependent-type ABI definitions with formal proofs")
         (files
-          "demo-server.zig"
+          "src/FormBD/FormBridge.idr"
+          "src/FormBD/FormForeign.idr"
+          "src/FormBD/FormLayout.idr")
+        (properties
+          "Zero believe_me (BANNED pattern eliminated)"
+          "Zero typed holes"
+          "Memory layout proofs (alignment, block sizes, packing)"
+          "ABI compatibility proofs (cross-platform, version stability)"
+          "Storage efficiency proofs (>98% payload ratio)"
+          "18 FFI declarations matching core-zig bridge"
+          "Inline validation (path, FQL query, JSON) pending Proven integration"))
+      (ffi-delegation
+        (status complete)
+        (completion 100)
+        (version "v0.0.7")
+        (build-status "BUILD + TEST PASS")
+        (description "ffi/zig/ delegates to core-zig (unified bridge)")
+        (files
+          "ffi/zig/build.zig"
+          "ffi/zig/src/bridge.zig"))
+      (generated-header
+        (status complete)
+        (completion 100)
+        (version "v0.0.7")
+        (description "C header generated from Idris2 ABI definitions")
+        (files "generated/abi/bridge.h"))
+      (factor-runtime
+        (status complete)
+        (completion 100)
+        (version "v0.0.4")
+        (description "FQL parser, planner, executor in Factor with FFI to Zig bridge")
+        (files
+          "core-factor/gql/storage-backend.factor"
+          "core-factor/fbql/fbql.factor"))
+      (lean-proofs
+        (status complete)
+        (completion 100)
+        (version "v0.0.4")
+        (build-status "52 tests pass")
+        (files "core-lean/"))
+      (beam-nif-zig
+        (status complete)
+        (completion 100)
+        (version "v0.0.7")
+        (build-status "BUILD PASS (0 errors)")
+        (description "Zig NIF for BEAM with real FFI calls to core-zig bridge")
+        (files
+          "beam/native/src/formdb_nif.zig"
+          "beam/native/src/beam.zig"))
+      (beam-nif-rust
+        (status complete)
+        (completion 100)
+        (version "v0.0.7")
+        (build-status "BUILD PASS (0 warnings)")
+        (description "Rust NIF for BEAM via rustler with thread-safe handles")
+        (files
+          "beam/native_rust/src/lib.rs"
+          "beam/native_rust/Cargo.toml"))
+      (api-layer
+        (status blocked)
+        (completion 60)
+        (version "v0.0.7")
+        (build-status "FAIL — 83 HTTP API call sites need Zig 0.15.2 migration")
+        (description "HTTP + gRPC API with real bridge calls (not placeholders)")
+        (blocker "std.http.Server API changed in Zig 0.15.2, rest.zig needs Reader/Writer pattern")
+        (files
           "api/src/main.zig"
           "api/src/rest.zig"
-          "api/src/bridge_client.zig"
-          "api/build.zig")
-        (features
-          "HTTP server on localhost:8080"
-          "GET /health - Health check ✅"
-          "GET /version - Bridge version ✅"
-          "POST /insert - Insert operations ⚠️"
-          "GET /schema - Schema introspection ✅"
-          "Complete stack: HTTP → FFI → BlockStorage → .lgh")
-        (testing-results
-          "Health check returns 200 ✅"
-          "Version endpoint works ✅"
-          "Schema introspection works ✅"
-          "FFI calls from HTTP handler ✅"
-          "Database opens via HTTP request ✅"
-          "End-to-end stack verified ✅"))
-      (form-runtime
+          "api/src/grpc.zig"
+          "api/src/auth.zig"
+          "api/build.zig"))
+      (production-infra
         (status complete)
         (completion 100)
-        (version "v0.0.4")
+        (version "v0.0.7")
+        (description "Container deployment, orchestration, CI/CD")
         (files
-          "core-factor/fbql/fbql.factor"
-          "core-factor/fbql/storage-backend.factor"
-          "core-factor/fbql/benchmarks.factor"
-          "core-factor/fbql/seam-tests.factor"
-          "spec/fbql.adoc"
-          "spec/fbql-philosophy.adoc"))
-      (form-normalizer
+          "Containerfile"
+          "selur-compose.yml"
+          ".github/workflows/ci.yml"))
+      (test-vectors
         (status complete)
         (completion 100)
-        (version "v0.0.4")
+        (version "v0.0.7")
+        (description "Encoding test vectors and BEAM integration tests")
         (files
-          "spec/self-normalizing.adoc"))
-      (api-server
+          "test-vectors/encoding/block-header.json"
+          "test-vectors/encoding/block-payload.json"
+          "test-vectors/encoding/journal-entry.json"
+          "test-vectors/encoding/cbor-roundtrip.json"
+          "beam/test/formdb_nif_test.exs"
+          "beam/test/formdb_integration_test.exs"))
+      (rescript-tests
         (status complete)
         (completion 100)
-        (version "v0.0.5")
+        (version "v0.0.7")
+        (description "Property tests (12 predicates) + fuzz tests (4 targets)")
         (files
-          "api/README.adoc"))
+          "tests/property/run.sh"
+          "tests/fuzz/run.sh"
+          "tests/fuzz/src/FormDB_Fuzz_Main.res"))
       (language-bindings
         (status in-progress)
         (completion 40)
@@ -168,33 +176,20 @@
         (rescript-bindings
           (status in-progress)
           (completion 60)
-          (files "clients/rescript/README.md"))
+          (files "clients/rescript/"))
         (php-bindings
           (status in-progress)
           (completion 20)
-          (files "clients/php/README.md")))
-      (cms-integrations
-        (status not-started)
-        (completion 0)
-        (planned-integrations
-          "WordPress/Strapi/Directus/Ghost/Payload"
-          "See: integrations/"))
+          (files "clients/php/")))
+      (studio
+        (status incomplete)
+        (completion 20)
+        (description "Tauri admin GUI — 11 TODO commands returning mock data")
+        (files "studio/src-tauri/src/main.rs"))
       (control-plane
         (status not-started)
         (completion 0)
-        (planned-version "v0.1.0")
-        (files "control-plane/README.adoc")))
-    (working-features
-      "Fixed-size block storage (4 KiB blocks)"
-      "Persistent block I/O with CRC32C checksums"
-      "Append-only journal with sequence numbering and linkage"
-      "Multi-model layer (documents + edges + schemas)"
-      "Zig FFI bridge with persistent BlockStorage backend"
-      "C-compatible ABI (callconv .c)"
-      "FQL parser and executor in Factor"
-      "Self-normalizing database with FD discovery"
-      "Multi-protocol API server"
-      "End-to-end block allocation, write, read, journal tested"))
+        (planned-version "v0.1.0"))))
 
   (route-to-mvp
     (target-version "1.0.0")
@@ -204,202 +199,141 @@
       (milestone-1
         (name "Core Specifications")
         (status complete)
-        (completed-date "2025")
-        (version "v0.0.2")
-        (items
-          (item "lithoglyph.scm unified specification" status: complete)
-          (item "spec/blocks.adoc" status: complete)
-          (item "spec/journal.adoc" status: complete)
-          (item "spec/fbql.adoc" status: complete)
-          (item "spec/fbql-dependent-types.md" status: complete)
-          (item "spec/self-normalizing.adoc" status: complete)
-          (item "spec/cloud-storage.adoc" status: complete)
-          (item "spec/fbql-philosophy.adoc" status: complete)))
-
+        (version "v0.0.2"))
       (milestone-2-5
         (name "Forth PoC Implementation")
         (status complete)
-        (completed-date "2025")
-        (version "v0.0.2")
-        (items
-          (item "Form.Blocks - Fixed-size blocks with headers" status: complete)
-          (item "Form.Journal - Append-only with crash recovery" status: complete)
-          (item "Form.Model - Multi-model layer" status: complete)
-          (item "Form.Bridge - Zig-only ABI" status: complete)))
-
+        (version "v0.0.2"))
       (milestone-6
         (name "Machine-Readable Artefacts")
         (status complete)
-        (completed-date "2025")
         (version "v0.0.2"))
-
       (milestone-7
         (name "Complete Documentation Suite")
         (status complete)
-        (completed-date "2025")
         (version "v0.0.3"))
-
       (milestone-8
-        (name "Form.Runtime (FQL Engine)")
+        (name "Lith.Runtime (FQL Engine)")
         (status complete)
-        (completed-date "2025")
-        (version "v0.0.4")
-        (items
-          (item "FQL parser in Factor" status: complete)
-          (item "Query planner" status: complete)
-          (item "Executor with introspection" status: complete)
-          (item "Storage backend integration" status: complete)))
-
+        (version "v0.0.4"))
       (milestone-9
-        (name "Form.Normalizer")
+        (name "Lith.Normalizer")
         (status complete)
-        (completed-date "2025")
-        (version "v0.0.4")
-        (items
-          (item "FD discovery algorithms (DFD/TANE)" status: complete)
-          (item "Self-normalizing database spec" status: complete)))
-
+        (version "v0.0.4"))
       (milestone-10
         (name "Production Hardening")
         (status complete)
-        (completed-date "2025")
         (version "v0.0.4"))
-
       (milestone-11
         (name "Multi-Protocol API Server")
         (status complete)
-        (completed-date "2025")
-        (version "v0.0.5"))
-
+        (version "v0.0.5")
+        (note "Bridge calls wired but HTTP API needs Zig 0.15.2 migration"))
+      (milestone-11.5
+        (name "ABI Formalization and Bridge Unification")
+        (status complete)
+        (completed-date "2026-02-13")
+        (version "v0.0.7")
+        (items
+          (item "Idris2 ABI: zero believe_me, all proofs verified" status: complete)
+          (item "ffi/zig unified with core-zig (delegation pattern)" status: complete)
+          (item "C header generated from ABI definitions" status: complete)
+          (item "Factor FFI aligned with generated header" status: complete)
+          (item "BEAM NIFs: Zig + Rust, both compile clean" status: complete)
+          (item "All unsafe Zig casts annotated with // SAFETY:" status: complete)
+          (item "SQL injection fixed in test generators" status: complete)
+          (item "Production infrastructure: Containerfile, selur-compose, CI" status: complete)
+          (item "Test vectors and BEAM integration tests created" status: complete)))
       (milestone-12
         (name "Language Bindings")
         (status in-progress)
-        (version "v0.0.6")
-        (items
-          (item "ReScript bindings" status: in-progress completion: 60)
-          (item "PHP bindings" status: in-progress completion: 20)
-          (item "SDK generator tooling" status: planned)
-          (item "Deno/JavaScript bindings" status: planned)
-          (item "Julia bindings" status: planned)))
-
+        (version "v0.0.6"))
       (milestone-13
         (name "CMS Integration")
         (status not-started)
-        (version "v0.0.7")
-        (items
-          (item "WordPress plugin/integration" status: planned)
-          (item "Strapi integration" status: planned)
-          (item "Directus integration" status: planned)
-          (item "Ghost integration" status: planned)
-          (item "Payload integration" status: planned)))
-
+        (version "v0.0.8"))
       (milestone-14
-        (name "Form.ControlPlane (Clustering)")
+        (name "Lith.ControlPlane (Clustering)")
         (status not-started)
-        (version "v0.1.0")
-        (items
-          (item "Elixir/OTP control plane" status: planned)
-          (item "Session management" status: planned)
-          (item "Cluster coordination" status: planned)
-          (item "Port communication with core" status: planned)))
-
+        (version "v0.1.0"))
       (milestone-14.5
-        (name "Final Branding and Naming")
+        (name "FormBD → Lith/Litho Rename")
         (status not-started)
-        (version "v0.9.0")
-        (description "Choose final production name to replace 'FormBD' (Google owns 'FormDB' trademark)")
-        (items
-          (item "Trademark search" status: planned)
-          (item "Community feedback on name options" status: planned)
-          (item "Update all documentation and code" status: planned)
-          (item "Update domain names and branding" status: planned)))
-
+        (version "v0.8.0")
+        (description "IP claim on 'Form'/'FormDB'. Rename all code, files, dirs, symbols, docs.")
+        (scope "Entire repo: .idr .zig .rs .res .factor .fs .h .json .md .yml"))
       (milestone-15
         (name "1.0.0 Release Candidate")
         (status not-started)
-        (version "v1.0.0-rc")
-        (items
-          (item "Production deployment guide" status: planned)
-          (item "Performance benchmarks" status: planned)
-          (item "Security audit" status: planned)
-          (item "Full test coverage" status: planned)
-          (item "Documentation complete" status: planned)))))
+        (version "v1.0.0-rc"))))
 
   (blockers-and-issues
     (critical
       (issue
         (id "NAMING-001")
-        (title "FormBD is temporary name")
-        (description "Google owns 'FormDB' trademark. Need final production name before v1.0.0")
-        (milestone "M14.5 - Final Branding and Naming")
-        (target-version "v0.9.0")))
+        (title "FormBD → Lith/Litho rename (IP claim)")
+        (description "Google owns 'FormDB' trademark. All code uses Form* internally. Must rename before public release.")
+        (milestone "M14.5")
+        (target-version "v0.8.0")))
     (high
+      (issue
+        (id "API-001")
+        (title "API layer Zig 0.15.2 HTTP migration")
+        (description "api/src/rest.zig has 83 call sites using old std.http.Server API. Needs Reader/Writer pattern.")
+        (status "blocked")
+        (notes "main.zig updated, rest.zig and grpc.zig still need migration"))
       (issue
         (id "INTEGRATION-001")
         (title "FBQLdt integration")
-        (description "FormBD needs to integrate with fbql-dt for dependently-typed queries")
-        (dependency "github.com/hyperpolymath/fbql-dt M7 (Idris2 ABI) + M8 (Zig FFI)")
-        (notes "Wait for fbql-dt to complete Idris2 ABI and Zig FFI layers")))
+        (description "Lithoglyph needs to integrate with fbql-dt for dependently-typed queries")
+        (dependency "github.com/hyperpolymath/fbql-dt M7 (Idris2 ABI) + M8 (Zig FFI)")))
     (medium
+      (issue
+        (id "PROVEN-001")
+        (title "Proven library integration")
+        (description "Inline validation in FormBridge.idr should delegate to external Proven repo")
+        (notes "Real Proven repo at /var/mnt/eclipse/repos/proven/ has 104+ modules"))
       (issue
         (id "BINDINGS-001")
         (title "Language bindings incomplete")
         (description "ReScript bindings 60% done, PHP bindings 20% done")
-        (milestone "M12"))
+        (milestone "M12")))
+    (low
       (issue
-        (id "ABI-FFI-001")
-        (title "Verify ABI/FFI Universal Standard compliance")
-        (description "Ensure FormBD follows hyperpolymath standard: Idris2 ABI + Zig FFI")
-        (status "needs-assessment")
-        (notes "Current: Zig bridge exists, but Idris2 ABI layer may be missing")))
-    (low ()))
-
-  (lithoglyph-ecosystem
-    (reference "ECOSYSTEM.scm")
-    (core-repos
-      "formbd - Database core (this repo)"
-      "fbql-dt - Dependently-typed query language"
-      "formbase - Airtable alternative UI"
-      "lithoglyph-studio - Admin GUI"
-      "lithoglyph-debugger - Proof-carrying recovery tool"
-      "lithoglyph-analytics - Analytics layer"
-      "lithoglyph-beam - BEAM/Elixir ecosystem integration"
-      "lithoglyph-geo - Geospatial extensions"
-      "zotero-formbd - Reference manager integration")
-    (integration-status
-      (fbql-dt "Spec-aligned, implementation pending M7+M8")
-      (formbase "Depends on FormBD, needs API bindings")
-      (lithoglyph-studio "Planned for M13+")
-      (lithoglyph-debugger "Planned for production hardening")))
-
-  (critical-next-actions
-    (immediate
-      (action "Complete ReScript bindings (M12)")
-      (action "Complete PHP bindings (M12)"))
-    (this-week
-      (action "Create ECOSYSTEM.scm with full ecosystem relationships")
-      (action "Assess ABI/FFI Universal Standard compliance")
-      (action "Document integration plan with fbql-dt"))
-    (this-month
-      (action "Start M13 CMS Integration planning")
-      (action "Design M14 ControlPlane architecture")
-      (action "Brainstorm name options for M14.5")))
+        (id "STUDIO-001")
+        (title "Studio Tauri commands are all TODOs")
+        (description "11 backend commands return mock data"))))
 
   (session-history
+    (snapshot
+      (date "2026-02-13")
+      (session-id "abi-hardening-and-compile-verification")
+      (accomplishments
+        "Phase A: Completed 7-phase ABI plan (delete templates, eliminate believe_me, align ABI, generate header, update Factor FFI, expand tests, create test runners)"
+        "Phase B: Fixed all compile blockers — Idris2 typed holes filled, proof signatures use concrete literals for Nat reduction, forward reference issues resolved"
+        "Unified dual Zig bridges (ffi/zig delegates to core-zig)"
+        "Implemented real BEAM NIFs (Zig + Rust) replacing stubs"
+        "Wired real bridge calls into API layer (rest.zig, grpc.zig)"
+        "Added SAFETY comments to all 22 Zig unsafe casts"
+        "Fixed SQL injection in test generators"
+        "Created production infrastructure (Containerfile, selur-compose.yml, CI workflow)"
+        "Created test vectors and BEAM integration tests"
+        "Fixed Rust NIF lifetime errors and eliminated all 6 cargo warnings"
+        "Cleaned cruft: removed tracked .zig-cache, Rust target/, legacy docs, broken symlinks"
+        "Updated .gitignore for comprehensive coverage"
+        "Verified builds: core-zig PASS, ffi/zig PASS, core-forth 17/17, Lean 52/52, Idris2 clean, beam/native PASS, beam/native_rust PASS (0 warnings)")
+      (pending
+        "FormBD → Lith/Litho rename (IP issue, whole repo)"
+        "API layer Zig 0.15.2 HTTP migration (83 call sites in rest.zig)"
+        "Proven library integration (inline validation → external repo)"
+        "Studio Tauri commands (11 TODOs)"
+        "Re-run panic-attack scan after fixes"))
     (snapshot
       (date "2026-02-01")
       (session-id "documentation-organization")
       (accomplishments
         "Created STATE.scm for FormBD repo"
-        "Added M14.5 milestone for final naming/branding before v1.0.0"
-        "Assessed current state: M1-M11 complete, M12 in progress (40%)"
-        "Identified critical blocker: FBQLdt integration needs M7+M8 from fbql-dt"
-        "Identified medium priority: ABI/FFI standard compliance needs assessment")
-      (next-steps
-        "Create ECOSYSTEM.scm"
-        "Organize documentation per user's plan"
-        "Verify ABI/FFI Universal Standard compliance"
-        "Update ROADMAP.adoc with M14.5 milestone"))))
+        "Assessed current state: M1-M11 complete, M12 in progress"))))
 
 ;; Helper functions for state queries
 (define (get-completion-percentage state)

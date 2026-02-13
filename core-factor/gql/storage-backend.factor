@@ -109,17 +109,24 @@ M: memory-backend backend-query
 ! Bridge Backend (Persistent Storage)
 ! ============================================================
 
-! FFI type definitions for Form.Bridge
+! FFI type definitions matching generated/abi/bridge.h
 STRUCT: fdb-blob
     { ptr void* }
     { len size_t } ;
 
+! LgResult — matches bridge.h LgResult struct layout
 STRUCT: fdb-result
-    { value fdb-blob }
-    { error fdb-blob }
-    { status int } ;
+    { data fdb-blob }
+    { provenance fdb-blob }
+    { status int }
+    { error_blob fdb-blob } ;
 
-! Status codes matching bridge.zig LgStatus
+! LgRenderOpts — matches bridge.h
+STRUCT: lg-render-opts
+    { format int }
+    { include_metadata bool } ;
+
+! Status codes matching bridge.h FdbStatus enum
 CONSTANT: FDB_OK 0
 CONSTANT: FDB_ERR_INTERNAL 1
 CONSTANT: FDB_ERR_NOT_FOUND 2
@@ -128,20 +135,28 @@ CONSTANT: FDB_ERR_OUT_OF_MEMORY 4
 CONSTANT: FDB_ERR_NOT_IMPLEMENTED 5
 CONSTANT: FDB_ERR_TXN_NOT_ACTIVE 6
 CONSTANT: FDB_ERR_TXN_ALREADY_COMMITTED 7
+CONSTANT: FDB_ERR_IO_ERROR 8
+CONSTANT: FDB_ERR_CORRUPTION 9
+CONSTANT: FDB_ERR_CONFLICT 10
+CONSTANT: FDB_ERR_ALREADY_EXISTS 11
+
+! Transaction mode constants matching bridge.h LgTxnMode
+CONSTANT: LG_TXN_READ_ONLY 0
+CONSTANT: LG_TXN_READ_WRITE 1
 
 ! ============================================================
-! FFI Function Declarations
+! FFI Function Declarations (from generated/abi/bridge.h)
 ! ============================================================
 
 LIBRARY: lithoglyph-bridge
 
 ! Database lifecycle
-FUNCTION: int fdb_db_open ( void* path ulong path_len void** out_db fdb-blob* out_err )
-FUNCTION: void fdb_db_close ( void* db )
-FUNCTION: int fdb_get_version ( )
+FUNCTION: int fdb_db_open ( void* path ulong path_len void* opts ulong opts_len void** out_db fdb-blob* out_err )
+FUNCTION: int fdb_db_close ( void* db )
+FUNCTION: uint fdb_version ( )
 
 ! Transaction management
-FUNCTION: int fdb_txn_begin ( void* db bool read_only void** out_txn fdb-blob* out_err )
+FUNCTION: int fdb_txn_begin ( void* db int mode void** out_txn fdb-blob* out_err )
 FUNCTION: int fdb_txn_commit ( void* txn fdb-blob* out_err )
 FUNCTION: int fdb_txn_abort ( void* txn )
 
@@ -156,8 +171,14 @@ FUNCTION: int fdb_read_blocks ( void* db ushort block_type fdb-blob* out_data fd
 ! Introspection
 FUNCTION: int fdb_introspect_schema ( void* db fdb-blob* out_schema fdb-blob* out_err )
 FUNCTION: int fdb_introspect_constraints ( void* db fdb-blob* out_constraints fdb-blob* out_err )
-FUNCTION: int fdb_render_journal ( void* db ulong since fdb-blob* out_text fdb-blob* out_err )
-FUNCTION: int fdb_render_block ( void* db ulong block_id fdb-blob* out_text fdb-blob* out_err )
+FUNCTION: int fdb_render_journal ( void* db ulong since lg-render-opts opts fdb-blob* out_text fdb-blob* out_err )
+FUNCTION: int fdb_render_block ( void* db ulong block_id lg-render-opts opts fdb-blob* out_text fdb-blob* out_err )
+
+! Proof verification
+FUNCTION: int fdb_proof_register_verifier ( void* type_ptr ulong type_len void* callback void* context )
+FUNCTION: int fdb_proof_unregister_verifier ( void* type_ptr ulong type_len )
+FUNCTION: int fdb_proof_verify ( void* proof_ptr ulong proof_len bool* out_valid fdb-blob* out_err )
+FUNCTION: int fdb_proof_init_builtins ( )
 
 ! Resource cleanup
 FUNCTION: void fdb_blob_free ( fdb-blob* blob )
@@ -172,9 +193,9 @@ FUNCTION: void fdb_blob_free ( fdb-blob* blob )
         0 >>len ;
 
 : blob>string ( blob -- str/f )
-    dup ptr>> [
-        [ ptr>> ] [ len>> ] bi memory>byte-array utf8 decode
-    ] [ drop f ] if ;
+    dup [ ptr>> ] [ len>> ] bi over [
+        memory>byte-array utf8 decode
+    ] [ 2drop f ] if ;
 
 : string>fdb-input ( str -- ptr len )
     utf8 encode [ underlying>> ] [ length ] bi ;
@@ -220,8 +241,8 @@ CONSTANT: BLOCK_TYPE_DOCUMENT 0x0011
     f :> txn-handle!
     make-fdb-blob :> err-blob
 
-    ! Begin read-write transaction
-    db f txn-handle! err-blob fdb_txn_begin
+    ! Begin read-write transaction (mode 1 = read-write)
+    db LG_TXN_READ_WRITE txn-handle! err-blob fdb_txn_begin
     err-blob check-fdb-status
 
     ! Apply the operation (buffered, not written until commit)
@@ -234,7 +255,7 @@ CONSTANT: BLOCK_TYPE_DOCUMENT 0x0011
     err-blob check-fdb-status
 
     ! Extract block_id from result (JSON: {"block_id":N,"status":"pending"})
-    result value>> blob>string [
+    result data>> blob>string [
         json> dup hashtable? [
             "block_id" swap at [ 0 ] unless*
         ] [ drop 0 ] if
@@ -264,7 +285,7 @@ M:: backend-init ( backend -- ) bridge-backend
     f :> db-handle!
     make-fdb-blob :> err-blob
 
-    path string>fdb-input { void* } [
+    path string>fdb-input f 0 { void* } [
         db-handle! err-blob fdb_db_open
     ] with-out-parameters
 
@@ -345,8 +366,8 @@ M:: bridge-backend backend-update ( doc id collection backend -- success? )
         f :> txn-handle!
         make-fdb-blob :> err-blob
 
-        ! Begin transaction
-        backend db-handle>> f txn-handle! err-blob fdb_txn_begin
+        ! Begin read-write transaction
+        backend db-handle>> LG_TXN_READ_WRITE txn-handle! err-blob fdb_txn_begin
         err-blob check-fdb-status
 
         ! Serialize new document data
@@ -368,8 +389,8 @@ M:: bridge-backend backend-delete ( id collection backend -- success? )
         f :> txn-handle!
         make-fdb-blob :> err-blob
 
-        ! Begin transaction
-        backend db-handle>> f txn-handle! err-blob fdb_txn_begin
+        ! Begin read-write transaction
+        backend db-handle>> LG_TXN_READ_WRITE txn-handle! err-blob fdb_txn_begin
         err-blob check-fdb-status
 
         ! Delete the block

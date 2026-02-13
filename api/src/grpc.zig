@@ -412,6 +412,69 @@ fn handleGetJournal(allocator: std.mem.Allocator, request: *std.http.Server.Requ
 }
 
 fn handleDiscoverDependencies(allocator: std.mem.Allocator, request: *std.http.Server.Request, msg_data: []const u8) !void {
+    // Parse DiscoverDependenciesRequest: collection (1), sample_size (2)
+    var decoder = ProtobufDecoder.init(msg_data);
+    var collection: []const u8 = "";
+    var sample_size: u32 = 1000;
+
+    while (decoder.hasMore()) {
+        const tag = try decoder.readTag();
+        switch (tag.field) {
+            1 => collection = try decoder.readString(),
+            2 => sample_size = @truncate(try decoder.readVarint()),
+            else => try decoder.skipField(tag.wire_type),
+        }
+    }
+
+    if (collection.len == 0) {
+        try sendGrpcError(allocator, request, 3, "Missing collection field");
+        return;
+    }
+
+    const deps = bridge.discoverDependencies(collection, sample_size) catch |err| {
+        log.err("DiscoverDependencies failed for {s}: {}", .{ collection, err });
+        const msg = switch (err) {
+            error.NotImplemented => "Dependency discovery not yet implemented in bridge",
+            error.NotInitialized => "Database not initialized",
+            else => "Failed to discover dependencies",
+        };
+        // gRPC status 12 = UNIMPLEMENTED for NotImplemented, 13 = INTERNAL otherwise
+        const code: u8 = switch (err) {
+            error.NotImplemented => 12,
+            else => 13,
+        };
+        try sendGrpcError(allocator, request, code, msg);
+        return;
+    };
+    defer allocator.free(deps);
+
+    // Build DiscoverDependenciesResponse
+    // collection (1), dependencies repeated (2)
+    var encoder = ProtobufEncoder.init(allocator);
+    defer encoder.deinit();
+
+    try encoder.writeString(1, collection);
+    for (deps) |dep| {
+        // Encode each FunctionalDependency as a sub-message
+        // FunctionalDependency: determinant repeated (1), dependent (2), confidence (3)
+        var dep_encoder = ProtobufEncoder.init(allocator);
+        defer dep_encoder.deinit();
+        for (dep.determinant) |det| {
+            try dep_encoder.writeString(1, det);
+        }
+        try dep_encoder.writeString(2, dep.dependent);
+        // Encode confidence as fixed32 (IEEE 754 float)
+        try dep_encoder.writeTag(3, 5); // wire type 5 = 32-bit
+        const conf_bits: u32 = @bitCast(dep.confidence);
+        try dep_encoder.buffer.appendSlice(&std.mem.toBytes(conf_bits));
+        try encoder.writeMessage(2, dep_encoder.finish());
+    }
+
+    try sendGrpcResponse(allocator, request, encoder.finish());
+}
+
+fn handleAnalyzeNormalForm(allocator: std.mem.Allocator, request: *std.http.Server.Request, msg_data: []const u8) !void {
+    // Parse AnalyzeNormalFormRequest: collection (1)
     var decoder = ProtobufDecoder.init(msg_data);
     var collection: []const u8 = "";
 
@@ -423,31 +486,118 @@ fn handleDiscoverDependencies(allocator: std.mem.Allocator, request: *std.http.S
         }
     }
 
+    if (collection.len == 0) {
+        try sendGrpcError(allocator, request, 3, "Missing collection field");
+        return;
+    }
 
-    // Return placeholder response
+    const analysis = bridge.analyzeNormalForm(collection) catch |err| {
+        log.err("AnalyzeNormalForm failed for {s}: {}", .{ collection, err });
+        const msg = switch (err) {
+            error.NotImplemented => "Normal form analysis not yet implemented in bridge",
+            error.NotInitialized => "Database not initialized",
+            else => "Failed to analyze normal form",
+        };
+        const code: u8 = switch (err) {
+            error.NotImplemented => 12,
+            else => 13,
+        };
+        try sendGrpcError(allocator, request, code, msg);
+        return;
+    };
+
+    // Build AnalyzeNormalFormResponse
+    // collection (1), current_form enum (2), violations repeated string (3), suggestions repeated string (4)
     var encoder = ProtobufEncoder.init(allocator);
     defer encoder.deinit();
-    // Empty response for now
-    try sendGrpcResponse(allocator, request, encoder.finish());
-}
 
-fn handleAnalyzeNormalForm(allocator: std.mem.Allocator, request: *std.http.Server.Request, msg_data: []const u8) !void {
-    _ = msg_data;
+    try encoder.writeString(1, collection);
 
-    var encoder = ProtobufEncoder.init(allocator);
-    defer encoder.deinit();
-    try encoder.writeEnum(2, 2); // current_form = THIRD_NORMAL_FORM (placeholder)
+    // Map current_form string to enum value
+    // NormalForm enum: UNF=0, 1NF=1, 2NF=2, 3NF=3, BCNF=4, 4NF=5, 5NF=6
+    const form_enum: i32 = if (std.mem.eql(u8, analysis.current_form, "UNF"))
+        0
+    else if (std.mem.eql(u8, analysis.current_form, "1NF"))
+        1
+    else if (std.mem.eql(u8, analysis.current_form, "2NF"))
+        2
+    else if (std.mem.eql(u8, analysis.current_form, "3NF"))
+        3
+    else if (std.mem.eql(u8, analysis.current_form, "BCNF"))
+        4
+    else if (std.mem.eql(u8, analysis.current_form, "4NF"))
+        5
+    else if (std.mem.eql(u8, analysis.current_form, "5NF"))
+        6
+    else
+        0; // Default to UNF for unknown forms
+
+    try encoder.writeEnum(2, form_enum);
+
+    for (analysis.violations) |violation| {
+        try encoder.writeString(3, violation);
+    }
+    for (analysis.suggestions) |suggestion| {
+        try encoder.writeString(4, suggestion);
+    }
+
     try sendGrpcResponse(allocator, request, encoder.finish());
 }
 
 fn handleStartMigration(allocator: std.mem.Allocator, request: *std.http.Server.Request, msg_data: []const u8) !void {
-    _ = msg_data;
+    // Parse StartMigrationRequest: collection (1), target_schema (2)
+    var decoder = ProtobufDecoder.init(msg_data);
+    var collection: []const u8 = "";
+    var target_schema: []const u8 = "{}";
 
+    while (decoder.hasMore()) {
+        const tag = try decoder.readTag();
+        switch (tag.field) {
+            1 => collection = try decoder.readString(),
+            2 => target_schema = try decoder.readString(),
+            else => try decoder.skipField(tag.wire_type),
+        }
+    }
+
+    if (collection.len == 0) {
+        try sendGrpcError(allocator, request, 3, "Missing collection field");
+        return;
+    }
+
+    const migration = bridge.startMigration(collection, target_schema) catch |err| {
+        log.err("StartMigration failed for {s}: {}", .{ collection, err });
+        const msg = switch (err) {
+            error.NotImplemented => "Migration not yet implemented in bridge",
+            error.NotInitialized => "Database not initialized",
+            else => "Failed to start migration",
+        };
+        const code: u8 = switch (err) {
+            error.NotImplemented => 12,
+            else => 13,
+        };
+        try sendGrpcError(allocator, request, code, msg);
+        return;
+    };
+
+    // Build StartMigrationResponse
+    // id (1), phase enum (2), collection (3), narrative (4)
     var encoder = ProtobufEncoder.init(allocator);
     defer encoder.deinit();
-    try encoder.writeString(1, "mig-001"); // id
-    try encoder.writeEnum(2, 0); // phase = ANNOUNCE
-    try encoder.writeString(4, "Migration announced"); // narrative
+
+    try encoder.writeString(1, migration.id);
+
+    // MigrationPhase enum: ANNOUNCE=0, SHADOW=1, SHADOW_COMPLETE=2, COMPLETE=3, ABORTED=4
+    const phase_enum: i32 = switch (migration.state) {
+        .announced => 0,
+        .shadow_running => 1,
+        .shadow_complete => 2,
+        .committed => 3,
+        .aborted => 4,
+    };
+    try encoder.writeEnum(2, phase_enum);
+    try encoder.writeString(3, migration.source_collection);
+    try encoder.writeString(4, migration.created_at);
+
     try sendGrpcResponse(allocator, request, encoder.finish());
 }
 
@@ -490,16 +640,17 @@ fn sendGrpcResponse(allocator: std.mem.Allocator, request: *std.http.Server.Requ
 
 fn sendGrpcError(allocator: std.mem.Allocator, request: *std.http.Server.Request, code: u8, message: []const u8) !void {
     _ = allocator;
-    _ = message;
 
     var code_buf: [8]u8 = undefined;
     const code_str = std.fmt.bufPrint(&code_buf, "{d}", .{code}) catch "0";
 
+    // gRPC conveys error details via grpc-status and grpc-message trailers
     request.respond("", .{
         .status = .ok,
         .extra_headers = &.{
             .{ .name = "content-type", .value = "application/grpc+proto" },
             .{ .name = "grpc-status", .value = code_str },
+            .{ .name = "grpc-message", .value = message },
         },
     }) catch {};
 }

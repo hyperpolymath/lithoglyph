@@ -314,8 +314,24 @@ const CreateCollectionRequest = struct {
 };
 
 fn handleDropCollection(request: *std.http.Server.Request, name: []const u8) !void {
-    _ = name;
-    // TODO: Connect to Form.Bridge
+    bridge.dropCollection(name) catch |err| {
+        log.err("Failed to drop collection {s}: {}", .{ name, err });
+
+        const error_response = switch (err) {
+            error.NotImplemented =>
+                \\{"error":"FDB_ERR_NOT_IMPLEMENTED","message":"Collection drop not yet implemented in bridge"}
+            ,
+            error.NotInitialized =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Database not initialized"}
+            ,
+            else =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Failed to drop collection"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+
     request.respond("", .{
         .status = .no_content,
     }) catch {};
@@ -330,36 +346,79 @@ fn handleJournal(
     request: *std.http.Server.Request,
     method: std.http.Method,
 ) !void {
-    _ = allocator;
-
     if (method != .GET) {
         try sendMethodNotAllowed(request);
         return;
     }
 
-    // TODO: Parse query params and connect to Form.Bridge
-    const response =
-        \\{
-        \\  "entries": [
-        \\    {
-        \\      "seq": 42,
-        \\      "timestamp": "2026-01-12T10:30:00Z",
-        \\      "operation": "insert",
-        \\      "collection": "articles",
-        \\      "documentId": "doc-123",
-        \\      "after": {"title": "Hello World", "status": "draft"},
-        \\      "provenance": {
-        \\        "actor": "editor@news.org",
-        \\        "rationale": "New article creation"
-        \\      },
-        \\      "inverse": "DELETE FROM articles WHERE _id = 'doc-123'"
-        \\    }
-        \\  ],
-        \\  "hasMore": false,
-        \\  "nextSeq": 43
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+    // Parse query parameters from the URL target
+    // Expected: ?since=<seq>&limit=<n>
+    const target = request.head.target;
+    var since: u64 = 0;
+    var limit: u32 = 100;
+
+    if (std.mem.indexOf(u8, target, "?")) |q_idx| {
+        const query_string = target[q_idx + 1 ..];
+        var param_iter = std.mem.splitScalar(u8, query_string, '&');
+        while (param_iter.next()) |param| {
+            if (std.mem.startsWith(u8, param, "since=")) {
+                since = std.fmt.parseInt(u64, param["since=".len..], 10) catch 0;
+            } else if (std.mem.startsWith(u8, param, "limit=")) {
+                limit = std.fmt.parseInt(u32, param["limit=".len..], 10) catch 100;
+            }
+        }
+    }
+
+    const entries = bridge.getJournal(since, limit) catch |err| {
+        log.err("Failed to get journal entries: {}", .{err});
+
+        const error_response = switch (err) {
+            error.NotInitialized =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Database not initialized"}
+            ,
+            error.JournalRenderFailed =>
+                \\{"error":"FDB_ERR_IO_ERROR","message":"Failed to render journal entries"}
+            ,
+            else =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Internal server error"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+    defer allocator.free(entries);
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.writeAll("{\"entries\":[");
+    for (entries, 0..) |entry, i| {
+        if (i > 0) try writer.writeByte(',');
+        try writer.print(
+            \\{{"seq":{d},"timestamp":"{s}","operation":"{s}"
+        , .{ entry.sequence, entry.timestamp, entry.operation });
+        if (entry.collection) |col| {
+            try writer.print(",\"collection\":\"{s}\"", .{col});
+        }
+        if (entry.actor) |act| {
+            try writer.print(",\"provenance\":{{\"actor\":\"{s}\"}}", .{act});
+        }
+        try writer.writeByte('}');
+    }
+
+    // Compute hasMore: if we got exactly `limit` entries, there may be more
+    const has_more = entries.len == limit;
+    // nextSeq is the sequence after the last entry, or `since` if no entries
+    const next_seq = if (entries.len > 0) entries[entries.len - 1].sequence + 1 else since;
+
+    try writer.print("],\"hasMore\":{s},\"nextSeq\":{d}}}", .{
+        if (has_more) "true" else "false",
+        next_seq,
+    });
+
+    try sendJson(request, .ok, response_buffer.items);
 }
 
 // =============================================================================
@@ -372,76 +431,147 @@ fn handleNormalize(
     method: std.http.Method,
     endpoint: []const u8,
 ) !void {
-    _ = allocator;
-
     if (method != .POST) {
         try sendMethodNotAllowed(request);
         return;
     }
 
     if (std.mem.indexOf(u8, endpoint, "/discover")) |_| {
-        try handleDiscover(request);
+        try handleDiscover(allocator, request);
     } else if (std.mem.indexOf(u8, endpoint, "/analyze")) |_| {
-        try handleAnalyze(request);
+        try handleAnalyze(allocator, request);
     } else {
         try sendNotFound(request);
     }
 }
 
-fn handleDiscover(request: *std.http.Server.Request) !void {
-    // TODO: Connect to Form.Normalizer
-    const response =
-        \\{
-        \\  "collection": "orders",
-        \\  "functionalDependencies": [
-        \\    {
-        \\      "determinant": ["order_id"],
-        \\      "dependent": "customer_id",
-        \\      "confidence": 1.0,
-        \\      "tier": "high"
-        \\    },
-        \\    {
-        \\      "determinant": ["customer_id"],
-        \\      "dependent": "customer_name",
-        \\      "confidence": 0.98,
-        \\      "tier": "high"
-        \\    }
-        \\  ],
-        \\  "candidateKeys": [["order_id"]]
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+fn handleDiscover(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {
+    // Read request body to get collection name and optional sample_size
+    var body_reader = try request.reader();
+    const body = try body_reader.readAllAlloc(allocator, 1024 * 1024);
+    defer allocator.free(body);
+
+    const parsed = json.parseFromSlice(DiscoverRequest, allocator, body, .{}) catch {
+        try sendBadRequest(request, "Invalid JSON in request body");
+        return;
+    };
+    defer parsed.deinit();
+
+    const req = parsed.value;
+    const sample_size = req.sample_size orelse 1000;
+
+    const deps = bridge.discoverDependencies(req.collection, sample_size) catch |err| {
+        log.err("Failed to discover dependencies for {s}: {}", .{ req.collection, err });
+
+        const error_response = switch (err) {
+            error.NotImplemented =>
+                \\{"error":"FDB_ERR_NOT_IMPLEMENTED","message":"Dependency discovery not yet implemented in bridge"}
+            ,
+            error.NotInitialized =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Database not initialized"}
+            ,
+            else =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Failed to discover functional dependencies"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+    defer allocator.free(deps);
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.print("{{\"collection\":\"{s}\",\"functionalDependencies\":[", .{req.collection});
+    for (deps, 0..) |dep, i| {
+        if (i > 0) try writer.writeByte(',');
+        // Write determinant array
+        try writer.writeAll("{\"determinant\":[");
+        for (dep.determinant, 0..) |det, j| {
+            if (j > 0) try writer.writeByte(',');
+            try writer.print("\"{s}\"", .{det});
+        }
+        // Classify confidence tier
+        const tier: []const u8 = if (dep.confidence >= 0.95) "high" else if (dep.confidence >= 0.8) "medium" else "low";
+        try writer.print("],\"dependent\":\"{s}\",\"confidence\":{d:.2},\"tier\":\"{s}\"}}", .{
+            dep.dependent,
+            dep.confidence,
+            tier,
+        });
+    }
+    try writer.writeAll("],\"candidateKeys\":[]}");
+
+    try sendJson(request, .ok, response_buffer.items);
 }
 
-fn handleAnalyze(request: *std.http.Server.Request) !void {
-    // TODO: Connect to Form.Normalizer
-    const response =
-        \\{
-        \\  "collection": "orders",
-        \\  "currentForm": "2NF",
-        \\  "violations": [
-        \\    {
-        \\      "type": "transitive_dependency",
-        \\      "description": "customer_name depends on customer_id, not order_id",
-        \\      "affectedFields": ["customer_id", "customer_name"]
-        \\    }
-        \\  ],
-        \\  "recommendations": [
-        \\    {
-        \\      "action": "decompose",
-        \\      "description": "Extract customer_name into customers table",
-        \\      "targetForm": "3NF",
-        \\      "migrationSteps": [
-        \\        "CREATE customers (customer_id, customer_name)",
-        \\        "INSERT INTO customers SELECT DISTINCT customer_id, customer_name FROM orders",
-        \\        "ALTER orders DROP customer_name"
-        \\      ]
-        \\    }
-        \\  ]
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+const DiscoverRequest = struct {
+    collection: []const u8,
+    sample_size: ?u32 = null,
+};
+
+fn handleAnalyze(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {
+    // Read request body to get collection name
+    var body_reader = try request.reader();
+    const body = try body_reader.readAllAlloc(allocator, 1024 * 1024);
+    defer allocator.free(body);
+
+    const parsed = json.parseFromSlice(AnalyzeRequest, allocator, body, .{}) catch {
+        try sendBadRequest(request, "Invalid JSON in request body");
+        return;
+    };
+    defer parsed.deinit();
+
+    const req = parsed.value;
+
+    const analysis = bridge.analyzeNormalForm(req.collection) catch |err| {
+        log.err("Failed to analyze normal form for {s}: {}", .{ req.collection, err });
+
+        const error_response = switch (err) {
+            error.NotImplemented =>
+                \\{"error":"FDB_ERR_NOT_IMPLEMENTED","message":"Normal form analysis not yet implemented in bridge"}
+            ,
+            error.NotInitialized =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Database not initialized"}
+            ,
+            else =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Failed to analyze normal form"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    try writer.print("{{\"collection\":\"{s}\",\"currentForm\":\"{s}\",\"violations\":[", .{
+        req.collection,
+        analysis.current_form,
+    });
+
+    for (analysis.violations, 0..) |violation, i| {
+        if (i > 0) try writer.writeByte(',');
+        try writer.print("\"{s}\"", .{violation});
+    }
+
+    try writer.writeAll("],\"recommendations\":[");
+    for (analysis.suggestions, 0..) |suggestion, i| {
+        if (i > 0) try writer.writeByte(',');
+        try writer.print("\"{s}\"", .{suggestion});
+    }
+
+    try writer.writeAll("]}");
+
+    try sendJson(request, .ok, response_buffer.items);
 }
+
+const AnalyzeRequest = struct {
+    collection: []const u8,
+};
 
 // =============================================================================
 // Migrate Handler
@@ -453,76 +583,157 @@ fn handleMigrate(
     method: std.http.Method,
     endpoint: []const u8,
 ) !void {
-    _ = allocator;
-
     if (method != .POST) {
         try sendMethodNotAllowed(request);
         return;
     }
 
     if (std.mem.indexOf(u8, endpoint, "/start")) |_| {
-        try handleMigrationStart(request);
+        try handleMigrationStart(allocator, request);
     } else if (std.mem.indexOf(u8, endpoint, "/shadow")) |_| {
-        try handleMigrationShadow(request);
+        try handleMigrationAdvance(allocator, request, .start_shadow);
     } else if (std.mem.indexOf(u8, endpoint, "/commit")) |_| {
-        try handleMigrationCommit(request);
+        try handleMigrationAdvance(allocator, request, .commit);
     } else if (std.mem.indexOf(u8, endpoint, "/abort")) |_| {
-        try handleMigrationAbort(request);
+        try handleMigrationAdvance(allocator, request, .abort);
     } else {
         try sendNotFound(request);
     }
 }
 
-fn handleMigrationStart(request: *std.http.Server.Request) !void {
-    const response =
-        \\{
-        \\  "id": "mig-001",
-        \\  "collection": "orders",
-        \\  "phase": "announce",
-        \\  "startedAt": "2026-01-12T10:30:00Z",
-        \\  "narrative": "Migration announced: Decomposing orders to achieve 3NF by extracting customer_name"
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+const MigrationStartRequest = struct {
+    collection: []const u8,
+    target_schema: ?[]const u8 = null,
+};
+
+const MigrationAdvanceRequest = struct {
+    id: []const u8,
+};
+
+fn handleMigrationStart(allocator: std.mem.Allocator, request: *std.http.Server.Request) !void {
+    // Read request body
+    var body_reader = try request.reader();
+    const body = try body_reader.readAllAlloc(allocator, 1024 * 1024);
+    defer allocator.free(body);
+
+    const parsed = json.parseFromSlice(MigrationStartRequest, allocator, body, .{}) catch {
+        try sendBadRequest(request, "Invalid JSON in request body");
+        return;
+    };
+    defer parsed.deinit();
+
+    const req = parsed.value;
+    const target_schema = req.target_schema orelse "{}";
+
+    const migration = bridge.startMigration(req.collection, target_schema) catch |err| {
+        log.err("Failed to start migration for {s}: {}", .{ req.collection, err });
+
+        const error_response = switch (err) {
+            error.NotImplemented =>
+                \\{"error":"FDB_ERR_NOT_IMPLEMENTED","message":"Migration not yet implemented in bridge"}
+            ,
+            error.NotInitialized =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Database not initialized"}
+            ,
+            else =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Failed to start migration"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+
+    // Build response JSON
+    var response_buffer = std.ArrayList(u8).init(allocator);
+    defer response_buffer.deinit();
+    const writer = response_buffer.writer();
+
+    const phase_str = switch (migration.state) {
+        .announced => "announce",
+        .shadow_running => "shadow",
+        .shadow_complete => "shadow_complete",
+        .committed => "complete",
+        .aborted => "aborted",
+    };
+
+    try writer.print(
+        \\{{"id":"{s}","collection":"{s}","phase":"{s}","startedAt":"{s}","narrative":"Migration announced for collection {s}"}}
+    , .{ migration.id, migration.source_collection, phase_str, migration.created_at, migration.source_collection });
+
+    try sendJson(request, .ok, response_buffer.items);
 }
 
-fn handleMigrationShadow(request: *std.http.Server.Request) !void {
-    const response =
-        \\{
-        \\  "id": "mig-001",
-        \\  "collection": "orders",
-        \\  "phase": "shadow",
-        \\  "startedAt": "2026-01-12T10:30:00Z",
-        \\  "narrative": "Shadow phase: Dual-writing to old and new schemas"
-        \\}
-    ;
-    try sendJson(request, .ok, response);
-}
+fn handleMigrationAdvance(allocator: std.mem.Allocator, request: *std.http.Server.Request, action: bridge.MigrationAction) !void {
+    // Read request body
+    var body_reader = try request.reader();
+    const body = try body_reader.readAllAlloc(allocator, 1024 * 1024);
+    defer allocator.free(body);
 
-fn handleMigrationCommit(request: *std.http.Server.Request) !void {
-    const response =
-        \\{
-        \\  "id": "mig-001",
-        \\  "collection": "orders",
-        \\  "phase": "complete",
-        \\  "startedAt": "2026-01-12T10:30:00Z",
-        \\  "narrative": "Migration complete: orders is now in 3NF"
-        \\}
-    ;
-    try sendJson(request, .ok, response);
-}
+    const parsed = json.parseFromSlice(MigrationAdvanceRequest, allocator, body, .{}) catch {
+        try sendBadRequest(request, "Invalid JSON in request body");
+        return;
+    };
+    defer parsed.deinit();
 
-fn handleMigrationAbort(request: *std.http.Server.Request) !void {
-    const response =
-        \\{
-        \\  "id": "mig-001",
-        \\  "collection": "orders",
-        \\  "phase": "aborted",
-        \\  "startedAt": "2026-01-12T10:30:00Z",
-        \\  "narrative": "Migration aborted: Rolled back to original schema"
-        \\}
-    ;
-    try sendJson(request, .ok, response);
+    const req = parsed.value;
+
+    bridge.advanceMigration(req.id, action) catch |err| {
+        log.err("Failed to advance migration {s}: {}", .{ req.id, err });
+
+        const error_response = switch (err) {
+            error.NotImplemented =>
+                \\{"error":"FDB_ERR_NOT_IMPLEMENTED","message":"Migration advancement not yet implemented in bridge"}
+            ,
+            error.NotInitialized =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Database not initialized"}
+            ,
+            else =>
+                \\{"error":"FDB_ERR_INTERNAL","message":"Failed to advance migration"}
+            ,
+        };
+        try sendJson(request, .internal_server_error, error_response);
+        return;
+    };
+
+    // Retrieve updated migration state
+    const migration = bridge.getMigration(req.id) catch |err| {
+        log.err("Failed to get migration {s} after advance: {}", .{ req.id, err });
+        // The advance succeeded but we cannot read back the state; return minimal confirmation
+        const phase_str = switch (action) {
+            .start_shadow => "shadow",
+            .commit => "complete",
+            .abort => "aborted",
+        };
+        var response_buffer = std.ArrayList(u8).init(allocator);
+        defer response_buffer.deinit();
+        try response_buffer.writer().print(
+            \\{{"id":"{s}","phase":"{s}","narrative":"Migration phase advanced"}}
+        , .{ req.id, phase_str });
+        try sendJson(request, .ok, response_buffer.items);
+        return;
+    };
+
+    if (migration) |mig| {
+        var response_buffer = std.ArrayList(u8).init(allocator);
+        defer response_buffer.deinit();
+        const writer = response_buffer.writer();
+
+        const phase_str = switch (mig.state) {
+            .announced => "announce",
+            .shadow_running => "shadow",
+            .shadow_complete => "shadow_complete",
+            .committed => "complete",
+            .aborted => "aborted",
+        };
+
+        try writer.print(
+            \\{{"id":"{s}","collection":"{s}","phase":"{s}","startedAt":"{s}","narrative":"Migration phase: {s}"}}
+        , .{ mig.id, mig.source_collection, phase_str, mig.created_at, phase_str });
+
+        try sendJson(request, .ok, response_buffer.items);
+    } else {
+        try sendNotFound(request);
+    }
 }
 
 // =============================================================================
@@ -576,7 +787,7 @@ fn sendJson(request: *std.http.Server.Request, status: std.http.Status, body: []
 }
 
 fn sendBadRequest(request: *std.http.Server.Request, message: []const u8) !void {
-    _ = message;
+    _ = message; // Message content not embedded in JSON to avoid injection; using static response
     const body =
         \\{"error":"bad_request","message":"Invalid request"}
     ;

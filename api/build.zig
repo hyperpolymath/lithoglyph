@@ -40,12 +40,13 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     // Tests
+    const test_mod = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
     const unit_tests = b.addTest(.{
-        .root_module = .{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        },
+        .root_module = test_mod,
     });
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
@@ -68,12 +69,13 @@ pub fn build(b: *std.Build) void {
     };
 
     for (modules) |mod| {
+        const mod_mod = b.createModule(.{
+            .root_source_file = b.path(mod),
+            .target = target,
+            .optimize = optimize,
+        });
         const mod_test = b.addTest(.{
-            .root_module = .{
-                .root_source_file = b.path(mod),
-                .target = target,
-                .optimize = optimize,
-            },
+            .root_module = mod_mod,
         });
         const run_mod_test = b.addRunArtifact(mod_test);
         test_step.dependOn(&run_mod_test.step);

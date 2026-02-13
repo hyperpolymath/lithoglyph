@@ -14,9 +14,10 @@
 *.fs~
 *.4th~
 
-# Zig
+# Zig (all cache locations)
 zig-cache/
 zig-out/
+.zig-cache/
 
 # Factor
 .factor-rc
@@ -64,7 +65,19 @@ normalizer/lean/.lake/
 .env
 .env.local
 formdb/
-core-zig/.zig-cache/
+
+# Compiled binaries
+demo-server
+
+# Sealed container images (build artifacts)
+*.ctp
+
+# Legacy naming artifacts
+formbd
+
+# Historical documentation (FormDB IP rename)
+Form and Formbase.txt
+FormDB .txt
 
 # Node modules (satellite components)
 node_modules/
@@ -89,9 +102,9 @@ sync_repos_report*.txt
 # Satellite build artifacts
 studio/node_modules/
 studio/dist/
-studio/.zig-cache/
 geo/target/
 beam/ebin/
+beam/native_rust/target/
 
 # Test package artifacts
 tests/*/node_modules/

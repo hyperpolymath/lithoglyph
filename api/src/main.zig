@@ -45,16 +45,12 @@ pub fn main() !void {
     };
     defer bridge_client.deinit();
 
-    // Create HTTP server
-    var server = std.http.Server.init(allocator, .{
-        .reuse_address = true,
-        .reuse_port = true,
-    });
-    defer server.deinit();
-
-    // Listen on configured address
+    // Create TCP listener (Zig 0.15.2 API)
     const address = try std.net.Address.parseIp(cfg.host, cfg.port);
-    try server.listen(address);
+    var tcp_server = try address.listen(.{
+        .reuse_address = true,
+    });
+    defer tcp_server.deinit();
 
     log.info("Server started successfully", .{});
     log.info("  REST API:    http://{s}:{d}/v1/", .{ cfg.host, cfg.port });
@@ -65,30 +61,37 @@ pub fn main() !void {
 
     // Accept connections
     while (true) {
-        var conn = server.accept() catch |err| {
+        const conn = tcp_server.accept() catch |err| {
             log.err("Accept error: {}", .{err});
             continue;
         };
 
         // Spawn handler thread
-        _ = try std.Thread.spawn(.{}, handleConnection, .{ allocator, &conn, cfg });
+        _ = try std.Thread.spawn(.{}, handleConnection, .{ allocator, conn, cfg });
     }
 }
 
-fn handleConnection(allocator: std.mem.Allocator, conn: *std.http.Server.Connection, cfg: *const config.Config) void {
-    defer conn.deinit();
+fn handleConnection(allocator: std.mem.Allocator, conn: std.net.Server.Connection, cfg: *const config.Config) void {
+    defer conn.stream.close();
 
-    while (true) {
-        var request = conn.receiveHead() catch |err| {
-            if (err == error.ConnectionResetByPeer or err == error.EndOfStream) {
+    // Create HTTP server from connection stream (Zig 0.15.2 API)
+    var recv_buffer: [8192]u8 = undefined;
+    var send_buffer: [8192]u8 = undefined;
+    var conn_reader = conn.stream.reader(&recv_buffer);
+    var conn_writer = conn.stream.writer(&send_buffer);
+    var http = std.http.Server.init(conn_reader.interface(), &conn_writer.interface);
+
+    while (http.reader.state == .ready) {
+        var request = http.receiveHead() catch |err| switch (err) {
+            error.HttpConnectionClosing => return,
+            else => {
+                log.err("Receive error: {s}", .{@errorName(err)});
                 return;
-            }
-            log.err("Receive error: {}", .{err});
-            return;
+            },
         };
 
         handleRequest(allocator, &request, cfg) catch |err| {
-            log.err("Handle error: {}", .{err});
+            log.err("Handle error: {s}", .{@errorName(err)});
             return;
         };
     }

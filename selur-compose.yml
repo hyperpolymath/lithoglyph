@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Lithoglyph local development stack
+#
+# Usage:
+#   podman-compose -f selur-compose.yml up formdb        # production-like
+#   podman-compose -f selur-compose.yml up formdb-dev    # development mode
+#
+# Requires: podman, podman-compose (or selur-compose)
+# NEVER use Docker — use Podman exclusively.
+
+version: "3"
+
+services:
+  # ---------------------------------------------------------------------------
+  # formdb — Production-like API server from the Containerfile
+  # ---------------------------------------------------------------------------
+  formdb:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: lithoglyph-formdb
+    ports:
+      - "8080:8080"
+    environment:
+      # Auth token MUST be set — see api/src/auth.zig
+      - LITHOGLYPH_AUTH_TOKEN=${LITHOGLYPH_AUTH_TOKEN:-}
+      # Database path inside the container
+      - FORMDB_DB_PATH=/data/lithoglyph/formdb.dat
+      # Optional JWT secret for Bearer token auth
+      - FORMDB_JWT_SECRET=${FORMDB_JWT_SECRET:-}
+      # Bind to all interfaces inside the container
+      - FORMDB_HOST=0.0.0.0
+      - FORMDB_PORT=8080
+    volumes:
+      - formdb-data:/data/lithoglyph
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # formdb-dev — Development mode with source volume mounts for live reload
+  # ---------------------------------------------------------------------------
+  formdb-dev:
+    build:
+      context: .
+      dockerfile: Containerfile
+      target: builder
+    container_name: lithoglyph-formdb-dev
+    ports:
+      - "8081:8080"
+    environment:
+      - LITHOGLYPH_AUTH_TOKEN=${LITHOGLYPH_AUTH_TOKEN:-dev-token-local}
+      - FORMDB_DB_PATH=/build/dev-data/formdb.dat
+      - FORMDB_JWT_SECRET=${FORMDB_JWT_SECRET:-dev-secret-not-for-production}
+      - FORMDB_HOST=0.0.0.0
+      - FORMDB_PORT=8080
+      - FORMDB_REQUIRE_AUTH=false
+    volumes:
+      # Mount source directories for live development
+      - ./core-zig:/build/core-zig:z
+      - ./api:/build/api:z
+      - ./demo-server.zig:/build/demo-server.zig:z
+      - formdb-dev-data:/build/dev-data
+    working_dir: /build
+    # In dev mode, rebuild and run on container start
+    command: >
+      sh -c "
+        cd /build/core-zig && zig build &&
+        cd /build && zig build-exe demo-server.zig -lc -O Debug &&
+        ./demo-server
+      "
+    restart: "no"
+
+volumes:
+  formdb-data:
+    driver: local
+  formdb-dev-data:
+    driver: local

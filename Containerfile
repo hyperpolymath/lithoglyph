@@ -1,7 +1,17 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
-# Lithoglyph - Immutable Content-Addressable Database
-# Multi-stage build for optimized production image
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
+#
+# Lithoglyph FormDB — Container build
+# Base: Chainguard wolfi (NEVER debian/ubuntu)
+#
+# Build with: podman build -t lithoglyph-formdb -f Containerfile .
+# Run with:   podman run -p 8080:8080 lithoglyph-formdb
+#
+# Multi-stage build: wolfi-base for compilation, static for minimal runtime.
 
+# =============================================================================
+# Stage 1: Build — install Zig, compile core-zig bridge and demo-server
+# =============================================================================
 FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 # Install build dependencies
@@ -21,52 +31,38 @@ WORKDIR /build
 COPY core-zig/ /build/core-zig/
 COPY demo-server.zig /build/
 
-# Build libbridge.so
+# Build core-zig using the build system (produces static + shared libs)
 WORKDIR /build/core-zig
+RUN zig build -Doptimize=ReleaseFast
+
+# Also build standalone shared library for FFI consumers
 RUN zig build-lib src/bridge.zig -dynamic -lc -O ReleaseFast
 
-# Build demo-server
+# Build demo-server (the API binary)
 WORKDIR /build
 RUN zig build-exe demo-server.zig -lc -O ReleaseFast
 
-# Production stage
-FROM cgr.dev/chainguard/wolfi-base:latest
-
-# Install runtime dependencies
-RUN apk add --no-cache \
-    libgcc \
-    curl \
-    ca-certificates
-
-# Create non-root user
-RUN addgroup -g 1000 lithoglyph && \
-    adduser -D -u 1000 -G lithoglyph lithoglyph
-
-# Create data directory
-RUN mkdir -p /data/lithoglyph && \
-    chown -R lithoglyph:lithoglyph /data/lithoglyph
+# =============================================================================
+# Stage 2: Runtime — minimal static image with only the binary
+# =============================================================================
+FROM cgr.dev/chainguard/static:latest
 
 WORKDIR /app
 
-# Copy built binaries from builder
+# Copy only the compiled binary and shared library from builder
 COPY --from=builder /build/demo-server /app/
 COPY --from=builder /build/core-zig/libbridge.so /app/
 
-# Set ownership
-RUN chown -R lithoglyph:lithoglyph /app
-
-# Switch to non-root user
-USER lithoglyph
-
-# Set library path
+# Set library path so the binary can find libbridge.so
 ENV LD_LIBRARY_PATH=/app
+
+# Auth token must be provided at runtime via environment variable.
+# Example: podman run -e LITHOGLYPH_AUTH_TOKEN=<token> ...
+# See api/src/auth.zig for details.
+# ENV LITHOGLYPH_AUTH_TOKEN=  (intentionally not set — must be provided)
 
 # Expose API port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
-
-# Run server
-CMD ["/app/demo-server"]
+# Run server as the default entrypoint
+ENTRYPOINT ["/app/demo-server"]

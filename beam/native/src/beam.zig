@@ -132,6 +132,10 @@ pub fn get_resource(e: ?*env, t: term, comptime T: type, rt: ?*resource_type) !*
 pub fn alloc_resource(e: ?*env, obj: anytype, rt: ?*resource_type) !term {
     const T = @TypeOf(obj.*);
     const res_ptr = enif_alloc_resource(rt, @sizeOf(T)) orelse return error.AllocFailed;
+    // SAFETY: res_ptr comes from enif_alloc_resource() which allocates @sizeOf(T)
+    // bytes with alignment sufficient for any C type. Since T is a Zig struct used
+    // as a NIF resource, the BEAM allocator guarantees at least max_align_t alignment
+    // which satisfies @alignOf(T). The pointer is valid until enif_release_resource().
     const typed_ptr: *T = @ptrCast(@alignCast(res_ptr));
     typed_ptr.* = obj.*;
     return enif_make_resource(e, res_ptr);

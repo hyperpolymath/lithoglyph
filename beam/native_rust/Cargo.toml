@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <jonathan.jewell@open.ac.uk>
 [package]
 name = "formdb_nif"
 version = "1.0.0"
 edition = "2021"
 authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
+description = "Lithoglyph BEAM NIF - Rust/Rustler bridge to the FormBD C ABI"
 
 [lib]
 name = "formdb_nif"
@@ -11,3 +13,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rustler = "0.35"
+
+# Link against libformbd (the core Zig FFI bridge).
+# Set FORMBD_LIB_DIR to the directory containing libformbd.so
+# at build time, or place it in a standard library search path.
+[package.metadata.formbd]
+link = "formbd"

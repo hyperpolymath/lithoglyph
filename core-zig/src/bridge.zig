@@ -161,7 +161,7 @@ fn createErrorBlob(status: LgStatus, message: []const u8) LgBlob {
 /// @param out_db Output parameter for database handle
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_db_open(
+pub export fn fdb_db_open(
     path_ptr: [*]const u8,
     path_len: usize,
     opts_ptr: ?[*]const u8,
@@ -206,6 +206,10 @@ export fn fdb_db_open(
         return .err_internal;
     };
 
+    // SAFETY: db is a freshly-allocated *DbState from global_allocator.create() above,
+    // registered in db_registry. Cast to opaque *LgDb is safe because callers only
+    // pass it back through C ABI functions that cast it back to *DbState after
+    // validating the handle exists in db_registry.
     out_db.* = @ptrCast(db);
     out_err.* = LgBlob.empty();
     return .ok;
@@ -215,7 +219,11 @@ export fn fdb_db_open(
 ///
 /// @param db Database handle
 /// @return Status code
-export fn fdb_db_close(db: ?*LgDb) LgStatus {
+pub export fn fdb_db_close(db: ?*LgDb) LgStatus {
+    // SAFETY: db was originally a *DbState allocated by global_allocator.create()
+    // in fdb_db_open, then cast to *LgDb. The orelse guards null. Alignment is
+    // guaranteed because DbState was heap-allocated with proper alignment by the GPA.
+    // The subsequent db_registry.contains() check validates the pointer is still live.
     const state: *DbState = @ptrCast(@alignCast(db orelse return .err_invalid_argument));
 
     if (!db_registry.contains(state)) {
@@ -252,12 +260,16 @@ export fn fdb_db_close(db: ?*LgDb) LgStatus {
 /// @param out_txn Output parameter for transaction handle
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_txn_begin(
+pub export fn fdb_txn_begin(
     db: ?*LgDb,
     mode: LgTxnMode,
     out_txn: *?*LgTxn,
     out_err: *LgBlob,
 ) LgStatus {
+    // SAFETY: db was originally a *DbState from fdb_db_open, cast to opaque *LgDb.
+    // The orelse guards null. Alignment is safe because DbState was heap-allocated
+    // by global_allocator.create() which respects @alignOf(DbState). The
+    // db_registry.contains() check below validates the pointer is still registered.
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -289,6 +301,10 @@ export fn fdb_txn_begin(
         return .err_internal;
     };
 
+    // SAFETY: txn is a freshly-allocated *TxnState from global_allocator.create()
+    // above, registered in txn_registry. Cast to opaque *LgTxn is safe because
+    // callers only pass it back through C ABI functions that cast it back to
+    // *TxnState after validating the handle exists in txn_registry.
     out_txn.* = @ptrCast(txn);
     out_err.* = LgBlob.empty();
     return .ok;
@@ -299,7 +315,11 @@ export fn fdb_txn_begin(
 /// @param txn Transaction handle
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_txn_commit(txn: ?*LgTxn, out_err: *LgBlob) LgStatus {
+pub export fn fdb_txn_commit(txn: ?*LgTxn, out_err: *LgBlob) LgStatus {
+    // SAFETY: txn was originally a *TxnState from fdb_txn_begin, cast to opaque
+    // *LgTxn. The orelse guards null. Alignment is safe because TxnState was
+    // heap-allocated by global_allocator.create(). The txn_registry.contains()
+    // check below validates the pointer is still a live, registered handle.
     const state: *TxnState = @ptrCast(@alignCast(txn orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid transaction handle");
         return .err_invalid_argument;
@@ -370,7 +390,11 @@ export fn fdb_txn_commit(txn: ?*LgTxn, out_err: *LgBlob) LgStatus {
 ///
 /// @param txn Transaction handle
 /// @return Status code
-export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
+pub export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
+    // SAFETY: txn was originally a *TxnState from fdb_txn_begin, cast to opaque
+    // *LgTxn. The orelse guards null. Alignment is safe because TxnState was
+    // heap-allocated by global_allocator.create(). The txn_registry.contains()
+    // check below validates the pointer is still a live, registered handle.
     const state: *TxnState = @ptrCast(@alignCast(txn orelse return .err_invalid_argument));
 
     if (!txn_registry.contains(state)) {
@@ -399,11 +423,15 @@ export fn fdb_txn_abort(txn: ?*LgTxn) LgStatus {
 /// @param op_len Length of data
 /// @return Result containing block ID and status
 /// Apply an operation within a transaction (buffered — not written until commit)
-export fn fdb_apply(
+pub export fn fdb_apply(
     txn: ?*LgTxn,
     op_ptr: [*]const u8,
     op_len: usize,
 ) LgResult {
+    // SAFETY: txn was originally a *TxnState from fdb_txn_begin, cast to opaque
+    // *LgTxn. The orelse guards null. Alignment is safe because TxnState was
+    // heap-allocated by global_allocator.create(). The txn_registry.contains()
+    // check below validates the pointer is still a live, registered handle.
     const state: *TxnState = @ptrCast(@alignCast(txn orelse {
         return LgResult.err(.err_invalid_argument, createErrorBlob(.err_invalid_argument, "Invalid transaction"));
     }));
@@ -475,13 +503,17 @@ export fn fdb_apply(
 }
 
 /// Update an existing block within a transaction (buffered)
-export fn fdb_update_block(
+pub export fn fdb_update_block(
     txn: ?*LgTxn,
     block_id: u64,
     data_ptr: [*]const u8,
     data_len: usize,
     out_err: *LgBlob,
 ) LgStatus {
+    // SAFETY: txn was originally a *TxnState from fdb_txn_begin, cast to opaque
+    // *LgTxn. The orelse guards null. Alignment is safe because TxnState was
+    // heap-allocated by global_allocator.create(). State validity is checked
+    // immediately after via is_active and mode fields.
     const state: *TxnState = @ptrCast(@alignCast(txn orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid transaction");
         return .err_invalid_argument;
@@ -532,11 +564,15 @@ export fn fdb_update_block(
 }
 
 /// Delete a block within a transaction (buffered)
-export fn fdb_delete_block(
+pub export fn fdb_delete_block(
     txn: ?*LgTxn,
     block_id: u64,
     out_err: *LgBlob,
 ) LgStatus {
+    // SAFETY: txn was originally a *TxnState from fdb_txn_begin, cast to opaque
+    // *LgTxn. The orelse guards null. Alignment is safe because TxnState was
+    // heap-allocated by global_allocator.create(). State validity is checked
+    // immediately after via is_active and mode fields.
     const state: *TxnState = @ptrCast(@alignCast(txn orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid transaction");
         return .err_invalid_argument;
@@ -558,12 +594,16 @@ export fn fdb_delete_block(
 
 /// Read all blocks of a given type (full scan for PoC)
 /// Returns JSON array of objects with block_id and data fields.
-export fn fdb_read_blocks(
+pub export fn fdb_read_blocks(
     db: ?*LgDb,
     block_type: u16,
     out_data: *LgBlob,
     out_err: *LgBlob,
 ) LgStatus {
+    // SAFETY: db was originally a *DbState from fdb_db_open, cast to opaque *LgDb.
+    // The orelse guards null. Alignment is safe because DbState was heap-allocated
+    // by global_allocator.create(). The db_registry.contains() check below validates
+    // the pointer is still a live, registered handle.
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -658,7 +698,7 @@ export fn fdb_read_blocks(
 /// @param out_text Output parameter for text blob
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_render_block(
+pub export fn fdb_render_block(
     db: ?*LgDb,
     block_id: u64,
     opts: LgRenderOpts,
@@ -667,6 +707,10 @@ export fn fdb_render_block(
 ) LgStatus {
     _ = opts;
 
+    // SAFETY: db was originally a *DbState from fdb_db_open, cast to opaque *LgDb.
+    // The orelse guards null. Alignment is safe because DbState was heap-allocated
+    // by global_allocator.create(). The db_registry.contains() check below validates
+    // the pointer is still a live, registered handle.
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -722,7 +766,7 @@ export fn fdb_render_block(
 /// @param out_text Output parameter for text blob
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_render_journal(
+pub export fn fdb_render_journal(
     db: ?*LgDb,
     since: u64,
     opts: LgRenderOpts,
@@ -731,6 +775,10 @@ export fn fdb_render_journal(
 ) LgStatus {
     _ = opts;
 
+    // SAFETY: db was originally a *DbState from fdb_db_open, cast to opaque *LgDb.
+    // The orelse guards null. Alignment is safe because DbState was heap-allocated
+    // by global_allocator.create(). The db_registry.contains() check below validates
+    // the pointer is still a live, registered handle.
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -770,11 +818,15 @@ export fn fdb_render_journal(
 /// @param out_schema Output parameter for schema blob
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_introspect_schema(
+pub export fn fdb_introspect_schema(
     db: ?*LgDb,
     out_schema: *LgBlob,
     out_err: *LgBlob,
 ) LgStatus {
+    // SAFETY: db was originally a *DbState from fdb_db_open, cast to opaque *LgDb.
+    // The orelse guards null. Alignment is safe because DbState was heap-allocated
+    // by global_allocator.create(). The db_registry.contains() check below validates
+    // the pointer is still a live, registered handle.
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -813,11 +865,15 @@ export fn fdb_introspect_schema(
 /// @param out_constraints Output parameter for constraints blob
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_introspect_constraints(
+pub export fn fdb_introspect_constraints(
     db: ?*LgDb,
     out_constraints: *LgBlob,
     out_err: *LgBlob,
 ) LgStatus {
+    // SAFETY: db was originally a *DbState from fdb_db_open, cast to opaque *LgDb.
+    // The orelse guards null. Alignment is safe because DbState was heap-allocated
+    // by global_allocator.create(). The db_registry.contains() check below validates
+    // the pointer is still a live, registered handle.
     const state: *DbState = @ptrCast(@alignCast(db orelse {
         out_err.* = createErrorBlob(.err_invalid_argument, "Invalid database handle");
         return .err_invalid_argument;
@@ -868,7 +924,7 @@ var verifier_registry = std.StringHashMap(VerifierEntry).init(global_allocator);
 /// @param callback Verification function
 /// @param context Optional context passed to callback
 /// @return Status code
-export fn fdb_proof_register_verifier(
+pub export fn fdb_proof_register_verifier(
     type_ptr: [*]const u8,
     type_len: usize,
     callback: LgProofVerifier,
@@ -899,7 +955,7 @@ export fn fdb_proof_register_verifier(
 /// @param type_ptr Proof type identifier
 /// @param type_len Length of type identifier
 /// @return Status code
-export fn fdb_proof_unregister_verifier(
+pub export fn fdb_proof_unregister_verifier(
     type_ptr: [*]const u8,
     type_len: usize,
 ) LgStatus {
@@ -920,7 +976,7 @@ export fn fdb_proof_unregister_verifier(
 /// @param out_valid Output: true if proof is valid
 /// @param out_err Output parameter for error blob
 /// @return Status code
-export fn fdb_proof_verify(
+pub export fn fdb_proof_verify(
     proof_ptr: [*]const u8,
     proof_len: usize,
     out_valid: *bool,
@@ -1006,7 +1062,7 @@ fn builtin_normalization_verifier(
 }
 
 /// Initialize built-in proof verifiers
-export fn fdb_proof_init_builtins() LgStatus {
+pub export fn fdb_proof_init_builtins() LgStatus {
     // Register FD-holds verifier
     const fd_type = "fd-holds";
     var status = fdb_proof_register_verifier(fd_type.ptr, fd_type.len, builtin_fd_verifier, null);
@@ -1031,7 +1087,7 @@ export fn fdb_proof_init_builtins() LgStatus {
 /// Free a blob allocated by the bridge
 ///
 /// @param blob Blob to free
-export fn fdb_blob_free(blob: *LgBlob) void {
+pub export fn fdb_blob_free(blob: *LgBlob) void {
     if (blob.toSlice()) |slice| {
         global_allocator.free(@constCast(slice));
     }
@@ -1041,7 +1097,7 @@ export fn fdb_blob_free(blob: *LgBlob) void {
 /// Get FormDB version
 ///
 /// @return Version as encoded integer (major * 10000 + minor * 100 + patch)
-export fn fdb_version() u32 {
+pub export fn fdb_version() u32 {
     return 0 * 10000 + 1 * 100 + 0; // 0.1.0
 }
 

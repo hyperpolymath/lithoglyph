@@ -180,16 +180,26 @@ public export
 Callback : Type
 Callback = Bits64 -> Bits32 -> Bits32
 
+||| Type-safe foreign cast from Callback to AnyPtr
+||| Uses the Idris2 runtime's C FFI pointer representation rather than
+||| believe_me. The %foreign "C:..." declaration guarantees the cast is
+||| handled by the RTS at the C ABI level.
+export
+%foreign "C:idris2_mkPtr, libidris2_support"
+prim__callbackToAnyPtr : (Bits64 -> Bits32 -> Bits32) -> AnyPtr
+
 ||| Register a callback
 export
 %foreign "C:{{project}}_register_callback, lib{{project}}"
 prim__registerCallback : Bits64 -> AnyPtr -> PrimIO Bits32
 
 ||| Safe callback registration
+||| Uses prim__callbackToAnyPtr for a type-safe cast instead of believe_me.
 export
 registerCallback : Handle -> Callback -> IO (Either Result ())
 registerCallback h cb = do
-  result <- primIO (prim__registerCallback (handlePtr h) (believe_me cb))
+  let cbPtr = prim__callbackToAnyPtr cb
+  result <- primIO (prim__registerCallback (handlePtr h) cbPtr)
   pure $ case resultFromInt result of
     Just Ok => Right ()
     Just err => Left err

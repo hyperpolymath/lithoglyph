@@ -15,6 +15,10 @@ Additional artefact:
 
 - `AI.djot`: AI Assistant behavioural and operational instructions.
 
+## Critical: IP Rename Pending
+
+Code still uses `FormBD`/`FormDB` internally. Must rename to `Lith`/`Litho`/`Lithoglyph` before public release due to IP claim on "Form". Keep "form" only where it literally means HTML/data forms.
+
 ## Repository Roots
 
 - Local repository root: `/var/mnt/eclipse/repos`
