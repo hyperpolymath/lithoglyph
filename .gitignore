@@ -55,3 +55,6 @@ Thumbs.db
 .env.local
 formdb/
 core-zig/.zig-cache/
+
+# Crash recovery artifacts
+ai-cli-crash-capture/
