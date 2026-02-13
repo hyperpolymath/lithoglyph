@@ -9,31 +9,13 @@ API for creating verified normalization and denormalization steps.
 Part of Lithoglyph: Stone-carved data for the ages.
 -/
 
--- Note: In a full Lean project, these would be proper imports:
--- import FunDep
--- import Bridge
--- For now, we inline the necessary type references
+import FunDep
+import Bridge
+
+open Lithoglyph.Normalizer
+open Lithoglyph.Bridge
 
 namespace Lithoglyph.Normalizer.Proofs
-
--- Re-export from FunDep namespace
-open Lithoglyph.Normalizer in
-export Lithoglyph.Normalizer (
-  Attribute Schema Tuple Relation
-  FunDep FDHolds NFViolation
-  NormalizationStep Decomposition
-  DenormalizationStep LosslessDenormalization QueryEquivalent
-  MigrationPhase MigrationConfig MigrationState
-  startMigration advanceToShadow advanceToCommit
-)
-
--- Re-export from Bridge namespace
-open Lithoglyph.Bridge in
-export Lithoglyph.Bridge (
-  FdbStatus FdbBlob CborEncoder Proof VerificationResult
-  encodeFDProof encodeNormalizationProof encodeDenormalizationProof
-  verifyProofPure
-)
 
 /-! # Verified FD Discovery -/
 
@@ -155,7 +137,7 @@ def createVerifiedDenormalization
     (joinAttrs : List Attribute)
     (rationale : String) : IO VerifiedDenormalizationStep := do
   let merged : Schema := {
-    attributes := sources.bind (·.attributes) |>.eraseDups
+    attributes := (sources.map (·.attributes)).flatten |>.eraseDups
     candidateKeys := []
   }
 

@@ -141,6 +141,7 @@ structure NormalizationStep where
   joinAttributes : List Attribute
   /-- Narrative explanation -/
   narrative : String
+  deriving Repr
 
 /-- Proof that a decomposition is lossless (can be reversed via join) -/
 structure LosslessDecomposition (d : Decomposition) : Prop where
@@ -215,6 +216,7 @@ structure DenormalizationStep where
   performanceRationale : String
   /-- Narrative explanation -/
   narrative : String
+  deriving Repr
 
 /-- Proof that a denormalization is lossless (can be split back) -/
 structure LosslessDenormalization (d : DenormalizationStep) : Prop where
@@ -242,7 +244,7 @@ def createDenormalization
     (joinAttrs : List Attribute)
     (rationale : String) : DenormalizationStep :=
   let merged := {
-    attributes := sources.bind (·.attributes) |>.eraseDups
+    attributes := (sources.map (·.attributes)).flatten |>.eraseDups
     candidateKeys := []  -- Would compute from sources
   }
   {
@@ -274,6 +276,7 @@ structure MigrationConfig where
   shadowDuration : Nat := 7
   /-- Whether to auto-commit after shadow phase -/
   autoCommit : Bool := false
+  deriving Repr
 
 /-- A migration state tracking progress through phases -/
 structure MigrationState where
@@ -291,6 +294,7 @@ structure MigrationState where
   journalEntry : Nat
   /-- Configuration -/
   config : MigrationConfig
+  deriving Repr
 
 /-- Start a migration in announce phase -/
 def startMigration

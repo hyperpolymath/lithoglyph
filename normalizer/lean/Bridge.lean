@@ -12,6 +12,10 @@ Decision D-NORM-004: Form.Bridge exports proof verification FFI
 
 namespace Lithoglyph.Bridge
 
+/-! # ByteArray Repr instance (not provided by Lean stdlib) -/
+instance : Repr ByteArray where
+  reprPrec ba _ := s!"ByteArray.mk #[{", ".intercalate (ba.toList.map toString)}]"
+
 /-! # Status Codes -/
 
 /-- Status codes from Form.Bridge C ABI -/

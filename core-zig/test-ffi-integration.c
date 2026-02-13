@@ -33,6 +33,12 @@ typedef enum {
     LG_ERR_TXN_ALREADY_COMMITTED = 7,
 } LgStatus;
 
+// Render options (matching bridge.zig LgRenderOpts)
+typedef struct {
+    int format;
+    bool include_metadata;
+} LgRenderOpts;
+
 // FFI function declarations (matching bridge.zig exports)
 extern int fdb_version(void);
 extern int fdb_db_open(const uint8_t* path, size_t path_len, const uint8_t* opts, size_t opts_len, void** out_db, LgBlob* out_err);
@@ -42,7 +48,7 @@ extern int fdb_txn_commit(void* txn, LgBlob* out_err);
 extern int fdb_txn_abort(void* txn, LgBlob* out_err);
 extern LgResult fdb_apply(void* txn, const uint8_t* op, size_t op_len);
 extern int fdb_introspect_schema(void* db, LgBlob* out_schema, LgBlob* out_err);
-extern int fdb_render_journal(void* db, uint64_t since, LgBlob* out_text, LgBlob* out_err);
+extern int fdb_render_journal(void* db, uint64_t since, LgRenderOpts opts, LgBlob* out_text, LgBlob* out_err);
 extern void fdb_blob_free(LgBlob* blob);
 
 // Helper functions
@@ -225,7 +231,8 @@ int test_introspection() {
     // Get journal
     printf("Getting journal\n");
     LgBlob journal = {0};
-    status = fdb_render_journal(db, 0, &journal, &err);
+    LgRenderOpts render_opts = { .format = 0, .include_metadata = false };
+    status = fdb_render_journal(db, 0, render_opts, &journal, &err);
     if (status != LG_OK) {
         print_blob("Error", &err);
         free_blob_if_needed(&err);

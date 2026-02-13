@@ -9,6 +9,10 @@ defaultTargets = ["FormNormalizer"]
 name = "FormNormalizer"
 roots = ["FunDep", "Bridge", "Proofs"]
 
+[[lean_exe]]
+name = "tests"
+root = "Tests"
+
 # Link to the Zig bridge library for FFI
 # The bridge is built as libformdb_bridge.so/dylib/dll
 # [lean_exe.FormNormalizerCLI]

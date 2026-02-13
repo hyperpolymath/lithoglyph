@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
-// Form.Bridge - Build Configuration
+// Form.Bridge - Build Configuration (Zig 0.15.2+)
 
 const std = @import("std");
 
@@ -7,25 +7,27 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Main library
-    const lib = b.addStaticLibrary(.{
+    // Main static library
+    const lib = b.addLibrary(.{
         .name = "formdb_bridge",
-        .root_source_file = b.path("src/bridge.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/bridge.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+        .linkage = .static,
     });
 
     // Also build shared library for FFI
-    const shared_lib = b.addSharedLibrary(.{
+    const shared_lib = b.addLibrary(.{
         .name = "formdb_bridge",
-        .root_source_file = b.path("src/bridge.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/bridge.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+        .linkage = .dynamic,
     });
-
-    // Export C ABI
-    lib.root_module.addCMacro("FDB_EXPORT", "");
-    shared_lib.root_module.addCMacro("FDB_EXPORT", "");
 
     // Install artifacts
     b.installArtifact(lib);
@@ -33,18 +35,24 @@ pub fn build(b: *std.Build) void {
 
     // Unit tests for bridge
     const bridge_tests = b.addTest(.{
-        .root_source_file = b.path("src/bridge.zig"),
-        .target = target,
-        .optimize = optimize,
+        .name = "bridge-tests",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/bridge.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const run_bridge_tests = b.addRunArtifact(bridge_tests);
 
     // Unit tests for blocks
     const blocks_tests = b.addTest(.{
-        .root_source_file = b.path("src/blocks.zig"),
-        .target = target,
-        .optimize = optimize,
+        .name = "blocks-tests",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/blocks.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const run_blocks_tests = b.addRunArtifact(blocks_tests);
