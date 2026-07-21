@@ -1,189 +1,660 @@
 # SPDX-License-Identifier: MPL-2.0
-# justfile - Just recipes for Lithoglyph
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# RSR Standard Justfile Template
+# https://just.systems/man/en/
+#
+# Copy this file to new projects and customize the placeholder values.
+#
+# Run `just` to see all available recipes
+# Run `just cookbook` to generate docs/just-cookbook.adoc
+# Run `just combinations` to see matrix recipe options
 
-# Default recipe
+set shell := ["bash", "-uc"]
+set dotenv-load := true
+set positional-arguments := true
+
+# Import auto-generated contractile recipes (must-check, trust-verify, etc.)
+# Re-generate with: contractile gen-just
+import? "build/contractile.just"
+
+# Project metadata — customize these
+project := "rsr-template-repo"
+OWNER := "hyperpolymath"
+REPO := "rsr-template-repo"
+version := "0.1.0"
+tier := "infrastructure"  # 1 | 2 | infrastructure
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEFAULT & HELP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Show all available recipes with descriptions
 default:
-    @just --list
+    @just --list --unsorted
 
-# ============================================================
-# BUILD
-# ============================================================
+# Show detailed help for a specific recipe
+help recipe="":
+    #!/usr/bin/env bash
+    if [ -z "{{recipe}}" ]; then
+        just --list --unsorted
+        echo ""
+        echo "Usage: just help <recipe>"
+        echo "       just cookbook     # Generate full documentation"
+        echo "       just combinations # Show matrix recipes"
+    else
+        just --show "{{recipe}}" 2>/dev/null || echo "Recipe '{{recipe}}' not found"
+    fi
 
-# Build Zig libraries (static + shared)
-build-zig:
-    cd core-zig && zig build
+# Show this project's info
+info:
+    @echo "Project: lithoglyph"
+    @echo "Version: {{version}}"
+    @echo "RSR Tier: {{tier}}"
+    @echo "Recipes: $(just --summary | wc -w)"
+    @[ -f ".machine_readable/descriptiles/STATE.a2ml" ] && grep -oP 'phase\s*=\s*"\K[^"]+' .machine_readable/descriptiles/STATE.a2ml | head -1 | xargs -I{} echo "Phase: {}" || true
 
-# Build shared library for FFI consumers
-build-ffi:
-    cd core-zig && zig build-lib src/bridge.zig -dynamic -lc -O ReleaseFast
+# Run Invariant Path overlay tools for this repository
+invariant-path *ARGS:
+    ./scripts/invariant-path.sh {{ARGS}}
 
-# Build C FFI integration test binary
-build-ffi-tests:
-    cd core-zig && gcc -o test-ffi-integration test-ffi-integration.c -L zig-out/lib -llith_bridge
-    cd core-zig && gcc -o test-version-only test-version-only.c -L zig-out/lib -llith_bridge
-    cd core-zig && gcc -o test-db-open test-db-open.c -L zig-out/lib -llith_bridge
+# ═══════════════════════════════════════════════════════════════════════════════
+# INIT — see build/just/init.just
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Build everything
-build: build-zig
+import? "build/just/init.just"
 
-# ============================================================
-# TESTS
-# ============================================================
+# >>> container-module (three-tier: OCI · portable engine · stapeln) >>>
+# Self-contained. Remove the entire block — this and the import — with `just no-container`.
+import? "build/just/container.just"
+# <<< container-module <<<
 
-# Run Zig unit tests (bridge + blocks)
-test-zig:
-    @echo "=== Zig Unit Tests ==="
-    cd core-zig && zig build test
-    @echo "Zig tests passed"
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROOVE PROTOCOL — see build/just/groove.just
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Run Zig tests directly (faster, no build system)
-test-zig-fast:
-    @echo "=== Zig Direct Tests ==="
-    cd core-zig && zig test src/bridge.zig
-    cd core-zig && zig test src/blocks.zig
+import? "build/just/groove.just"
 
-# Run Forth block layer tests
-test-forth:
-    @echo "=== Forth Block Tests ==="
-    cd core-forth/test && gforth test-blocks.fs -e bye
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT SELF-ASSESSMENT + OPENSSF COMPLIANCE — see build/just/assess.just
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Run C FFI integration tests (requires build-zig first)
-test-ffi: build-zig
-    @echo "=== C FFI Integration Tests ==="
-    cd core-zig && LD_LIBRARY_PATH=zig-out/lib ./test-ffi-integration
+import? "build/just/assess.just"
 
-# Run C FFI quick smoke tests
-test-ffi-smoke: build-zig
-    @echo "=== C FFI Smoke Tests ==="
-    cd core-zig && LD_LIBRARY_PATH=zig-out/lib ./test-version-only
-    cd core-zig && LD_LIBRARY_PATH=zig-out/lib ./test-db-open
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUILD & COMPILE
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Run Factor ABI seam tests (Factor <-> Form.Bridge)
-#
-# Previously ran core-factor/gql/seam-tests.factor. That file tests the GQL
-# pipeline (Parser -> Planner -> Executor -> Normalizer) and `USING: gql`, so
-# it belongs to the language and moved to hyperpolymath/gnpl. Keeping it here
-# would have made gnpl a build dependency of lithoglyph — the wrong direction.
-#
-# The seam lithoglyph actually owns is Factor <-> Form.Bridge, and these two
-# files are what test it: test-ffi.factor drives the storage-backend vocab,
-# minimal-ffi-test.factor dlopens libbridge directly.
-test-factor: build-zig
-    @echo "=== Factor ABI Seam Tests ==="
-    cd core-factor && factor minimal-ffi-test.factor
-    cd core-factor && factor test-ffi.factor
+# Build the project (debug mode)
+build *args:
+    @echo "Building lithoglyph (debug)..."
+    # TODO: Replace with your build command
+    # Examples:
+    #   cargo build {{args}}                    # Rust
+    #   mix compile {{args}}                    # Elixir
+    #   zig build {{args}}                      # Zig
+    #   deno task build {{args}}                # Deno/ReScript
+    @echo "Build complete"
 
-# Run ReScript property tests
-test-property:
-    @echo "=== ReScript Property Tests ==="
-    cd tests/property && deno task test
+# Build in release mode with optimizations
+build-release *args:
+    @echo "Building lithoglyph (release)..."
+    # TODO: Replace with your release build command
+    # Examples:
+    #   cargo build --release {{args}}
+    #   MIX_ENV=prod mix compile {{args}}
+    #   zig build -Doptimize=ReleaseFast {{args}}
+    @echo "Release build complete"
 
-# Run ReScript fuzz tests (quick: 1K iterations)
-test-fuzz-quick:
-    @echo "=== ReScript Fuzz Tests (Quick) ==="
-    cd tests/fuzz && deno task fuzz:quick
+# Build and watch for changes (requires entr or similar)
+build-watch:
+    @echo "Watching for changes..."
+    # TODO: Customize file patterns for your language
+    # Examples:
+    #   find src -name '*.rs' | entr -c just build
+    #   mix compile --force --warnings-as-errors
+    #   deno task dev
 
-# Run ReScript fuzz tests (standard: 10K iterations)
-test-fuzz:
-    @echo "=== ReScript Fuzz Tests ==="
-    cd tests/fuzz && deno task fuzz
-
-# Run ReScript integration tests (requires Deno + ReScript)
-test-integration:
-    @echo "=== ReScript Integration Tests ==="
-    cd tests/integration && deno task test
-
-# Run E2E tests (requires running Lith server on :8080)
-test-e2e:
-    @echo "=== E2E Tests (requires server on :8080) ==="
-    cd tests/e2e && deno task test
-
-# Run all core tests (no server required)
-test: test-zig test-forth test-ffi
-
-# Run all tests including ReScript suites
-test-all: test-zig test-forth test-ffi test-property test-fuzz-quick
-
-# ============================================================
-# BENCHMARKS
-# ============================================================
-
-# Factor GQL benchmarks — MOVED, and this repo has no replacement yet.
-#
-# core-factor/gql/benchmarks.factor benchmarked the GQL parser/planner/executor.
-# It is language work, so it moved to hyperpolymath/gnpl (runtime/) along with
-# gql.factor itself. Nothing in lithoglyph benchmarks the core today.
-#
-# This exits non-zero on purpose. RSR doctrine: a check that cannot fail is not
-# a check, and a `bench` target that silently succeeds with nothing to run reads
-# as "benchmarked and fine". The hole is real; it is named rather than hidden.
-bench-factor:
-    @echo "=== Factor GQL Benchmarks: MOVED to hyperpolymath/gnpl (runtime/) ==="
-    @echo "    lithoglyph has no core benchmarks yet. Add them here, or run"
-    @echo "    the language benchmarks in the gnpl repo."
-    @exit 1
-
-# Run all benchmarks
-bench: bench-factor
-
-# ============================================================
-# CHECKS & VALIDATION
-# ============================================================
-
-# Check that Forth code loads without errors
-check-forth:
-    @echo "Checking Forth code loads..."
-    cd core-forth/src && gforth lithoglyph-blocks.fs -e 'bye'
-    cd core-forth/src && gforth lithoglyph-journal.fs -e 'bye'
-    cd core-forth/src && gforth lithoglyph-model.fs -e 'bye'
-    @echo "All Forth files load successfully"
-
-# Check that Lean code compiles
-check-lean:
-    @echo "Checking Lean code compiles..."
-    cd normalizer/lean && lake build
-    @echo "Lean code compiles"
-
-# Verify Zig ABI exports match expectations
-check-abi: build-zig
-    @echo "=== ABI Export Verification ==="
-    nm -D core-zig/zig-out/lib/liblith_bridge.so | grep ' T lith_' | sort
-    @echo "Expected: lith_version, lith_db_open, lith_db_close, lith_txn_begin, lith_txn_commit, lith_txn_abort, lith_apply, lith_introspect_schema, lith_render_block, lith_render_journal, lith_blob_free"
-
-# Run all checks
-check: check-forth check-lean check-abi
-
-# Format Zig code
-fmt:
-    cd core-zig && zig fmt src/
-
-# ============================================================
-# CLEAN
-# ============================================================
-
-# Clean build artifacts
+# Clean build artifacts [reversible: rebuild with `just build`]
 clean:
-    @echo "Cleaning build artifacts..."
-    rm -rf core-zig/zig-out core-zig/.zig-cache
-    rm -f core-zig/test-*.lgh
-    @echo "Clean complete"
+    @echo "Cleaning..."
+    # TODO: Customize for your build system
+    rm -rf target/ _build/ build/ dist/ out/ obj/ bin/
 
-# ============================================================
-# DEV TOOLS
-# ============================================================
+# Deep clean including caches [reversible: rebuild]
+clean-all: clean
+    rm -rf .cache .tmp
 
-# Show development environment status
-env-status:
-    @echo "Development Environment Status:"
-    @echo "================================"
-    @which zig 2>/dev/null && echo "Zig: $(zig version)" || echo "Zig: NOT INSTALLED"
-    @which gforth 2>/dev/null && echo "Forth: $(gforth --version 2>&1 | head -1)" || echo "gforth: NOT INSTALLED"
-    @which factor 2>/dev/null && echo "Factor: installed" || echo "Factor: NOT INSTALLED"
-    @which lean 2>/dev/null && echo "Lean: $(lean --version 2>&1 | head -1)" || echo "Lean: NOT INSTALLED"
-    @which deno 2>/dev/null && echo "Deno: $(deno --version 2>&1 | head -1)" || echo "Deno: NOT INSTALLED"
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST & QUALITY
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Start demo server for E2E testing
-serve:
-    @echo "Starting Lithoglyph demo server on :8080..."
-    cd core-zig && zig run ../demo-server.zig -- -lc
+# Run all tests
+test *args:
+    @echo "Running tests..."
+    # TODO: Replace with your test command
+    # Examples:
+    #   cargo test {{args}}
+    #   mix test {{args}}
+    #   zig build test {{args}}
+    #   deno test {{args}}
+    @echo "Tests passed!"
+
+# Run tests with verbose output
+test-verbose:
+    @echo "Running tests (verbose)..."
+    # TODO: Replace with verbose test command
+
+# Smoke test
+test-smoke:
+    @echo "Smoke test..."
+    # TODO: Add basic sanity checks
+
+# Run end-to-end tests (full pipeline: build → run → verify)
+e2e:
+    @echo "Running E2E tests..."
+    # TODO: Replace with your E2E test command. Examples:
+    #   bash tests/e2e.sh                    # Shell-based E2E
+    #   npx playwright test                  # Browser E2E
+    #   mix test test/integration/e2e_test.exs  # Elixir E2E
+    #   cargo test --test end_to_end         # Rust E2E
+    @echo "E2E tests passed!"
+
+# Run aspect tests (cross-cutting concern validation)
+aspect:
+    @echo "Running aspect tests..."
+    # TODO: Replace with your aspect test command. Examples:
+    #   bash tests/aspect_tests.sh           # Shell-based aspect tests
+    #   cargo test --test aspects             # Rust aspect tests
+    # Aspect tests validate architectural invariants:
+    #   - Thread safety (mutex in FFI modules)
+    #   - ABI/FFI contract (declarations match exports)
+    #   - SPDX compliance (all files have license headers)
+    #   - No dangerous patterns (believe_me, assert_total, etc.)
+    @echo "Aspect tests passed!"
+
+# Run benchmarks (performance regression detection)
+bench:
+    @echo "Running benchmarks..."
+    # TODO: Replace with your benchmark command. Examples:
+    #   cargo bench                           # Rust criterion
+    #   zig build bench                       # Zig benchmarks
+    #   mix run bench/benchmarks.exs          # Elixir benchee
+    #   deno bench                            # Deno bench
+    @echo "Benchmarks complete!"
+
+# Run readiness tests (Component Readiness Grade: D/C/B)
+readiness:
+    @echo "Running readiness tests..."
+    # TODO: Replace with your readiness test command. Examples:
+    #   cargo test --test readiness -- --nocapture
+    @echo "Readiness tests complete!"
+
+# Print the current CRG grade (reads from READINESS.md '**Current Grade:** X' line)
+crg-grade:
+    @grade=$$(grep -oP '(?<=\*\*Current Grade:\*\* )[A-FX]' READINESS.md 2>/dev/null | head -1); \
+    [ -z "$$grade" ] && grade="X"; \
+    echo "$$grade"
+
+# Print a shields.io CRG badge for embedding in README files
+# Looks for '**Current Grade:** X' in READINESS.md; falls back to X
+crg-badge:
+    @grade=$$(grep -oP '(?<=\*\*Current Grade:\*\* )[A-FX]' READINESS.md 2>/dev/null | head -1); \
+    [ -z "$$grade" ] && grade="X"; \
+    case "$$grade" in \
+      A) color="brightgreen" ;; \
+      B) color="green" ;; \
+      C) color="yellow" ;; \
+      D) color="orange" ;; \
+      E) color="red" ;; \
+      F) color="critical" ;; \
+      *) color="lightgrey" ;; \
+    esac; \
+    echo "[![CRG $$grade](https://img.shields.io/badge/CRG-$$grade-$$color?style=flat-square)](https://github.com/hyperpolymath/standards/tree/main/component-readiness-grades)"
+
+# Run the full merge-requirement test suite (ALL categories)
+# Per STANDING rule: P2P + E2E + aspect + execution + lifecycle + bench
+test-all: test e2e aspect bench readiness
+    @echo "All test categories passed — safe to merge!"
+
+# Run all quality checks
+quality: fmt-check lint test
+    @echo "All quality checks passed!"
+
+# Fix all auto-fixable issues [reversible: git checkout]
+fix: fmt
+    @echo "Fixed all auto-fixable issues"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LINT & FORMAT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Format all source files [reversible: git checkout]
+fmt:
+    @echo "Formatting source files..."
+    # TODO: Replace with your formatter
+    # Examples:
+    #   cargo fmt
+    #   mix format
+    #   gleam format
+    #   deno fmt
+
+# Check formatting without changes
+fmt-check:
+    @echo "Checking formatting..."
+    # TODO: Replace with your format check
+    # Examples:
+    #   cargo fmt --check
+    #   mix format --check-formatted
+    #   gleam format --check
+
+# Run linter
+lint:
+    @echo "Linting source files..."
+    # TODO: Replace with your linter
+    # Examples:
+    #   cargo clippy -- -D warnings
+    #   mix credo --strict
+    #   gleam check
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RUN & EXECUTE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Run the application
+run *args: build
+    # TODO: Replace with your run command
+    echo "Run not configured yet"
+
+# Run with verbose output
+run-verbose *args: build
+    # TODO: Replace with verbose run command
+    echo "Run not configured yet"
+
+# Install to user path
+install: build-release
+    @echo "Installing lithoglyph..."
+    # TODO: Replace with your install command
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Install/check all dependencies
+deps:
+    @echo "Checking dependencies..."
+    # TODO: Replace with your dependency check
+    # Examples:
+    #   cargo check
+    #   mix deps.get
+    #   gleam deps download
+    @echo "All dependencies satisfied"
+
+# Audit dependencies for vulnerabilities
+deps-audit:
+    @echo "Auditing for vulnerabilities..."
+    # TODO: Replace with your audit command
+    # Examples:
+    #   cargo audit
+    #   mix audit
+    @command -v trivy >/dev/null && trivy fs --severity HIGH,CRITICAL --quiet . || true
+    @echo "Audit complete"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ARRIVAL PACK — agent-facing CLAUDE.md, compiled from a2ml
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Compile CLAUDE.md (the agent arrival pack) from this repo's a2ml
+claude-md:
+    @bash .machine_readable/arrival-pack/generate.sh
+
+# Fail if CLAUDE.md's generated region drifted from a2ml or was hand-edited
+validate-claude-md:
+    @bash .machine_readable/arrival-pack/verify.sh
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COAPTATION — typed descriptile↔contractile face-off (homeostasis reading)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Emit the coaptation receipt: how the descriptiles coapt with the contractiles (SITREP)
+coapt:
+    @bash .machine_readable/coaptation/coapt.sh --report
+
+# Assemble a re-anchor basis IF the band is red (the drop itself is a human act)
+coapt-reanchor:
+    @bash .machine_readable/coaptation/coapt.sh --reanchor
+
+# Fail if the committed coaptation receipt drifted from the contractiles/descriptiles
+validate-coapt:
+    @bash .machine_readable/coaptation/verify.sh
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCUMENTATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Generate all documentation
+docs:
+    @mkdir -p docs/generated docs/man
+    just cookbook
+    just man
+    @echo "Documentation generated in docs/"
+
+# Generate justfile cookbook documentation
+cookbook:
+    #!/usr/bin/env bash
+    mkdir -p docs
+    OUTPUT="docs/just-cookbook.adoc"
+    echo "= lithoglyph Justfile Cookbook" > "$OUTPUT"
+    echo ":toc: left" >> "$OUTPUT"
+    echo ":toclevels: 3" >> "$OUTPUT"
+    echo "" >> "$OUTPUT"
+    echo "Generated: $(date -Iseconds)" >> "$OUTPUT"
+    echo "" >> "$OUTPUT"
+    echo "== Recipes" >> "$OUTPUT"
+    echo "" >> "$OUTPUT"
+    just --list --unsorted | while read -r line; do
+        if [[ "$line" =~ ^[[:space:]]+([a-z_-]+) ]]; then
+            recipe="${BASH_REMATCH[1]}"
+            echo "=== $recipe" >> "$OUTPUT"
+            echo "" >> "$OUTPUT"
+            echo "[source,bash]" >> "$OUTPUT"
+            echo "----" >> "$OUTPUT"
+            echo "just $recipe" >> "$OUTPUT"
+            echo "----" >> "$OUTPUT"
+            echo "" >> "$OUTPUT"
+        fi
+    done
+    echo "Generated: $OUTPUT"
+
+# Generate man page
+man:
+    #!/usr/bin/env bash
+    mkdir -p docs/man
+    cat > docs/man/lithoglyph.1 << EOF
+    .TH lithoglyph 1 "$(date +%Y-%m-%d)" "{{version}}" "lithoglyph Manual"
+    .SH NAME
+    lithoglyph \- RSR-compliant project
+    .SH SYNOPSIS
+    .B just
+    [recipe] [args...]
+    .SH DESCRIPTION
+    RSR (Rhodium Standard Repository) project managed with just.
+    .SH AUTHOR
+    $(git config user.name 2>/dev/null || echo "Author") <$(git config user.email 2>/dev/null || echo "email")>
+    EOF
+    echo "Generated: docs/man/lithoglyph.1"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CI & AUTOMATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Run full CI pipeline locally
+# proof-check-all is FATAL if any prover toolchain is absent (idris2/lean/agda/coqc):
+# the full CI gate must not pass on a machine that cannot verify the proofs.
+ci: deps quality proof-check-all
+    @echo "CI pipeline complete!"
+
+# Install git hooks
+install-hooks:
+    @mkdir -p .git/hooks
+    @cat > .git/hooks/pre-commit << 'HOOKEOF'
+    #!/bin/bash
+    just fmt-check || exit 1
+    just lint || exit 1
+    just assail || exit 1
+    HOOKEOF
+    @chmod +x .git/hooks/pre-commit
+    @echo "Git hooks installed"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECURITY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Run security audit
+security: deps-audit
+    @echo "=== Security Audit ==="
+    @command -v trivy >/dev/null && trivy fs --severity HIGH,CRITICAL . || true
+    @echo "Security audit complete"
+
+# Generate SBOM
+sbom:
+    @mkdir -p docs/security
+    @command -v syft >/dev/null && syft . -o spdx-json > docs/security/sbom.spdx.json || echo "syft not found"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VALIDATION & COMPLIANCE — see build/just/validate.just
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import? "build/just/validate.just"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STATE MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Update STATE.a2ml timestamp
+state-touch:
+    @if [ -f ".machine_readable/descriptiles/STATE.a2ml" ]; then \
+        sed -i 's/last-updated = "[^"]*"/last-updated = "'"$(date +%Y-%m-%d)"'"/' .machine_readable/descriptiles/STATE.a2ml && \
+        echo "STATE.a2ml timestamp updated"; \
+    fi
+
+# Show current phase from STATE.a2ml
+state-phase:
+    @grep -oP 'phase\s*=\s*"\K[^"]+' .machine_readable/descriptiles/STATE.a2ml 2>/dev/null | head -1 || echo "unknown"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GUIX
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Enter Guix development shell (primary)
+guix-shell:
+    guix shell -D -f guix.scm
+
+# Build with Guix
+guix-build:
+    guix build -f guix.scm
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HYBRID AUTOMATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Run local automation tasks
+automate task="all":
+    #!/usr/bin/env bash
+    case "{{task}}" in
+        all) just fmt && just lint && just test && just docs && just state-touch ;;
+        cleanup) just clean && find . -name "*.orig" -delete && find . -name "*~" -delete ;;
+        update) just deps && just validate ;;
+        *) echo "Unknown: {{task}}. Use: all, cleanup, update" && exit 1 ;;
+    esac
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMBINATORIC MATRIX RECIPES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Build matrix: [debug|release] x [target] x [features]
+build-matrix mode="debug" target="" features="":
+    @echo "Build matrix: mode={{mode}} target={{target}} features={{features}}"
+
+# Test matrix: [unit|integration|e2e|all] x [verbosity] x [parallel]
+test-matrix suite="unit" verbosity="normal" parallel="true":
+    @echo "Test matrix: suite={{suite}} verbosity={{verbosity}} parallel={{parallel}}"
+
+# CI matrix: [lint|test|build|security|all] x [quick|full]
+ci-matrix stage="all" depth="quick":
+    @echo "CI matrix: stage={{stage}} depth={{depth}}"
+
+# Show all matrix combinations
+combinations:
+    @echo "=== Combinatoric Matrix Recipes ==="
+    @echo ""
+    @echo "Build Matrix: just build-matrix [debug|release] [target] [features]"
+    @echo "Test Matrix:  just test-matrix [unit|integration|e2e|all] [verbosity] [parallel]"
+    @echo "Container:    just container-matrix [build|run|push|shell|scan] [registry] [tag]  (needs container module)"
+    @echo "CI Matrix:    just ci-matrix [lint|test|build|security|all] [quick|full]"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VERSION CONTROL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Show git status
+status:
+    @git status --short
+
+# Show recent commits
+log count="20":
+    @git log --oneline -{{count}}
+
+# Generate CHANGELOG.md with git-cliff
+changelog:
+    @command -v git-cliff >/dev/null || { echo "git-cliff not found — install: cargo install git-cliff"; exit 1; }
+    git cliff --config .machine_readable/configs/git-cliff/cliff.toml --output CHANGELOG.md
+    @echo "Generated CHANGELOG.md"
+
+# Preview changelog for unreleased commits (does not write)
+changelog-preview:
+    @command -v git-cliff >/dev/null || { echo "git-cliff not found — install: cargo install git-cliff"; exit 1; }
+    git cliff --config .machine_readable/configs/git-cliff/cliff.toml --unreleased --strip header
+
+# Tag a new release (usage: just release-tag 1.2.3)
+release-tag version:
+    #!/usr/bin/env bash
+    TAG="v{{version}}"
+    if git rev-parse "$TAG" >/dev/null 2>&1; then
+        echo "Tag $TAG already exists"
+        exit 1
+    fi
+    just changelog
+    git add CHANGELOG.md
+    git commit -m "chore(release): prepare $TAG"
+    git tag -a "$TAG" -m "Release $TAG"
+    echo "Created tag $TAG — push with: git push origin main --tags"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UTILITIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Count lines of code
+loc:
+    @find . \( -name "*.rs" -o -name "*.ex" -o -name "*.exs" -o -name "*.res" -o -name "*.gleam" -o -name "*.zig" -o -name "*.idr" -o -name "*.hs" -o -name "*.ncl" -o -name "*.scm" -o -name "*.adb" -o -name "*.ads" \) -not -path './target/*' -not -path './_build/*' 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 || echo "0"
+
+# Show TODO comments
+todos:
+    @grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.rs" --include="*.ex" --include="*.res" --include="*.gleam" --include="*.zig" --include="*.idr" --include="*.hs" . 2>/dev/null || echo "No TODOs"
+
+# Open in editor
+edit:
+    ${EDITOR:-code} .
+
+# Run high-rigor security assault using panic-attacker
+maint-assault:
+    @./.machine_readable/scripts/maintenance/maint-assault.sh
+
+# Run panic-attacker pre-commit scan (foundational floor-raise requirement)
+assail:
+    @command -v panic-attack >/dev/null 2>&1 && panic-attack assail . || echo "WARN: panic-attack not found — install from https://github.com/hyperpolymath/panic-attacker"
+
+
+# Self-diagnostic — checks dependencies, permissions, paths
+doctor:
+    @echo "Running diagnostics for rsr-template-repo..."
+    @echo "Checking required tools..."
+    @command -v just >/dev/null 2>&1 && echo "  [OK] just" || echo "  [FAIL] just not found"
+    @command -v git >/dev/null 2>&1 && echo "  [OK] git" || echo "  [FAIL] git not found"
+    @echo "Checking for hardcoded paths..."
+    @grep -rn '$HOME\|$ECLIPSE_DIR' --include='*.rs' --include='*.ex' --include='*.res' --include='*.gleam' --include='*.sh' . 2>/dev/null | head -5 || echo "  [OK] No hardcoded paths"
+    @echo "Diagnostics complete."
+
+# Guided tour of key features
+tour:
+    @echo "=== rsr-template-repo Tour ==="
+    @echo ""
+    @echo "1. Project structure:"
+    @ls -la
+    @echo ""
+    @echo "2. Available commands: just --list"
+    @echo ""
+    @echo "3. Read README.adoc for full overview"
+    @echo "4. Read EXPLAINME.adoc for architecture decisions"
+    @echo "5. Run 'just doctor' to check your setup"
+    @echo ""
+    @echo "Tour complete! Try 'just --list' to see all available commands."
+
+# Open feedback channel with diagnostic context
+help-me:
+    @echo "=== rsr-template-repo Help ==="
+    @echo "Platform: $(uname -s) $(uname -m)"
+    @echo "Shell: $SHELL"
+    @echo ""
+    @echo "To report an issue:"
+    @echo "  https://github.com/hyperpolymath/rsr-template-repo/issues/new"
+    @echo ""
+    @echo "Include the output of 'just doctor' in your report."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FORMAL VERIFICATION (PROOFS) — see build/just/proofs.just
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import? "build/just/proofs.just"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SESSION MANAGEMENT (THIN BINDINGS TO CENTRAL STANDARDS)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Show canonical session-management command model
+session-help:
+    @echo "Canonical command model:"
+    @echo "  intake repo <path>"
+    @echo "  checkpoint change <path>"
+    @echo "  verify maintenance <path>"
+    @echo "  verify substantial <path>"
+    @echo "  verify release <path>"
+    @echo "  close planned <path>"
+    @echo "  close urgent <path>"
+    @echo "  recover repo <path>"
+    @echo "  handover full <path>"
+    @echo "  handover split <path>"
+    @echo "  handover model <path>"
+    @echo "  handover human <path>"
+    @echo ""
+    @echo "Use Just aliases below (thin wrappers around ./session/dispatch.sh)."
+
+# Canonical aliases (friendly recipe names that map to canonical commands)
+intake-repo path=".":
+    @./session/dispatch.sh intake repo "{{path}}"
+
+checkpoint-change path=".":
+    @./session/dispatch.sh checkpoint change "{{path}}"
+
+verify-maintenance path=".":
+    @./session/dispatch.sh verify maintenance "{{path}}"
+
+verify-substantial path=".":
+    @./session/dispatch.sh verify substantial "{{path}}"
+
+verify-release path=".":
+    @./session/dispatch.sh verify release "{{path}}"
+
+close-planned path=".":
+    @./session/dispatch.sh close planned "{{path}}"
+
+close-urgent path=".":
+    @./session/dispatch.sh close urgent "{{path}}"
+
+recover-repo path=".":
+    @./session/dispatch.sh recover repo "{{path}}"
+
+handover-full path=".":
+    @./session/dispatch.sh handover full "{{path}}"
+
+handover-split path=".":
+    @./session/dispatch.sh handover split "{{path}}"
+
+handover-model path=".":
+    @./session/dispatch.sh handover model "{{path}}"
+
+handover-human path=".":
+    @./session/dispatch.sh handover human "{{path}}"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

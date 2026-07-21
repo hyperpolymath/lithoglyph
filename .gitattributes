@@ -16,9 +16,12 @@
 *.hs    text eol=lf
 *.chpl  text eol=lf
 *.scm   text eol=lf
-*.ncl   text eol=lf
-*.nix   text eol=lf
 *.zig   text eol=lf
+*.idr   text eol=lf
+*.ipkg  text eol=lf
+*.a2ml  text eol=lf linguist-language=TOML
+*.ncl   text eol=lf
+*.k9    text eol=lf linguist-language=Nickel
 
 # Docs
 *.md    text eol=lf diff=markdown
@@ -34,9 +37,7 @@
 # Config
 .gitignore     text eol=lf
 .gitattributes text eol=lf
-.editorconfig  text eol=lf
-.tool-versions text eol=lf
-justfile       text eol=lf
+Justfile       text eol=lf
 Makefile       text eol=lf
 Containerfile  text eol=lf
 
@@ -54,4 +55,3 @@ Containerfile  text eol=lf
 
 # Lock files
 Cargo.lock  text eol=lf -diff
-flake.lock  text eol=lf -diff
