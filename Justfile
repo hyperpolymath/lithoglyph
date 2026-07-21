@@ -82,19 +82,22 @@ import? "build/just/groove.just"
 import? "build/just/assess.just"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# LITHOGLYPH PROJECT RECIPES — see build/just/lithoglyph.just
+#
+# The real build/test/bench recipes for this repo. They replace the RSR
+# template stubs, which were removed rather than shadowed: the stub `test`
+# echoed "Tests passed!" and exited 0 with nothing run, and the stub `clean`
+# did `rm -rf build/` — which deletes build/just/*.just, i.e. every import
+# above, including init.just itself.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import? "build/just/lithoglyph.just"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # BUILD & COMPILE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Build the project (debug mode)
-build *args:
-    @echo "Building lithoglyph (debug)..."
-    # TODO: Replace with your build command
-    # Examples:
-    #   cargo build {{args}}                    # Rust
-    #   mix compile {{args}}                    # Elixir
-    #   zig build {{args}}                      # Zig
-    #   deno task build {{args}}                # Deno/ReScript
-    @echo "Build complete"
+# `build` is provided by build/just/lithoglyph.just (real project recipe).
 
 # Build in release mode with optimizations
 build-release *args:
@@ -115,11 +118,7 @@ build-watch:
     #   mix compile --force --warnings-as-errors
     #   deno task dev
 
-# Clean build artifacts [reversible: rebuild with `just build`]
-clean:
-    @echo "Cleaning..."
-    # TODO: Customize for your build system
-    rm -rf target/ _build/ build/ dist/ out/ obj/ bin/
+# `clean` is provided by build/just/lithoglyph.just (real project recipe).
 
 # Deep clean including caches [reversible: rebuild]
 clean-all: clean
@@ -129,16 +128,7 @@ clean-all: clean
 # TEST & QUALITY
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Run all tests
-test *args:
-    @echo "Running tests..."
-    # TODO: Replace with your test command
-    # Examples:
-    #   cargo test {{args}}
-    #   mix test {{args}}
-    #   zig build test {{args}}
-    #   deno test {{args}}
-    @echo "Tests passed!"
+# `test` is provided by build/just/lithoglyph.just (real project recipe).
 
 # Run tests with verbose output
 test-verbose:
@@ -173,15 +163,7 @@ aspect:
     #   - No dangerous patterns (believe_me, assert_total, etc.)
     @echo "Aspect tests passed!"
 
-# Run benchmarks (performance regression detection)
-bench:
-    @echo "Running benchmarks..."
-    # TODO: Replace with your benchmark command. Examples:
-    #   cargo bench                           # Rust criterion
-    #   zig build bench                       # Zig benchmarks
-    #   mix run bench/benchmarks.exs          # Elixir benchee
-    #   deno bench                            # Deno bench
-    @echo "Benchmarks complete!"
+# `bench` is provided by build/just/lithoglyph.just (real project recipe).
 
 # Run readiness tests (Component Readiness Grade: D/C/B)
 readiness:
@@ -212,10 +194,7 @@ crg-badge:
     esac; \
     echo "[![CRG $$grade](https://img.shields.io/badge/CRG-$$grade-$$color?style=flat-square)](https://github.com/hyperpolymath/standards/tree/main/component-readiness-grades)"
 
-# Run the full merge-requirement test suite (ALL categories)
-# Per STANDING rule: P2P + E2E + aspect + execution + lifecycle + bench
-test-all: test e2e aspect bench readiness
-    @echo "All test categories passed — safe to merge!"
+# `test-all` is provided by build/just/lithoglyph.just (real project recipe).
 
 # Run all quality checks
 quality: fmt-check lint test
@@ -229,15 +208,7 @@ fix: fmt
 # LINT & FORMAT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Format all source files [reversible: git checkout]
-fmt:
-    @echo "Formatting source files..."
-    # TODO: Replace with your formatter
-    # Examples:
-    #   cargo fmt
-    #   mix format
-    #   gleam format
-    #   deno fmt
+# `fmt` is provided by build/just/lithoglyph.just (real project recipe).
 
 # Check formatting without changes
 fmt-check:

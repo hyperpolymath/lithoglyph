@@ -2,9 +2,7 @@
 # justfile - Just recipes for Lithoglyph
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 
-# Default recipe
-default:
-    @just --list
+# `default` comes from the root Justfile (`just --list --unsorted`).
 
 # ============================================================
 # BUILD
