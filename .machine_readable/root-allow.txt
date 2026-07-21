@@ -123,9 +123,12 @@ ARCHITECTURE.adoc          # the real architecture doc (277 lines). Supersedes t
                            # RSR-generated ARCHITECTURE.md stub, which described a
                            # src/tests/docs/scripts/config layout this repo does not
                            # have; that stub was deleted rather than allow-listed.
-licenses/                  # Palimpsest-MPL texts (EN/NL) + MPL-2.0-NL. Distinct from
-                           # LICENSES/ (REUSE/SPDX): this project is PMPL-1.0-or-later,
-                           # and the translations are part of that licence, not SPDX.
+licenses/                  # Vendored licence texts: Palimpsest-MPL (EN/NL) and MPL-2.0-NL.
+                           # HISTORICAL, not operative. This project is MPL-2.0 (code) +
+                           # CC-BY-SA-4.0 (docs) per nextgen-databases#48, whose rule was
+                           # "vendored untouched" — hence these survive. LICENSES/ (upper)
+                           # holds the operative SPDX texts. Do not read this directory as
+                           # a licence declaration.
 contractiles/              # repo-local normative contractiles (Dustfile/Mustfile/Trustfile)
 
 # ─── Agent and tooling metadata ──────────────────────────────────────────────

@@ -40,5 +40,10 @@ Factor <-> Form.Bridge, and the two files named above are what test it.
 
 == Status
 
-`storage-backend.factor` is implemented against Form.Bridge. The GQL grammar
-specification (Q-GQL-POC-001) is tracked in gnpl, not here.
+`storage-backend.factor` is implemented against Form.Bridge.
+
+The GQL grammar question (Q-GQL-POC-001) is *resolved*, not pending: closed by
+D-GQL-POC-001 on 2026-01-11, with the full grammar and ten canonical examples in
+link:../spec/gql.adoc[spec/gql.adoc]. The superseded `core-factor/README.adoc`
+still described it as pending. Grammar work now happens in
+https://github.com/hyperpolymath/gnpl[gnpl], not here.

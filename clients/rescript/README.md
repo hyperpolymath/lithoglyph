@@ -4,7 +4,7 @@ Type-safe ReScript client for the Lithoglyph multi-protocol API server.
 
 Supports REST, GraphQL, and WebSocket (subscriptions) protocols.
 
-SPDX-License-Identifier: PMPL-1.0-or-later
+SPDX-License-Identifier: CC-BY-SA-4.0
 
 ## Installation
 

@@ -1,6 +1,6 @@
 = Lithoglyph
 
-image:https://img.shields.io/badge/License-MPL--2.0-indigo.svg[License: PMPL-1.0-or-later,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:https://img.shields.io/badge/License-MPL--2.0-indigo.svg[License: MPL-2.0,link="https://www.mozilla.org/en-US/MPL/2.0/"]
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2025-2026 hyperpolymath
 
@@ -183,7 +183,7 @@ PoC subset capabilities:
 
 == Open Questions
 
-See link:lithoglyph.scm[lithoglyph.scm] for structured open questions with acceptance criteria:
+See link:.machine_readable/HANDOVER.a2ml[.machine_readable/HANDOVER.a2ml] for structured open questions with acceptance criteria:
 
 === Core PoC
 * `Q-BLOCK-HEADER-001`: Minimal block header layout
@@ -202,15 +202,15 @@ See link:lithoglyph.scm[lithoglyph.scm] for structured open questions with accep
 == Documentation
 
 === Getting Started
-* link:QUICKSTART.adoc[Quickstart Guide] - Get running in 5 minutes
-* link:VERSIONING.adoc[Versioning & Stability] - API stability guarantees
+* link:docs/lithoglyph/QUICKSTART.adoc[Quickstart Guide] - Get running in 5 minutes
+* link:docs/lithoglyph/VERSIONING.adoc[Versioning & Stability] - API stability guarantees
 * link:CHANGELOG.md[Changelog] - Release history
 
 === Architecture & Design
 * link:ARCHITECTURE.adoc[Architecture] - Technical architecture deep-dive
-* link:ROADMAP.adoc[Roadmap] - Development roadmap
-* link:PHILOSOPHY.adoc[Philosophy] - Design philosophy and principles
-* link:lithoglyph.scm[lithoglyph.scm] - Machine-readable specification
+* link:docs/lithoglyph/ROADMAP.adoc[Roadmap] - Development roadmap
+* link:docs/lithoglyph/PHILOSOPHY.adoc[Philosophy] - Design philosophy and principles
+* link:.machine_readable/HANDOVER.a2ml[.machine_readable/HANDOVER.a2ml] - Machine-readable specification
 
 === Specifications
 * link:spec/gql.adoc[GQL Specification] - Query language reference
@@ -243,8 +243,10 @@ See link:lithoglyph.scm[lithoglyph.scm] for structured open questions with accep
 
 == License
 
-https://github.com/hyperpolymath/palimpsest-license[Palimpsest-MPL 1.0] (PMPL-1.0)
+Code is https://www.mozilla.org/en-US/MPL/2.0/[MPL-2.0]; documentation is
+https://creativecommons.org/licenses/by-sa/4.0/[CC-BY-SA-4.0]. This is the estate
+canonical pair, set by nextgen-databases#48.
 
 == Contributing
 
-See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] for guidelines.
+See link:docs/lithoglyph/CONTRIBUTING.adoc[CONTRIBUTING.adoc] for guidelines.

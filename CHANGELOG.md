@@ -255,7 +255,7 @@ None - this is the first stable release.
 ### Upgrade Notes
 
 For projects using pre-1.0 versions:
-- API stability is now guaranteed per [VERSIONING.adoc](VERSIONING.adoc)
+- API stability is now guaranteed per [VERSIONING.adoc](docs/lithoglyph/VERSIONING.adoc)
 - Binary format stability guaranteed within 1.x series
 - Deprecation warnings will be provided before any breaking changes
 
@@ -942,7 +942,7 @@ No breaking changes from 0.0.1. This release adds specifications and implementat
 
 ### Pre-1.0 Warning
 
-Lith is in pre-1.0 development. APIs, formats, and interfaces may change without deprecation warnings. See [VERSIONING.adoc](VERSIONING.adoc) for stability guarantees.
+Lith is in pre-1.0 development. APIs, formats, and interfaces may change without deprecation warnings. See [VERSIONING.adoc](docs/lithoglyph/VERSIONING.adoc) for stability guarantees.
 
 ---
 
@@ -966,9 +966,9 @@ Lith is in pre-1.0 development. APIs, formats, and interfaces may change without
 
 ## Related Documentation
 
-- [VERSIONING.adoc](VERSIONING.adoc) - Stability policy and version guarantees
-- [ROADMAP.adoc](ROADMAP.adoc) - Planned features and milestones
-- [QUICKSTART.adoc](QUICKSTART.adoc) - Getting started guide
+- [VERSIONING.adoc](docs/lithoglyph/VERSIONING.adoc) - Stability policy and version guarantees
+- [ROADMAP.adoc](docs/lithoglyph/ROADMAP.adoc) - Planned features and milestones
+- [QUICKSTART.adoc](docs/lithoglyph/QUICKSTART.adoc) - Getting started guide
 - [ARCHITECTURE.adoc](ARCHITECTURE.adoc) - Technical architecture
 
 ## Changelog Conventions
