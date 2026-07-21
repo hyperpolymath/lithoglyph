@@ -690,7 +690,7 @@ WITH PROVENANCE {
 
 == Related Projects
 
-* https://github.com/hyperpolymath/gqldt[GQLdt] - Dependently-typed GQL (compile-time verified queries)
+* https://github.com/hyperpolymath/gnpl[GQLdt] - Dependently-typed GQL (compile-time verified queries)
 * https://github.com/hyperpolymath/lithoglyph-studio[Lith Studio] - Zero-friction GUI
 * https://github.com/hyperpolymath/lithoglyph-debugger[Lith Debugger] - Proof-carrying debugger
 * https://github.com/hyperpolymath/formbase[FormBase] - Open-source Airtable alternative with provenance

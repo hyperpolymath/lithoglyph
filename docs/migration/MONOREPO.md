@@ -15,7 +15,7 @@ This repository now contains multiple Lithoglyph components in a monorepo struct
 
 ## Related Repositories
 - [lithoglyph-studio](https://github.com/hyperpolymath/lithoglyph-studio) - GUI + debugger
-- [gql-dt](https://github.com/hyperpolymath/gql-dt) - Dependently-typed query language (Lean)
+- [gql-dt](https://github.com/hyperpolymath/gnpl) - Dependently-typed query language (Lean)
 - [formbase](https://github.com/hyperpolymath/formbase) - Airtable alternative using Lithoglyph
 
 ## Archived (merged into monorepo)

@@ -16,7 +16,7 @@ info:
     url: https://www.gnu.org/licenses/agpl-3.0.html
   contact:
     name: hyperpolymath
-    url: https://github.com/hyperpolymath/lith
+    url: https://github.com/hyperpolymath/lithoglyph
 
 servers:
   - url: http://localhost:8080/v1

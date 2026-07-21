@@ -150,7 +150,7 @@ pkgs.mkShell {
 
 [source,bash]
 ----
-git clone https://github.com/hyperpolymath/lith.git
+git clone https://github.com/hyperpolymath/lithoglyph.git
 cd lith
 
 # Verify Gforth loads the core
@@ -345,7 +345,7 @@ path = "/metrics"
 ----
 [Unit]
 Description=Lith Database Server
-Documentation=https://github.com/hyperpolymath/lith
+Documentation=https://github.com/hyperpolymath/lithoglyph
 After=network.target
 
 [Service]
@@ -538,7 +538,7 @@ version: '3.8'
 
 services:
   lith:
-    image: hyperpolymath/lith:latest
+    image: hyperpolymath/lithoglyph:latest
     container_name: lith
     ports:
       - "5432:5432"   # Main port
@@ -579,7 +579,7 @@ docker run -d \
   --name lith \
   -p 5432:5432 \
   -v lith-data:/var/lib/lith \
-  hyperpolymath/lith:latest
+  hyperpolymath/lithoglyph:latest
 
 # Execute GQL query
 docker exec lith lith query 'SELECT * FROM evidence;'
@@ -606,14 +606,14 @@ helm repo add hyperpolymath https://charts.hyperpolymath.dev
 helm repo update
 
 # Install Lith
-helm install lith hyperpolymath/lith \
+helm install lith hyperpolymath/lithoglyph \
   --namespace lith \
   --create-namespace \
   --set persistence.size=100Gi \
   --set resources.requests.memory=8Gi
 
 # Upgrade
-helm upgrade lith hyperpolymath/lith \
+helm upgrade lith hyperpolymath/lithoglyph \
   --namespace lith \
   --set image.tag=0.1.0
 ----
@@ -663,7 +663,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: lith
-          image: hyperpolymath/lith:latest
+          image: hyperpolymath/lithoglyph:latest
           ports:
             - containerPort: 5432
               name: lith

@@ -6,7 +6,7 @@ image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[License: PMPL-1.0,l
 :toc:
 :icons: font
 
-BEAM (Erlang/Gleam/Elixir) bindings for https://github.com/hyperpolymath/lith[Lithoglyph] - the narrative-first database.
+BEAM (Erlang/Gleam/Elixir) bindings for https://github.com/hyperpolymath/lithoglyph[Lithoglyph] - the narrative-first database.
 
 == Overview
 
@@ -175,5 +175,5 @@ PMPL-1.0-or-later
 
 == Related Projects
 
-* https://github.com/hyperpolymath/lith[Lithoglyph] - The database engine
+* https://github.com/hyperpolymath/lithoglyph[Lithoglyph] - The database engine
 * https://github.com/hyperpolymath/formbase[FormBase] - Airtable alternative built on Lithoglyph

@@ -15,7 +15,7 @@ The debugger is integrated into the studio as a component, providing:
 
 ## Related Repositories
 - [lithoglyph](https://github.com/hyperpolymath/lithoglyph) - Core database (monorepo)
-- [gql-dt](https://github.com/hyperpolymath/gql-dt) - Dependently-typed query language
+- [gql-dt](https://github.com/hyperpolymath/gnpl) - Dependently-typed query language
 - [formbase](https://github.com/hyperpolymath/formbase) - Airtable alternative
 
 ## Archived (merged into studio)

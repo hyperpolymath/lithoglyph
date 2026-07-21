@@ -82,7 +82,7 @@ Lith Studio provides a visual interface:
 │  └── Visual builders for schemas, queries, data entry,      │
 │      and schema normalization                               │
 ├─────────────────────────────────────────────────────────────┤
-│  GQLdt (github.com/hyperpolymath/gqldt)                     │
+│  GQLdt (github.com/hyperpolymath/gnpl)                     │
 │  ├── Lean 4 type checker                                    │
 │  ├── Proof generation (incl. normalization proofs)          │
 │  ├── Normalization types (FunDep, 1NF-BCNF)                 │
@@ -144,7 +144,7 @@ Self-normalizing database features:
 * Proof-carrying schema evolution with rollback
 * "What's wrong with my schema?" in plain English
 
-See https://github.com/hyperpolymath/lithoglyph/blob/main/spec/self-normalizing.adoc[Lith Self-Normalizing Spec] and https://github.com/hyperpolymath/gqldt/blob/main/spec/normalization-types.md[GQLdt Normalization Types].
+See https://github.com/hyperpolymath/lithoglyph/blob/main/spec/self-normalizing.adoc[Lith Self-Normalizing Spec] and https://github.com/hyperpolymath/gnpl/blob/main/spec/normalization-types.md[GQLdt Normalization Types].
 
 == Target Users
 
@@ -366,8 +366,8 @@ lithoglyph-studio/
 
 * https://github.com/hyperpolymath/lithoglyph[Lith] - The narrative-first database
 * https://github.com/hyperpolymath/lithoglyph/blob/main/spec/self-normalizing.adoc[Lith Self-Normalizing] - Automatic FD discovery and proof-carrying schema evolution
-* https://github.com/hyperpolymath/gqldt[GQLdt] - Dependently-typed Form Query Language
-* https://github.com/hyperpolymath/gqldt/blob/main/spec/normalization-types.md[GQLdt Normalization Types] - Type-encoded functional dependencies and normal forms
+* https://github.com/hyperpolymath/gnpl[GQLdt] - Dependently-typed Form Query Language
+* https://github.com/hyperpolymath/gnpl/blob/main/spec/normalization-types.md[GQLdt Normalization Types] - Type-encoded functional dependencies and normal forms
 * https://github.com/hyperpolymath/bofig[BoFIG] - Evidence graph for investigative journalism
 * https://github.com/hyperpolymath/zotero-lithoglyph[Zotero-Lith] - Production pilot: reference manager with PROMPT scores
 * https://github.com/hyperpolymath/lithoglyph-debugger[Lith Debugger] - Proof-carrying database debugger (Lean 4 + Idris 2)

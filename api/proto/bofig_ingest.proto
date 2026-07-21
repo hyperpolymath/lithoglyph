@@ -9,7 +9,7 @@ syntax = "proto3";
 
 package lith.bofig.v1;
 
-option go_package = "github.com/hyperpolymath/lith/api/gen/go/lith/bofig/v1";
+option go_package = "github.com/hyperpolymath/lithoglyph/api/gen/go/lith/bofig/v1";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
