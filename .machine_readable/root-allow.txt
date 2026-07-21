@@ -71,3 +71,65 @@ container/                 # may host Containerfile if not at build/
 .pre-commit-config.yaml    # TODO: relocate to ci/.pre-commit-config.yaml after invocation pattern decided
 affinescript/              # AffineScript source subtree consumed by this template
 tools/                     # TODO: consolidate with scripts/ or document the split (pending decision)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LITHOGLYPH — repository-specific additions
+#
+# Lithoglyph is a multi-language database: a Forth model core, a Zig ABI bridge,
+# a Factor storage binding, a BEAM control plane and several delivery surfaces.
+# Each layer is a separate toolchain with its own build root, so they sit at the
+# repository root rather than under src/ — a single src/ would have to contain
+# five mutually unaware build systems. Entries are grouped by what they are.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── Core: the layered engine (see docs/lithoglyph/ARCHITECTURE.adoc) ────────
+core-forth/                # Form.Model / Form.Blocks — the single source of truth
+core-zig/                  # Form.Bridge — the Zig ABI bridge (no C dependency)
+core-factor/               # storage-backend vocab + the Factor<->Bridge seam tests
+ffi/                       # cross-language FFI surfaces generated from the ABI
+normalizer/                # canonicalisation layer
+spec/                      # format and protocol specifications
+generated/                 # ABI headers emitted from the Idris2 interface
+
+# ─── Delivery surfaces ────────────────────────────────────────────────────────
+beam/                      # Form.ControlPlane (Elixir/OTP)
+lith-http/                 # HTTP surface
+api/                       # protobuf/OpenAPI definitions
+clients/                   # per-language client libraries
+studio/                    # authoring UI
+geo/                       # geospatial extension
+analytics/                 # analytics extension
+integrations/              # third-party integrations
+site/                      # documentation site source
+
+# ─── Non-functional test trees (kept beside the code they exercise) ──────────
+distributed/               # distributed-systems tests
+perf/                      # performance tests
+stability/                 # soak and stability tests
+test-vectors/              # shared conformance vectors consumed by every language
+
+# ─── Build entry points that their toolchain requires at root ────────────────
+lithoglyph.ipkg            # Idris2 package manifest; idris2 resolves sourcedir relative to it
+Mustfile                   # contractile "must" runner; read from the repo root
+Containerfile              # OCI build context is the repo root
+mise.toml                  # shipped by rsr-template-repo itself but absent from the
+                           # upstream allowlist — an RSR gap, not a Lithoglyph one
+opsm.toml                  # opsm project descriptor
+eclexiaiser.toml           # eclexiaiser config
+selur-compose.yml          # selur compose topology
+
+# ─── Documentation and licensing ─────────────────────────────────────────────
+ARCHITECTURE.adoc          # the real architecture doc (277 lines). Supersedes the
+                           # RSR-generated ARCHITECTURE.md stub, which described a
+                           # src/tests/docs/scripts/config layout this repo does not
+                           # have; that stub was deleted rather than allow-listed.
+licenses/                  # Palimpsest-MPL texts (EN/NL) + MPL-2.0-NL. Distinct from
+                           # LICENSES/ (REUSE/SPDX): this project is PMPL-1.0-or-later,
+                           # and the translations are part of that licence, not SPDX.
+contractiles/              # repo-local normative contractiles (Dustfile/Mustfile/Trustfile)
+
+# ─── Agent and tooling metadata ──────────────────────────────────────────────
+.claude/                   # Claude Code project config and hooks
+.bot_directives/           # bot behaviour directives
+.meta/                     # REQUIRED-FILES.md — repo self-description
+tasks/                     # task-runner fragments (Justfile/Mustfile shards)
