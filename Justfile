@@ -59,10 +59,20 @@ test-ffi-smoke: build-zig
     cd core-zig && LD_LIBRARY_PATH=zig-out/lib ./test-version-only
     cd core-zig && LD_LIBRARY_PATH=zig-out/lib ./test-db-open
 
-# Run Factor seam tests
-test-factor:
-    @echo "=== Factor Seam Tests ==="
-    cd core-factor/gql && factor seam-tests.factor
+# Run Factor ABI seam tests (Factor <-> Form.Bridge)
+#
+# Previously ran core-factor/gql/seam-tests.factor. That file tests the GQL
+# pipeline (Parser -> Planner -> Executor -> Normalizer) and `USING: gql`, so
+# it belongs to the language and moved to hyperpolymath/gnpl. Keeping it here
+# would have made gnpl a build dependency of lithoglyph — the wrong direction.
+#
+# The seam lithoglyph actually owns is Factor <-> Form.Bridge, and these two
+# files are what test it: test-ffi.factor drives the storage-backend vocab,
+# minimal-ffi-test.factor dlopens libbridge directly.
+test-factor: build-zig
+    @echo "=== Factor ABI Seam Tests ==="
+    cd core-factor && factor minimal-ffi-test.factor
+    cd core-factor && factor test-ffi.factor
 
 # Run ReScript property tests
 test-property:
@@ -99,10 +109,20 @@ test-all: test-zig test-forth test-ffi test-property test-fuzz-quick
 # BENCHMARKS
 # ============================================================
 
-# Run Factor GQL benchmarks
+# Factor GQL benchmarks — MOVED, and this repo has no replacement yet.
+#
+# core-factor/gql/benchmarks.factor benchmarked the GQL parser/planner/executor.
+# It is language work, so it moved to hyperpolymath/gnpl (runtime/) along with
+# gql.factor itself. Nothing in lithoglyph benchmarks the core today.
+#
+# This exits non-zero on purpose. RSR doctrine: a check that cannot fail is not
+# a check, and a `bench` target that silently succeeds with nothing to run reads
+# as "benchmarked and fine". The hole is real; it is named rather than hidden.
 bench-factor:
-    @echo "=== Factor GQL Benchmarks ==="
-    cd core-factor/gql && factor benchmarks.factor
+    @echo "=== Factor GQL Benchmarks: MOVED to hyperpolymath/gnpl (runtime/) ==="
+    @echo "    lithoglyph has no core benchmarks yet. Add them here, or run"
+    @echo "    the language benchmarks in the gnpl repo."
+    @exit 1
 
 # Run all benchmarks
 bench: bench-factor
