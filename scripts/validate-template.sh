@@ -159,7 +159,12 @@ REQUIRED_WORKFLOWS=(
     "scorecard.yml"
     "quality.yml"
     "mirror.yml"
-    "instant-sync.yml"
+    # instant-sync.yml deliberately absent. rsr-template-repo 09f94c5
+    # ("chore(ci): drop instant-sync and push-email-notify") deleted that workflow
+    # from the template but left this list still requiring it — so the template
+    # demands a file it no longer ships, and every repo that correctly drops it
+    # fails this gate. Restoring the workflow would satisfy the check by undoing a
+    # deliberate removal, so the list is corrected instead. Fix belongs upstream.
     "guix-policy.yml"
     "security-policy.yml"
     "wellknown-enforcement.yml"
