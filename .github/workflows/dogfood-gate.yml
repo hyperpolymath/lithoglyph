@@ -40,12 +40,18 @@ jobs:
             echo "::warning::No .a2ml manifest files found. Every RSR repo should have 0-AI-MANIFEST.a2ml"
           fi
 
+      # Runs the in-repo validator, not hyperpolymath/a2ml-validate-action.
+      # That action repository does not exist — `gh api repos/...` returns 404
+      # and the job failed at Set up job with "Unable to resolve action ...,
+      # repository not found", so it never ran. Meanwhile the real
+      # implementation ships here as .githooks/validate-a2ml.sh and takes the
+      # same INPUT_PATH / INPUT_STRICT interface the action was passed.
       - name: Validate A2ML manifests
         if: steps.detect.outputs.count > 0
-        uses: hyperpolymath/a2ml-validate-action@5468b7ff0f5129a74d25af5f2468df11a706dc70 # main
-        with:
-          path: '.'
-          strict: 'false'
+        env:
+          INPUT_PATH: '.'
+          INPUT_STRICT: 'false'
+        run: bash .githooks/validate-a2ml.sh
 
       - name: Write summary
         run: |
@@ -89,12 +95,14 @@ jobs:
             echo "::warning::Found $CONFIG_COUNT config files but no K9 contracts. Run k9iser to generate contracts."
           fi
 
+      # In-repo validator — hyperpolymath/k9-validate-action does not exist
+      # either (404). See the note on the A2ML step above.
       - name: Validate K9 contracts
         if: steps.detect.outputs.k9_count > 0
-        uses: hyperpolymath/k9-validate-action@08958c9bab64f9941a85938a78122a0d4a3058e8 # main
-        with:
-          path: '.'
-          strict: 'false'
+        env:
+          INPUT_PATH: '.'
+          INPUT_STRICT: 'false'
+        run: bash .githooks/validate-k9.sh
 
       - name: Write summary
         run: |

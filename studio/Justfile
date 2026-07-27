@@ -8,7 +8,7 @@ default:
 # Setup development environment
 setup:
     @echo "Setting up Lith Studio..."
-    deno cache src/main.tsx
+    deno cache src/main.jsx
     cargo build
     just rescript-build
 
@@ -23,7 +23,7 @@ rescript-watch:
 # Bundle frontend for production
 bundle:
     just rescript-build
-    deno run -A npm:esbuild src/main.tsx --bundle --outfile=dist/app.js --format=esm --jsx=automatic --loader:.js=jsx
+    deno run -A npm:esbuild src/main.jsx --bundle --outfile=dist/app.js --format=esm --jsx=automatic --loader:.js=jsx
 
 # Development mode with hot reload
 dev:
