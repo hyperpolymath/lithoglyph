@@ -97,7 +97,14 @@ jobs:
         run: |
           gcc -o test-version-only test-version-only.c -L zig-out/lib -llith_bridge
           gcc -o test-db-open test-db-open.c -L zig-out/lib -llith_bridge
-          gcc -o test-ffi-integration test-ffi-integration.c -L zig-out/lib -llith_bridge
+          # -I../generated/abi: test-ffi-integration.c is the only one of the
+          # three that #includes "bridge.h", and bridge.h is generated to
+          # generated/abi/ at the repo root, not into core-zig. Without it:
+          #   test-ffi-integration.c:17:10: fatal error: bridge.h: No such file
+          # ci.yml already had this flag; it was never copied here or into
+          # build/just/lithoglyph.just. Same compile, three call sites, fixed in
+          # one — which is why CI passed while Test Suite failed on the same commit.
+          gcc -I../generated/abi -o test-ffi-integration test-ffi-integration.c -L zig-out/lib -llith_bridge
 
       - name: Run FFI tests
         working-directory: core-zig

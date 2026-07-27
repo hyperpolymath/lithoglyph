@@ -18,7 +18,9 @@ build-ffi:
 
 # Build C FFI integration test binary
 build-ffi-tests:
-    cd core-zig && gcc -o test-ffi-integration test-ffi-integration.c -L zig-out/lib -llith_bridge
+    # -I../generated/abi: bridge.h is generated to generated/abi/ at the repo
+    # root, not into core-zig. See the note in .github/workflows/test-suite.yml.
+    cd core-zig && gcc -I../generated/abi -o test-ffi-integration test-ffi-integration.c -L zig-out/lib -llith_bridge
     cd core-zig && gcc -o test-version-only test-version-only.c -L zig-out/lib -llith_bridge
     cd core-zig && gcc -o test-db-open test-db-open.c -L zig-out/lib -llith_bridge
 
