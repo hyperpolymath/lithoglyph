@@ -230,7 +230,7 @@ See link:.machine_readable/HANDOVER.a2ml[.machine_readable/HANDOVER.a2ml] for st
 * link:docs/INTEGRATION-PATTERNS.adoc[Integration Patterns] - Queues, search, analytics
 
 === Domain-Specific
-* link:docs/WP05_interactive_documentary.md[WP05] - Lithoglyph for Interactive Documentary/Journalism
+* link:docs/WP05_interactive_documentary.adoc[WP05] - Lithoglyph for Interactive Documentary/Journalism
 
 == Related Projects
 

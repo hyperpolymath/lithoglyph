@@ -1,13 +1,13 @@
 {
   "name": "@hyperpolymath/lith-studio",
   "version": "0.1.0",
-  "exports": "./src/main.ts",
+  "exports": "./src/main.jsx",
   "tasks": {
     "dev": "gossamer dev",
     "build": "gossamer build",
     "rescript": "^12.0.0",
     "rescript:build": "npx rescript build",
-    "bundle": "deno run -A npm:esbuild src/main.tsx --bundle --outfile=dist/app.js --format=esm --external:@gossamer/api",
+    "bundle": "deno run -A npm:esbuild src/main.jsx --bundle --outfile=dist/app.js --format=esm --external:@gossamer/api",
     "fmt": "deno fmt src/"
   },
   "imports": {

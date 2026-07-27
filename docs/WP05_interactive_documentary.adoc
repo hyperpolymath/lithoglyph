@@ -1,125 +1,159 @@
-# White Paper 05: Lith for Interactive Documentary and Journalism
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= White Paper 05: Lith for Interactive Documentary and Journalism
 
-**Status**: Draft  
-**Version**: 0.1.0  
-**Date**: 2025-01-11  
-**Authors**: Jonathan D.A. Jewell, Claude (Anthropic)  
-**License**: MPL-2.0
+*Status*: Draft +
+*Version*: 0.1.0 +
+*Date*: 2025-01-11 +
+*Authors*: Jonathan D.A. Jewell, Claude (Anthropic) +
+*License*: MPL-2.0
 
-## Abstract
+=== Abstract
 
 Interactive documentary (i-doc) represents a paradigm shift from linear narrative to reader-driven navigation through evidence. However, i-docs lack appropriate database infrastructure—traditional databases cannot track the provenance, corrections, and multi-perspective navigation that journalism requires. This white paper presents Lith as purpose-built infrastructure for i-docs, demonstrating how narrative-first database design enables epistemological transparency, audience-specific navigation (boundary objects), and correction workflows essential for journalism in the post-truth era.
 
-## 1. Introduction
+[[1-introduction]]
+=== 1. Introduction
 
-### 1.1 The i-doc Movement
+[[11-the-i-doc-movement]]
+==== 1.1 The i-doc Movement
 
 Interactive documentary emerged in the 2010s as a response to passive media consumption. As defined by MIT's Open Doc Lab (Aston & Gaudenzi, 2012):
 
-> **i-doc**: "Any project that starts with an intention to document the 'real' and that uses digital interactive technology to realize this intention."
+____
+*i-doc*: "Any project that starts with an intention to document the 'real' and that uses digital interactive technology to realize this intention."
+____
 
 Key principles:
-- **Navigation over narration**: Readers choose their own path through evidence
-- **Multiple entry points**: Different audiences access the same evidence differently
-- **Transparency**: Epistemological foundations are visible, not hidden
-- **Living documents**: Content updates, corrections, retractions over time
 
-**Examples**:
-- *Hollow* (Elaine McMillion Sheldon): Multi-perspective rural documentary
-- *Fort McMoney* (David Dufresne): Interactive journalism game
-- *Gaza/Sderot* (Bruno + Arte): Dual-perspective conflict coverage
+* *Navigation over narration*: Readers choose their own path through evidence
+* *Multiple entry points*: Different audiences access the same evidence differently
+* *Transparency*: Epistemological foundations are visible, not hidden
+* *Living documents*: Content updates, corrections, retractions over time
 
-### 1.2 The Database Problem
+*Examples*:
+
+* _Hollow_ (Elaine McMillion Sheldon): Multi-perspective rural documentary
+* _Fort McMoney_ (David Dufresne): Interactive journalism game
+* _Gaza/Sderot_ (Bruno {plus} Arte): Dual-perspective conflict coverage
+
+[[12-the-database-problem]]
+==== 1.2 The Database Problem
 
 i-docs require databases that can:
 
-1. **Track evidence provenance**: "Where did this claim come from?"
-2. **Support corrections transparently**: Retractions, updates, clarifications
-3. **Enable multi-perspective navigation**: Same evidence, different audience paths
-4. **Maintain epistemological metadata**: Quality scores, verification status
-5. **Preserve narrative context**: Why was this evidence included? By whom? When?
+[arabic]
+. *Track evidence provenance*: "Where did this claim come from?"
+. *Support corrections transparently*: Retractions, updates, clarifications
+. *Enable multi-perspective navigation*: Same evidence, different audience paths
+. *Maintain epistemological metadata*: Quality scores, verification status
+. *Preserve narrative context*: Why was this evidence included? By whom? When?
 
-**Traditional databases fail** because they:
-- Treat history as write-only audit logs (not queryable narrative)
-- Lack semantic distinction between data changes and corrections
-- Cannot represent "why" a connection exists between evidence and claims
-- Require application-level code for provenance tracking
+*Traditional databases fail* because they:
 
-### 1.3 Lith as i-doc Infrastructure
+* Treat history as write-only audit logs (not queryable narrative)
+* Lack semantic distinction between data changes and corrections
+* Cannot represent "why" a connection exists between evidence and claims
+* Require application-level code for provenance tracking
+
+[[13-lith-as-i-doc-infrastructure]]
+==== 1.3 Lith as i-doc Infrastructure
 
 Lith was designed for exactly this use case:
 
-| i-doc Requirement | Lith Feature |
-|-------------------|----------------|
-| Evidence provenance | `[PROVENANCE]` queries, journal entries |
-| Transparent corrections | Reversible operations with rationale |
-| Multi-perspective navigation | Boundary object collections (navigation paths) |
-| Epistemological metadata | PROMPT scores as first-class data |
-| Narrative context | Constraints-as-ethics, explainable operations |
+[cols=",",options="header",]
+|===
+|i-doc Requirement |Lith Feature
+|Evidence provenance |`++[++PROVENANCE++]++` queries, journal entries
+|Transparent corrections |Reversible operations with rationale
+|Multi-perspective navigation |Boundary object collections (navigation paths)
+|Epistemological metadata |PROMPT scores as first-class data
+|Narrative context |Constraints-as-ethics, explainable operations
+|===
 
-**Thesis**: Lith is the natural database for i-docs because it treats the database itself as part of the documentary story.
+*Thesis*: Lith is the natural database for i-docs because it treats the database itself as part of the documentary story.
 
-## 2. i-doc Theory: Navigation Over Narration
+[[2-i-doc-theory-navigation-over-narration]]
+=== 2. i-doc Theory: Navigation Over Narration
 
-### 2.1 Reader Agency
+[[21-reader-agency]]
+==== 2.1 Reader Agency
 
 Traditional journalism:
-```
+
+....
 Journalist → Article → Reader (passive)
-```
+....
 
 i-doc:
-```
-Journalist → Evidence Graph → Reader (active navigator)
-```
 
-**Example** (UK Inflation 2023):
+....
+Journalist → Evidence Graph → Reader (active navigator)
+....
+
+*Example* (UK Inflation 2023):
 
 Traditional article:
-> "Inflation in 2023 disproportionately affected renters, with rent costs rising 12% compared to 8% overall inflation, according to ONS data."
+
+____
+"Inflation in 2023 disproportionately affected renters, with rent costs rising 12% compared to 8% overall inflation, according to ONS data."
+____
 
 i-doc approach:
-- **Claim**: "Inflation disproportionately affected renters"
-- **Evidence**: ONS CPI data, academic study, think tank report
-- **Relationships**: Which evidence supports/contradicts/contextualizes?
-- **Navigation paths**: 
-  - Skeptic → Start with methodology
-  - Policymaker → Start with authoritative sources
-  - Affected person → Start with personal impact stories
+
+* *Claim*: "Inflation disproportionately affected renters"
+* *Evidence*: ONS CPI data, academic study, think tank report
+* *Relationships*: Which evidence supports/contradicts/contextualizes?
+* *Navigation paths*:
+** Skeptic → Start with methodology
+** Policymaker → Start with authoritative sources
+** Affected person → Start with personal impact stories
 
 Readers choose their path based on their needs.
 
-### 2.2 Boundary Objects (Star & Griesemer, 1989)
+[[22-boundary-objects-star--griesemer-1989]]
+==== 2.2 Boundary Objects (Star & Griesemer, 1989)
 
-**Definition**: Objects that inhabit multiple social worlds and satisfy the informational requirements of each.
+*Definition*: Objects that inhabit multiple social worlds and satisfy the informational requirements of each.
 
-In i-docs, **the same evidence serves multiple audiences**:
+In i-docs, *the same evidence serves multiple audiences*:
 
-| Evidence | Researcher Perspective | Policymaker Perspective | Affected Person Perspective |
-|----------|------------------------|-------------------------|------------------------------|
-| ONS CPI Data | Methodology → Replicability → Raw data | Authority → Summary stats → Recommendations | "What does this mean for me?" → Rent specifically |
-| Academic Study | Peer review status → Citations → Methods | Policy implications → Summary | Readability → Plain language |
-| Expert Interview | Credentials → Bias disclosure → Full transcript | Authority → Key quotes | Relatability → Human story |
+[cols=",,,",options="header",]
+|===
+|Evidence |Researcher Perspective |Policymaker Perspective |Affected Person Perspective
+|ONS CPI Data |Methodology → Replicability → Raw data |Authority → Summary stats → Recommendations |"What does this mean for me?" → Rent specifically
+|Academic Study |Peer review status → Citations → Methods |Policy implications → Summary |Readability → Plain language
+|Expert Interview |Credentials → Bias disclosure → Full transcript |Authority → Key quotes |Relatability → Human story
+|===
 
-Lith enables this via **navigation path collections** (Section 4).
+Lith enables this via *navigation path collections* (Section 4).
 
-### 2.3 Epistemological Transparency
+[[23-epistemological-transparency]]
+==== 2.3 Epistemological Transparency
 
-i-docs must make their epistemology **visible and queryable**:
+i-docs must make their epistemology *visible and queryable*:
 
-**Bad** (opaque):
-> "Sources confirm inflation affected renters more."
+*Bad* (opaque):
 
-**Good** (transparent):
-> "This claim is supported by:
-> - ONS CPI data (PROMPT score: 97.5/100, provenance: 100, replicability: 100)
-> - Academic study (PROMPT: 81.8, peer-reviewed, n=5000 households)
-> - Think tank report (PROMPT: 72.3, methodology transparent but non-peer-reviewed)
-> 
-> Counterpoint from landlords' association (PROMPT: 59, expert interview, not replicated)"
+____
+"Sources confirm inflation affected renters more."
+____
+
+*Good* (transparent):
+
+____
+"This claim is supported by:
+
+* ONS CPI data (PROMPT score: 97.5/100, provenance: 100, replicability: 100)
+* Academic study (PROMPT: 81.8, peer-reviewed, n=5000 households)
+* Think tank report (PROMPT: 72.3, methodology transparent but non-peer-reviewed)
+
+Counterpoint from landlords' association (PROMPT: 59, expert interview, not replicated)"
+____
 
 Lith makes this queryable:
-```gql
+
+[source,gql]
+----
 -- Get all evidence supporting a claim, sorted by PROMPT overall score
 SELECT evidence.title, evidence.prompt_overall, 
        relationship.weight, relationship.reasoning
@@ -128,17 +162,20 @@ FROM claims
   JOIN evidence ON relationships.to_id = evidence.id
 WHERE claims.id = 'claim_renters_disproportionate'
 ORDER BY evidence.prompt_overall DESC;
-```
+----
 
-## 3. The PROMPT Framework in Lith
+[[3-the-prompt-framework-in-lith]]
+=== 3. The PROMPT Framework in Lith
 
-### 3.1 PROMPT Dimensions
+[[31-prompt-dimensions]]
+==== 3.1 PROMPT Dimensions
 
 PROMPT (Provenance, Replicability, Objective, Methodology, Publication, Transparency) is a 6-dimensional framework for scoring evidence quality (Wineburg et al., 2022).
 
-Lith stores PROMPT scores as **narrative metadata**:
+Lith stores PROMPT scores as *narrative metadata*:
 
-```gql
+[source,gql]
+----
 CREATE COLLECTION evidence (
   id UUID PRIMARY KEY,
   title VARCHAR NOT NULL,
@@ -157,22 +194,26 @@ CREATE COLLECTION evidence (
   url TEXT,
   zotero_key VARCHAR
 ) WITH RATIONALE;
-```
+----
 
-**Example** (from BoFIG UK Inflation dataset):
+*Example* (from BoFIG UK Inflation dataset):
 
-| Evidence | Prov | Repl | Obj | Meth | Pub | Trans | Overall |
-|----------|------|------|-----|------|-----|-------|---------|
-| ONS CPI Data | 100 | 100 | 95 | 95 | 100 | 95 | 97.5 |
-| Academic Study (peer-reviewed) | 85 | 80 | 75 | 85 | 90 | 75 | 81.8 |
-| Think Tank Report | 75 | 70 | 65 | 75 | 80 | 70 | 72.3 |
-| Expert Interview | 85 | 45 | 60 | 50 | 40 | 75 | 59.0 |
+[cols=",,,,,,,",options="header",]
+|===
+|Evidence |Prov |Repl |Obj |Meth |Pub |Trans |Overall
+|ONS CPI Data |100 |100 |95 |95 |100 |95 |97.5
+|Academic Study (peer-reviewed) |85 |80 |75 |85 |90 |75 |81.8
+|Think Tank Report |75 |70 |65 |75 |80 |70 |72.3
+|Expert Interview |85 |45 |60 |50 |40 |75 |59.0
+|===
 
-### 3.2 PROMPT Score Evolution
+[[32-prompt-score-evolution]]
+==== 3.2 PROMPT Score Evolution
 
 Scores change over time (retractions, replication failures):
 
-```gql
+[source,gql]
+----
 -- Initial scoring
 INSERT INTO evidence (title, prompt_scores) 
 VALUES ('Climate Study X', {
@@ -197,10 +238,12 @@ DISCLOSED_BY "editor_bob"
 DISCLOSED_AT "2024-03-16T09:00:00Z";
 
 -- Lith journals this as a correction, preserving original scores in provenance
-```
+----
 
-**Agents/readers can query score history**:
-```gql
+*Agents/readers can query score history*:
+
+[source,gql]
+----
 INTROSPECT evidence.climate_study_x PROMPT_HISTORY;
 
 -- Returns:
@@ -210,21 +253,26 @@ INTROSPECT evidence.climate_study_x PROMPT_HISTORY;
 --   { date: "2024-03-16", overall: 67.5, scored_by: "bob",
 --     note: "Replication failure", replicability: 85→30 }
 -- ]
-```
+----
 
-### 3.3 Audience-Weighted PROMPT
+[[33-audience-weighted-prompt]]
+==== 3.3 Audience-Weighted PROMPT
 
 Different audiences prioritize different dimensions:
 
-| Audience | Top Priority | Secondary | Tertiary |
-|----------|--------------|-----------|----------|
-| Researcher | Methodology, Replicability | Transparency | Publication |
-| Policymaker | Provenance, Publication | Objective | Methodology |
-| Skeptic | Objective, Transparency | Replicability | Provenance |
-| Affected Person | Transparency, Objective | Provenance | (simplicity) |
+[cols=",,,",options="header",]
+|===
+|Audience |Top Priority |Secondary |Tertiary
+|Researcher |Methodology, Replicability |Transparency |Publication
+|Policymaker |Provenance, Publication |Objective |Methodology
+|Skeptic |Objective, Transparency |Replicability |Provenance
+|Affected Person |Transparency, Objective |Provenance |(simplicity)
+|===
 
 Lith supports audience-specific scoring:
-```gql
+
+[source,gql]
+----
 SELECT evidence.title,
        audience_weighted_prompt(evidence.prompt_scores, 'RESEARCHER') AS researcher_score,
        audience_weighted_prompt(evidence.prompt_scores, 'SKEPTIC') AS skeptic_score
@@ -242,13 +290,16 @@ CREATE FUNCTION audience_weighted_prompt(scores, audience) AS
       0.20 * scores.replicability + 0.15 * scores.provenance
     -- ... etc
   END;
-```
+----
 
-## 4. Boundary Objects: Navigation Paths
+[[4-boundary-objects-navigation-paths]]
+=== 4. Boundary Objects: Navigation Paths
 
-### 4.1 Implementation in Lith
+[[41-implementation-in-lith]]
+==== 4.1 Implementation in Lith
 
-```gql
+[source,gql]
+----
 CREATE COLLECTION navigation_paths (
   id UUID PRIMARY KEY,
   name VARCHAR NOT NULL,
@@ -267,12 +318,15 @@ CREATE COLLECTION path_nodes (
   context TEXT,  -- Why this node is in this position for this audience
   PRIMARY KEY (path_id, order)
 );
-```
+----
 
-### 4.2 Example: UK Inflation 2023
+[[42-example-uk-inflation-2023]]
+==== 4.2 Example: UK Inflation 2023
 
-**Researcher Path**:
-```gql
+*Researcher Path*:
+
+[source,gql]
+----
 CREATE NAVIGATION_PATH 'researcher_path_inflation'
 FOR INVESTIGATION 'uk_inflation_2023'
 AUDIENCE 'RESEARCHER'
@@ -304,10 +358,12 @@ BEGIN
 END
 RATIONALE "Evidence-first approach for academic rigor"
 CREATED_BY "journalist_jane";
-```
+----
 
-**Skeptic Path**:
-```gql
+*Skeptic Path*:
+
+[source,gql]
+----
 CREATE NAVIGATION_PATH 'skeptic_path_inflation'
 FOR INVESTIGATION 'uk_inflation_2023'
 AUDIENCE 'SKEPTIC'
@@ -334,10 +390,12 @@ BEGIN
 END
 RATIONALE "Start with skepticism-relevant dimensions"
 CREATED_BY "editor_bob";
-```
+----
 
-**Affected Person Path**:
-```gql
+*Affected Person Path*:
+
+[source,gql]
+----
 CREATE NAVIGATION_PATH 'affected_person_path_inflation'
 FOR INVESTIGATION 'uk_inflation_2023'
 AUDIENCE 'AFFECTED_PERSON'
@@ -359,13 +417,15 @@ BEGIN
 END
 RATIONALE "Readability and personal relevance prioritized"
 CREATED_BY "journalist_jane";
-```
+----
 
-### 4.3 Auto-Generated Paths
+[[43-auto-generated-paths]]
+==== 4.3 Auto-Generated Paths
 
 Lith can auto-generate paths based on heuristics:
 
-```gql
+[source,gql]
+----
 -- Auto-generate skeptic path
 GENERATE NAVIGATION_PATH 
 FOR INVESTIGATION 'uk_inflation_2023'
@@ -387,12 +447,15 @@ STRATEGY BEGIN
   SELECT claims WHERE evidence_count > 5 AND confidence_level > 0.9
 END
 RATIONALE "Auto-generated based on skeptic heuristics";
-```
+----
 
-### 4.4 Path Metadata as Narrative
+[[44-path-metadata-as-narrative]]
+==== 4.4 Path Metadata as Narrative
 
 Paths themselves carry narrative:
-```gql
+
+[source,gql]
+----
 INTROSPECT NAVIGATION_PATH 'researcher_path_inflation';
 
 -- Returns:
@@ -413,14 +476,18 @@ INTROSPECT NAVIGATION_PATH 'researcher_path_inflation';
     "completion_rate": 0.78
   }
 }
-```
+----
 
-## 5. Journalism Workflows
+[[5-journalism-workflows]]
+=== 5. Journalism Workflows
 
-### 5.1 Evidence Gathering
+[[51-evidence-gathering]]
+==== 5.1 Evidence Gathering
 
-**Phase 1: Import from Zotero**
-```gql
+*Phase 1: Import from Zotero*
+
+[source,gql]
+----
 -- Journalist uses Zotero to manage sources
 -- Lith imports with metadata mapping
 
@@ -439,10 +506,12 @@ INSERT INTO evidence (
 RATIONALE "Official UK government statistics, gold standard for inflation data"
 ZOTERO_TAGS ['inflation', 'UK', '2023', 'rent']
 IMPORTED_AT NOW();
-```
+----
 
-**Phase 2: Connect to Claims**
-```gql
+*Phase 2: Connect to Claims*
+
+[source,gql]
+----
 -- Reporter creates claim
 INSERT INTO claims (text, claim_type, confidence_level)
 VALUES (
@@ -464,13 +533,15 @@ VALUES (
 REASONING "ONS Table 3.2 shows rent component at 12.1%, headline CPI at 8.0%"
 ADDED_BY 'reporter_alice'
 VERIFIED_BY 'editor_bob';
-```
+----
 
-### 5.2 Collaborative Editing
+[[52-collaborative-editing]]
+==== 5.2 Collaborative Editing
 
 Multiple journalists work on same investigation:
 
-```gql
+[source,gql]
+----
 -- Reporter Alice adds claim
 INSERT INTO claims (...) ADDED_BY 'reporter_alice';
 
@@ -488,13 +559,15 @@ BY 'reporter_alice'
 NOTE "Agreed. Final figures due March 2024, will update then.";
 
 -- Lith journals entire conversation as narrative
-```
+----
 
-### 5.3 Corrections and Retractions
+[[53-corrections-and-retractions]]
+==== 5.3 Corrections and Retractions
 
-**Scenario**: ONS revises inflation figures
+*Scenario*: ONS revises inflation figures
 
-```gql
+[source,gql]
+----
 -- Original claim
 -- (created 2024-01-15)
 claim: "Rent inflation reached 12% in 2023"
@@ -518,10 +591,12 @@ SOURCE_URL 'https://ons.gov.uk/final-2023-cpi';
 
 -- Lith preserves original in journal
 -- Readers see correction notice with full context
-```
+----
 
-**Retraction** (more serious):
-```gql
+*Retraction* (more serious):
+
+[source,gql]
+----
 UPDATE claims
 SET confidence_level = 0.0,
     retracted = TRUE,
@@ -536,11 +611,13 @@ APOLOGY "We apologize for the error and have updated our editorial
 
 -- Original claim remains queryable but marked retracted
 -- All dependent claims are flagged for review
-```
+----
 
-### 5.4 Fact-Checking Workflow
+[[54-fact-checking-workflow]]
+==== 5.4 Fact-Checking Workflow
 
-```gql
+[source,gql]
+----
 -- Fact-checker reviews claim
 SELECT claim.text, 
        evidence.title, 
@@ -567,15 +644,17 @@ PROMPT_ADJUSTMENTS {
 };
 
 -- Lith journals verification as part of narrative
-```
+----
 
-## 6. BoFIG Integration: Case Study
+[[6-bofig-integration-case-study]]
+=== 6. BoFIG Integration: Case Study
 
-### 6.1 BoFIG Architecture
+[[61-bofig-architecture]]
+==== 6.1 BoFIG Architecture
 
-**BoFIG** (Binary-Origami Figuration) is an epistemic infrastructure system built on Lith.
+*BoFIG* (Binary-Origami Figuration) is an epistemic infrastructure system built on Lith.
 
-```
+....
 ┌─────────────────────────────────────────────┐
 │  BoFIG Frontend (Phoenix LiveView)          │
 │  - Graph visualization (D3.js)              │
@@ -599,13 +678,15 @@ PROMPT_ADJUSTMENTS {
 │  - Provenance tracking                      │
 │  - Reversible operations                    │
 └─────────────────────────────────────────────┘
-```
+....
 
-### 6.2 Schema Mapping
+[[62-schema-mapping]]
+==== 6.2 Schema Mapping
 
-**BoFIG Collections in Lith**:
+*BoFIG Collections in Lith*:
 
-```gql
+[source,gql]
+----
 -- Claims (investigative journalism claims)
 CREATE COLLECTION bofig_claims (
   id UUID PRIMARY KEY,
@@ -671,13 +752,15 @@ CREATE COLLECTION bofig_navigation_paths (
   created_by VARCHAR,
   created_at TIMESTAMP
 ) WITH NARRATIVE_METADATA;
-```
+----
 
-### 6.3 Query Examples
+[[63-query-examples]]
+==== 6.3 Query Examples
 
-**GQL queries replacing AQL**:
+*GQL queries replacing AQL*:
 
-```gql
+[source,gql]
+----
 -- Get all high-confidence claims with supporting evidence
 SELECT claims.text, claims.confidence_level,
        ARRAY_AGG(evidence.title ORDER BY evidence.prompt_overall DESC) AS evidence_titles,
@@ -710,32 +793,38 @@ WHERE path.investigation_id = 'uk_inflation_2023'
   AND path.audience_type = 'SKEPTIC'
 ORDER BY path.created_at DESC
 LIMIT 1;
-```
+----
 
-### 6.4 Migration Benefits
+[[64-migration-benefits]]
+==== 6.4 Migration Benefits
 
-**Before** (ArangoDB):
-- ❌ No provenance tracking (who added this evidence? when? why?)
-- ❌ No correction workflow (retractions require manual tracking)
-- ❌ PROMPT scores are static (no history of changes)
-- ❌ Relationships lack narrative (why does this edge exist?)
-- ❌ No audit trail (who verified this claim?)
+*Before* (ArangoDB):
 
-**After** (Lith):
-- ✅ Full provenance: Every entity knows its origin
-- ✅ Reversible corrections: Update with reason, preserve original
-- ✅ PROMPT score evolution: Track score changes over time
-- ✅ Narrative relationships: Every edge has rationale
-- ✅ Complete audit trail: All operations journaled
+* ❌ No provenance tracking (who added this evidence? when? why?)
+* ❌ No correction workflow (retractions require manual tracking)
+* ❌ PROMPT scores are static (no history of changes)
+* ❌ Relationships lack narrative (why does this edge exist?)
+* ❌ No audit trail (who verified this claim?)
 
-## 7. My-Newsroom Integration
+*After* (Lith):
 
-### 7.1 Multi-Agent Verification
+* ✅ Full provenance: Every entity knows its origin
+* ✅ Reversible corrections: Update with reason, preserve original
+* ✅ PROMPT score evolution: Track score changes over time
+* ✅ Narrative relationships: Every edge has rationale
+* ✅ Complete audit trail: All operations journaled
+
+[[7-my-newsroom-integration]]
+=== 7. My-Newsroom Integration
+
+[[71-multi-agent-verification]]
+==== 7.1 Multi-Agent Verification
 
 My-Newsroom uses Dempster-Shafer belief fusion (50-100 agents) for claim verification. Lith provides the audit layer.
 
-**Architecture**:
-```
+*Architecture*:
+
+....
 ┌──────────────────────────────────────────────┐
 │  My-Newsroom (Elixir/OTP Ensemble)           │
 │  - 50-100 specialized agents                 │
@@ -749,11 +838,13 @@ My-Newsroom uses Dempster-Shafer belief fusion (50-100 agents) for claim verific
 │  - Agent reasoning preserved                 │
 │  - Conflicts/resolutions journaled           │
 └──────────────────────────────────────────────┘
-```
+....
 
-### 7.2 Belief Fusion Audit Trail
+[[72-belief-fusion-audit-trail]]
+==== 7.2 Belief Fusion Audit Trail
 
-```gql
+[source,gql]
+----
 CREATE COLLECTION newsroom_belief_fusions (
   fusion_id UUID PRIMARY KEY,
   claim_text TEXT NOT NULL,
@@ -815,13 +906,15 @@ FUSED_BY 'orchestrator_agent_main'
 RATIONALE "Three agents agree with high confidence. Low conflict (0.03).
            Consensus threshold (0.85) exceeded. Claim verified."
 [PROVENANCE];
-```
+----
 
-### 7.3 Agent Introspection
+[[73-agent-introspection]]
+==== 7.3 Agent Introspection
 
 Agents query their own reasoning history:
 
-```gql
+[source,gql]
+----
 -- Agent asks: "What claims have I verified about inflation?"
 SELECT fusion.claim_text, 
        belief.belief,
@@ -845,13 +938,15 @@ ORDER BY fusion.fused_at DESC
 --     timestamp: "2024-01-15T14:30:00Z" },
 --   ...
 -- ]
-```
+----
 
-### 7.4 Conflict Resolution Narrative
+[[74-conflict-resolution-narrative]]
+==== 7.4 Conflict Resolution Narrative
 
 When agents disagree:
 
-```gql
+[source,gql]
+----
 -- Agents disagree on controversial claim
 INSERT INTO newsroom_belief_fusions (
   claim_text, individual_beliefs, fusion_method, fusion_result, consensus_reached
@@ -882,181 +977,187 @@ REQUIRES_HUMAN_REVIEW TRUE
 
 -- Lith journals this as a contested claim
 -- Readers see: "This claim is disputed among experts (consensus: 52%, conflict: high)"
-```
+----
 
-## 8. Implementation Roadmap
+[[8-implementation-roadmap]]
+=== 8. Implementation Roadmap
 
-### Phase 1: Lith Core for BoFIG (Month 1-3)
+==== Phase 1: Lith Core for BoFIG (Month 1-3)
 
-- [ ] Migrate BoFIG from ArangoDB to Lith
-- [ ] Implement PROMPT score schema
-- [ ] Build navigation path collections
-- [ ] Create GQL equivalents for all current AQL queries
-- [ ] Migrate UK Inflation 2023 test dataset
-- [ ] Test with NUJ journalists (25 users)
+* [ ] Migrate BoFIG from ArangoDB to Lith
+* [ ] Implement PROMPT score schema
+* [ ] Build navigation path collections
+* [ ] Create GQL equivalents for all current AQL queries
+* [ ] Migrate UK Inflation 2023 test dataset
+* [ ] Test with NUJ journalists (25 users)
 
-### Phase 2: Zotero Integration (Month 4-6)
+==== Phase 2: Zotero Integration (Month 4-6)
 
-- [ ] Formalize Zotero metadata → Lith mapping
-- [ ] Build browser extension (import from Zotero to Lith)
-- [ ] Implement two-way sync (changes in Lith → Zotero)
-- [ ] PROMPT score estimation from Zotero tags
-- [ ] Citation graph import (related works)
+* [ ] Formalize Zotero metadata → Lith mapping
+* [ ] Build browser extension (import from Zotero to Lith)
+* [ ] Implement two-way sync (changes in Lith → Zotero)
+* [ ] PROMPT score estimation from Zotero tags
+* [ ] Citation graph import (related works)
 
-### Phase 3: My-Newsroom Integration (Month 7-12)
+==== Phase 3: My-Newsroom Integration (Month 7-12)
 
-- [ ] Define belief fusion audit schema
-- [ ] Build Elixir adapter (My-Newsroom → Lith)
-- [ ] Implement agent introspection queries
-- [ ] Build conflict resolution workflow
-- [ ] Test with 10-agent newsroom (proof-of-concept)
+* [ ] Define belief fusion audit schema
+* [ ] Build Elixir adapter (My-Newsroom → Lith)
+* [ ] Implement agent introspection queries
+* [ ] Build conflict resolution workflow
+* [ ] Test with 10-agent newsroom (proof-of-concept)
 
-### Phase 4: i-doc Platform (Month 13-18)
+==== Phase 4: i-doc Platform (Month 13-18)
 
-- [ ] D3.js visualization (evidence graphs)
-- [ ] LiveView UI (interactive navigation)
-- [ ] Auto-generate navigation paths
-- [ ] Embed PROMPT scoring interface
-- [ ] Public-facing i-doc viewer
+* [ ] D3.js visualization (evidence graphs)
+* [ ] LiveView UI (interactive navigation)
+* [ ] Auto-generate navigation paths
+* [ ] Embed PROMPT scoring interface
+* [ ] Public-facing i-doc viewer
 
-### Phase 5: Scale to Reuters-level Newsroom (Month 19-24)
+==== Phase 5: Scale to Reuters-level Newsroom (Month 19-24)
 
-- [ ] 50-100 agent deployment (My-Newsroom full scale)
-- [ ] Byzantine fault tolerance testing
-- [ ] Distributed Lith (Raft consensus, sharding)
-- [ ] Real-time collaboration (Phoenix Channels)
-- [ ] IPFS provenance integration
+* [ ] 50-100 agent deployment (My-Newsroom full scale)
+* [ ] Byzantine fault tolerance testing
+* [ ] Distributed Lith (Raft consensus, sharding)
+* [ ] Real-time collaboration (Phoenix Channels)
+* [ ] IPFS provenance integration
 
-## 9. Evaluation Metrics
+[[9-evaluation-metrics]]
+=== 9. Evaluation Metrics
 
-### 9.1 Journalism Quality
+[[91-journalism-quality]]
+==== 9.1 Journalism Quality
 
-- **Correction Rate**: % of claims corrected within 30 days
-  - **Target**: <5% (high initial accuracy)
-  - **Metric**: `SELECT COUNT(*) FROM claims WHERE corrected = TRUE / COUNT(*)`
+* *Correction Rate*: % of claims corrected within 30 days
+** *Target*: ++<++5% (high initial accuracy)
+** *Metric*: `SELECT COUNT(++*++) FROM claims WHERE corrected = TRUE / COUNT(++*++)`
+* *Retraction Rate*: % of claims fully retracted
+** *Target*: ++<++1% (rare, serious errors)
+** *Metric*: `SELECT COUNT(++*++) FROM claims WHERE retracted = TRUE / COUNT(++*++)`
+* *Average PROMPT Score*: Quality of evidence base
+** *Target*: ++>++75 (acceptable quality)
+** *Metric*: `SELECT AVG(prompt++_++overall) FROM evidence`
+* *Verification Latency*: Time from claim to verification
+** *Target*: ++<++48 hours
+** *Metric*: `SELECT AVG(verified++_++at - added++_++at) FROM claims WHERE verified++_++by IS NOT NULL`
 
-- **Retraction Rate**: % of claims fully retracted
-  - **Target**: <1% (rare, serious errors)
-  - **Metric**: `SELECT COUNT(*) FROM claims WHERE retracted = TRUE / COUNT(*)`
+[[92-reader-engagement]]
+==== 9.2 Reader Engagement
 
-- **Average PROMPT Score**: Quality of evidence base
-  - **Target**: >75 (acceptable quality)
-  - **Metric**: `SELECT AVG(prompt_overall) FROM evidence`
+* *Navigation Path Completion*: % of readers who complete path
+** *Target*: ++>++60%
+** *Tracked via*: Frontend analytics {plus} Lith queries
+* *Average Time on Evidence*: Reader engagement depth
+** *Target*: ++>++3 minutes per evidence item
+** *Tracked via*: Frontend analytics
+* *Perspective Diversity*: % readers exploring multiple paths
+** *Target*: ++>++30% try 2{plus} audience paths
+** *Tracked via*: Session tracking
 
-- **Verification Latency**: Time from claim to verification
-  - **Target**: <48 hours
-  - **Metric**: `SELECT AVG(verified_at - added_at) FROM claims WHERE verified_by IS NOT NULL`
+[[93-agent-performance]]
+==== 9.3 Agent Performance
 
-### 9.2 Reader Engagement
+* *Consensus Rate*: % of claims reaching agent consensus
+** *Target*: ++>++80% (most claims should converge)
+** *Metric*: `SELECT COUNT(++*++) WHERE consensus++_++reached = TRUE / COUNT(++*++)`
+* *Conflict Detection*: % of genuine conflicts identified
+** *Target*: ++>++90% (high sensitivity)
+** *Metric*: Manual review of high-conflict fusions
+* *Byzantine Resilience*: % of attacks detected/prevented
+** *Target*: 100% up to 33% malicious agents
+** *Tested via*: Adversarial agent injection
 
-- **Navigation Path Completion**: % of readers who complete path
-  - **Target**: >60%
-  - **Tracked via**: Frontend analytics + Lith queries
+[[10-related-work]]
+=== 10. Related Work
 
-- **Average Time on Evidence**: Reader engagement depth
-  - **Target**: >3 minutes per evidence item
-  - **Tracked via**: Frontend analytics
+[[101-i-doc-platforms]]
+==== 10.1 i-doc Platforms
 
-- **Perspective Diversity**: % readers exploring multiple paths
-  - **Target**: >30% try 2+ audience paths
-  - **Tracked via**: Session tracking
+* *Korsakow* (Florian Thalhofer): Interactive documentary authoring
+** *Gap*: No provenance tracking, no PROMPT scores
+* *Zeega* (Zeega Project): Multi-layered storytelling
+** *Gap*: No epistemological metadata
+* *Eko* (Formerly Interlude): Interactive video platform
+** *Gap*: Entertainment-focused, not journalism
 
-### 9.3 Agent Performance
+*Lith Advantage*: Purpose-built for journalism epistemology.
 
-- **Consensus Rate**: % of claims reaching agent consensus
-  - **Target**: >80% (most claims should converge)
-  - **Metric**: `SELECT COUNT(*) WHERE consensus_reached = TRUE / COUNT(*)`
+[[102-fact-checking-systems]]
+==== 10.2 Fact-Checking Systems
 
-- **Conflict Detection**: % of genuine conflicts identified
-  - **Target**: >90% (high sensitivity)
-  - **Metric**: Manual review of high-conflict fusions
+* *ClaimBuster* (UTA): Automated claim detection
+** *Gap*: No narrative database, no evidence tracking
+* *Full Fact* (UK): Manual fact-checking
+** *Gap*: Uses traditional databases, no provenance
+* *PolitiFact* (Poynter): Truth-O-Meter ratings
+** *Gap*: Ratings are final, no correction workflow
 
-- **Byzantine Resilience**: % of attacks detected/prevented
-  - **Target**: 100% up to 33% malicious agents
-  - **Tested via**: Adversarial agent injection
+*Lith Advantage*: Treats corrections as first-class operations.
 
-## 10. Related Work
+[[103-evidence-management]]
+==== 10.3 Evidence Management
 
-### 10.1 i-doc Platforms
+* *Zotero*: Reference management
+** *Integration*: Lith imports from Zotero
+* *ResearchRabbit*: Citation graph visualization
+** *Gap*: No epistemological scoring
+* *Scite*: Citation context (supporting/contrasting)
+** *Inspiration*: Similar to Lith's relationship types
 
-- **Korsakow** (Florian Thalhofer): Interactive documentary authoring
-  - **Gap**: No provenance tracking, no PROMPT scores
-- **Zeega** (Zeega Project): Multi-layered storytelling
-  - **Gap**: No epistemological metadata
-- **Eko** (Formerly Interlude): Interactive video platform
-  - **Gap**: Entertainment-focused, not journalism
+*Lith Advantage*: Combines evidence management {plus} epistemology {plus} narrative.
 
-**Lith Advantage**: Purpose-built for journalism epistemology.
+[[11-open-questions]]
+=== 11. Open Questions
 
-### 10.2 Fact-Checking Systems
+See `lith.scm` Q-IDOC-++*++ questions:
 
-- **ClaimBuster** (UTA): Automated claim detection
-  - **Gap**: No narrative database, no evidence tracking
-- **Full Fact** (UK): Manual fact-checking
-  - **Gap**: Uses traditional databases, no provenance
-- **PolitiFact** (Poynter): Truth-O-Meter ratings
-  - **Gap**: Ratings are final, no correction workflow
+[arabic]
+. *Q-IDOC-PROMPT-001*: Should PROMPT scores be normalized across investigations?
+* *Issue*: Different domains have different score distributions
+* *Proposal*: Domain-specific normalization curves
+. *Q-IDOC-PATH-001*: How to measure navigation path effectiveness?
+* *Metrics*: Completion rate, time spent, user satisfaction
+* *Proposal*: A/B testing of auto-generated vs. manual paths
+. *Q-IDOC-CORRECTION-001*: When should corrections trigger re-verification?
+* *Threshold*: Major corrections (++>++10% confidence change)?
+* *Proposal*: Cascading re-verification for dependent claims
+. *Q-IDOC-AGENT-001*: How many agents needed for reliable consensus?
+* *Minimum*: 3 (for voting)
+* *Optimal*: 7-15 (diminishing returns beyond this)
+* *Research needed*: Empirical studies
 
-**Lith Advantage**: Treats corrections as first-class operations.
+[[12-conclusion]]
+=== 12. Conclusion
 
-### 10.3 Evidence Management
+Lith is not just a database for journalism—it is *infrastructure for epistemology in the post-truth era*. By making provenance, corrections, and multi-perspective navigation first-class database semantics, Lith enables:
 
-- **Zotero**: Reference management
-  - **Integration**: Lith imports from Zotero
-- **ResearchRabbit**: Citation graph visualization
-  - **Gap**: No epistemological scoring
-- **Scite**: Citation context (supporting/contrasting)
-  - **Inspiration**: Similar to Lith's relationship types
-
-**Lith Advantage**: Combines evidence management + epistemology + narrative.
-
-## 11. Open Questions
-
-See `lith.scm` Q-IDOC-* questions:
-
-1. **Q-IDOC-PROMPT-001**: Should PROMPT scores be normalized across investigations?
-   - **Issue**: Different domains have different score distributions
-   - **Proposal**: Domain-specific normalization curves
-
-2. **Q-IDOC-PATH-001**: How to measure navigation path effectiveness?
-   - **Metrics**: Completion rate, time spent, user satisfaction
-   - **Proposal**: A/B testing of auto-generated vs. manual paths
-
-3. **Q-IDOC-CORRECTION-001**: When should corrections trigger re-verification?
-   - **Threshold**: Major corrections (>10% confidence change)?
-   - **Proposal**: Cascading re-verification for dependent claims
-
-4. **Q-IDOC-AGENT-001**: How many agents needed for reliable consensus?
-   - **Minimum**: 3 (for voting)
-   - **Optimal**: 7-15 (diminishing returns beyond this)
-   - **Research needed**: Empirical studies
-
-## 12. Conclusion
-
-Lith is not just a database for journalism—it is **infrastructure for epistemology in the post-truth era**. By making provenance, corrections, and multi-perspective navigation first-class database semantics, Lith enables:
-
-1. **i-docs at scale**: Navigation over narration, reader agency
-2. **Transparent epistemology**: PROMPT scores, evidence chains
-3. **Correction workflows**: Retractions with full context
-4. **Multi-agent verification**: Dempster-Shafer fusion audit trails
-5. **Boundary objects**: Same evidence, multiple audience perspectives
+[arabic]
+. *i-docs at scale*: Navigation over narration, reader agency
+. *Transparent epistemology*: PROMPT scores, evidence chains
+. *Correction workflows*: Retractions with full context
+. *Multi-agent verification*: Dempster-Shafer fusion audit trails
+. *Boundary objects*: Same evidence, multiple audience perspectives
 
 BoFIG demonstrates Lith's practical application in investigative journalism. My-Newsroom extends this to multi-agent verification. Together, they form a complete epistemic infrastructure stack for journalism in the 21st century.
 
-**Next Steps**:
-1. Migrate BoFIG from ArangoDB to Lith (Month 1-3)
-2. User testing with NUJ journalists (Month 3, 6, 12)
-3. My-Newsroom integration (Month 7-12)
-4. Full-scale Reuters-level newsroom (Month 19-24)
+*Next Steps*:
 
-**Impact**: Lith + BoFIG + My-Newsroom could become the **de facto standard** for i-doc journalism, much as Zotero became the standard for academic reference management.
+[arabic]
+. Migrate BoFIG from ArangoDB to Lith (Month 1-3)
+. User testing with NUJ journalists (Month 3, 6, 12)
+. My-Newsroom integration (Month 7-12)
+. Full-scale Reuters-level newsroom (Month 19-24)
 
----
+*Impact*: Lith {plus} BoFIG {plus} My-Newsroom could become the *de facto standard* for i-doc journalism, much as Zotero became the standard for academic reference management.
 
-**Document Status**: Living document. Updates tracked in `spec/WP05_CHANGELOG.md`.
+'''''
 
-**See Also**:
-- [BoFIG Repository](https://github.com/Hyperpolymath/bofig)
-- [My-Newsroom Repository](https://github.com/hyperpolymath/my-newsroom)
-- [MIT Open Doc Lab](https://opendoclab.mit.edu/)
-- [PROMPT Framework](https://example.com/prompt-framework)
+*Document Status*: Living document. Updates tracked in `spec/WP05++_++CHANGELOG.md`.
+
+*See Also*:
+
+* https://github.com/Hyperpolymath/bofig[BoFIG Repository]
+* https://github.com/hyperpolymath/my-newsroom[My-Newsroom Repository]
+* https://opendoclab.mit.edu/[MIT Open Doc Lab]
+* https://example.com/prompt-framework[PROMPT Framework]

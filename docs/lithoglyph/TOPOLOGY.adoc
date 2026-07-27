@@ -1,11 +1,9 @@
-<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) -->
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= TOPOLOGY — Lithoglyph
 
-# TOPOLOGY.md — Lithoglyph
+=== System Architecture
 
-## System Architecture
-
-```
+....
                     ┌─────────────────────────────────────┐
                     │        svalinn (TLS gateway)        │
                     │    ML-DSA-87 · policy: strict       │
@@ -68,34 +66,36 @@
     glyphbase NIF → core-zig bridge (19 functions, LgBlob/LgStatus types) → core-forth
 
     Naming: fdb_* → lith_*, FQL/FBQL/FDQL → GQL (Glyph Query Language), FormBD → Lithoglyph
-```
+....
 
-## Completion Dashboard
+=== Completion Dashboard
 
-| Component              | Progress                     | Status         |
-|------------------------|------------------------------|----------------|
-| core-forth (kernel)    | `██████████` 100%            | Complete       |
-| core-zig (bridge)      | `██████████` 100%            | Complete       |
-| ffi/zig (delegation)   | `██████████` 100%            | Complete       |
-| Idris2 ABI (proofs)    | `██████████` 100%            | Complete       |
-| Lean 4 normalizer      | `██████████` 100%            | Complete       |
-| core-factor (GQL)      | `██████████` 100%            | Complete       |
-| BEAM NIF (Zig)         | `████████░░` 80%             | Builds         |
-| BEAM NIF (Rust)        | `████████░░` 80%             | Builds         |
-| glyphbase NIF          | `██████░░░░` 60%             | Linked to core |
-| lith-http (Elixir)     | `█████████░` 90%             | M15 complete   |
-| gql-dt (Lean 4)        | `████████░░` 80%             | Needs audit    |
-| glyphbase              | `████████░░` 80%             | Needs audit    |
-| api (Zig HTTP)         | `██████████` 100%            | L1 complete    |
-| studio (Tauri)         | `██░░░░░░░░` 20%             | Mock data      |
-| Containerfile          | `██████████` 100%            | Complete       |
-| selur-compose          | `██████████` 100%            | Complete       |
-| IP rename              | `████████░░` 80%             | fdb→lith done  |
-| **Overall**            | `████████░░` **80%**         |                |
+[cols=",,",options="header",]
+|===
+|Component |Progress |Status
+|core-forth (kernel) |`██████████` 100% |Complete
+|core-zig (bridge) |`██████████` 100% |Complete
+|ffi/zig (delegation) |`██████████` 100% |Complete
+|Idris2 ABI (proofs) |`██████████` 100% |Complete
+|Lean 4 normalizer |`██████████` 100% |Complete
+|core-factor (GQL) |`██████████` 100% |Complete
+|BEAM NIF (Zig) |`████████░░` 80% |Builds
+|BEAM NIF (Rust) |`████████░░` 80% |Builds
+|glyphbase NIF |`██████░░░░` 60% |Linked to core
+|lith-http (Elixir) |`█████████░` 90% |M15 complete
+|gql-dt (Lean 4) |`████████░░` 80% |Needs audit
+|glyphbase |`████████░░` 80% |Needs audit
+|api (Zig HTTP) |`██████████` 100% |L1 complete
+|studio (Tauri) |`██░░░░░░░░` 20% |Mock data
+|Containerfile |`██████████` 100% |Complete
+|selur-compose |`██████████` 100% |Complete
+|IP rename |`████████░░` 80% |fdb→lith done
+|*Overall* |`████████░░` *80%* |
+|===
 
-## Key Dependencies
+=== Key Dependencies
 
-```
+....
 lithoglyph
 ├── gforth (Forth kernel — block storage)
 ├── zig 0.15.2 (C ABI bridge, BEAM NIF)
@@ -123,4 +123,4 @@ lithoglyph
 │
 └── Safety:
     └── proven (formally verified SafeString, SafeJson, etc.)
-```
+....
