@@ -4,7 +4,11 @@ node = "latest"
 python = "latest"
 rust = "latest"
 go = "latest"
-zig = "latest"
+# Pinned, not "latest". The workflows pin 0.15.2 and src/bridge.zig uses
+# 0.15-era APIs; "latest" resolves to 0.16.0 locally, where std.fs.cwd() is gone
+# and a local `zig build test` fails in ways CI never sees. A local toolchain
+# that disagrees with CI turns every build into a guess about which one is right.
+zig = "0.15.2"
 java = "latest"
 bun = "latest"
 denojs = "latest"
