@@ -42,13 +42,25 @@ variable fail-count
 : assert-false ( flag -- )
   if fail else pass then ;
 
+\ Print the tally, then exit with a status that reflects it.
+\
+\ This word used to print and return, leaving the exit code to the trailing
+\ `bye` — which is always 0. A suite reporting "1 failed" therefore exited 0
+\ and CI went green. Verified by injecting a deliberate failure: the run
+\ printed "Results: 16 passed, 1 failed" and still exited 0.
+\
+\ `1 (bye)` is gforth's exit-with-status; plain `bye` is `0 (bye)`.
 : test-summary ( -- )
   cr ." ========================================" cr
   ." Results: "
   pass-count @ . ." passed, "
   fail-count @ . ." failed, "
   test-count @ . ." total" cr
-  ." ========================================" cr ;
+  ." ========================================" cr
+  fail-count @ 0> if
+    ." FAILED" cr
+    1 (bye)
+  then ;
 
 \ ============================================================
 \ Actual Tests
