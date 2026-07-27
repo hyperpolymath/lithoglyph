@@ -72,36 +72,58 @@ test-factor: build-zig
     cd core-factor && factor minimal-ffi-test.factor
     cd core-factor && factor test-ffi.factor
 
-# Run ReScript property tests
+# ── Scripting-layer tests: EMPTY, pending the AffineScript port ───────────────
+#
+# These four recipes each ran `deno task …` against a directory that contains no
+# tests. Measured, not assumed — `deno test` in tests/property, tests/fuzz,
+# tests/integration and tests/e2e all report "No test modules found", and no
+# file under tests/ calls Deno.test.
+#
+# They now exit 1 and say so. They previously appeared to work: `deno task test`
+# surfaced the empty-suite error, but the CI job wrapped it in
+# `|| echo "... skipping for now"`, so the hole was invisible.
+#
+# ReScript is not the intended language for this layer — AffineScript is.
+# See docs/lithoglyph/AFFINESCRIPT-PORT.adoc.
+
+# Property tests — NOT IMPLEMENTED (no test modules exist)
 test-property:
-    @echo "=== ReScript Property Tests ==="
-    cd tests/property && deno task test
+    @echo "=== Property Tests: NOT IMPLEMENTED ==="
+    @echo "    tests/property has no test modules. Pending the AffineScript"
+    @echo "    port — see docs/lithoglyph/AFFINESCRIPT-PORT.adoc"
+    @exit 1
 
-# Run ReScript fuzz tests (quick: 1K iterations)
+# Fuzz tests (quick) — NOT IMPLEMENTED (no test modules exist)
 test-fuzz-quick:
-    @echo "=== ReScript Fuzz Tests (Quick) ==="
-    cd tests/fuzz && deno task fuzz:quick
+    @echo "=== Fuzz Tests (Quick): NOT IMPLEMENTED ==="
+    @echo "    tests/fuzz has no test modules. See AFFINESCRIPT-PORT.adoc"
+    @exit 1
 
-# Run ReScript fuzz tests (standard: 10K iterations)
+# Fuzz tests (standard) — NOT IMPLEMENTED (no test modules exist)
 test-fuzz:
-    @echo "=== ReScript Fuzz Tests ==="
-    cd tests/fuzz && deno task fuzz
+    @echo "=== Fuzz Tests: NOT IMPLEMENTED ==="
+    @echo "    tests/fuzz has no test modules. See AFFINESCRIPT-PORT.adoc"
+    @exit 1
 
-# Run ReScript integration tests (requires Deno + ReScript)
+# Integration tests — NOT IMPLEMENTED (no test modules exist)
 test-integration:
-    @echo "=== ReScript Integration Tests ==="
-    cd tests/integration && deno task test
+    @echo "=== Integration Tests: NOT IMPLEMENTED ==="
+    @echo "    tests/integration has no test modules. See AFFINESCRIPT-PORT.adoc"
+    @exit 1
 
-# Run E2E tests (requires running Lith server on :8080)
+# E2E tests — NOT IMPLEMENTED (no test modules exist)
 test-e2e:
-    @echo "=== E2E Tests (requires server on :8080) ==="
-    cd tests/e2e && deno task test
+    @echo "=== E2E Tests: NOT IMPLEMENTED ==="
+    @echo "    tests/e2e has no test modules. See AFFINESCRIPT-PORT.adoc"
+    @exit 1
 
-# Run all core tests (no server required)
+# Run all core tests (no server required). These are the suites that are real.
 test: test-zig test-forth test-ffi
 
-# Run all tests including ReScript suites
-test-all: test-zig test-forth test-ffi test-property test-fuzz-quick
+# `test-all` used to chain test-property and test-fuzz-quick, which made it look
+# broader than `test` while adding nothing but two empty suites. Until the
+# AffineScript port lands there is no larger set to run, so it is `test`.
+test-all: test
 
 # ============================================================
 # BENCHMARKS

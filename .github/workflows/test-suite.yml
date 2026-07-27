@@ -140,29 +140,24 @@ jobs:
           lake build
           echo "Lean build successful (tests run via #eval during build)"
 
-  test-rescript:
-    name: ReScript Test Suites
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@5fae568d37c3b73e63e2911f55b8b3fbc76d26f8 # v2.0.2
-        with:
-          deno-version: v2.x
-
-      - name: Run property tests
-        working-directory: tests/property
-        run: |
-          echo "=== Property-Based Tests ==="
-          deno task test || echo "Property tests need ReScript compilation (skipping for now)"
-
-      - name: Run fuzz tests (quick)
-        working-directory: tests/fuzz
-        run: |
-          echo "=== Fuzz Tests (Quick) ==="
-          deno task fuzz:quick || echo "Fuzz tests need ReScript compilation (skipping for now)"
+  # The "ReScript Test Suites" job was removed here, not repaired.
+  #
+  # It was unrunnable and, had it run, could not have failed:
+  #
+  #   1. It pinned denoland/setup-deno@5fae568d37c3b73e63e2911f55b8b3fbc76d26f8,
+  #      a SHA that does not resolve — "Unable to resolve action ... unable to
+  #      find version". The job never started.
+  #   2. Both steps ended `|| echo "... (skipping for now)"`, so a real failure
+  #      was swallowed and reported as success.
+  #   3. `deno test` finds nothing to run: tests/property, tests/fuzz,
+  #      tests/integration and tests/e2e each report "No test modules found".
+  #   4. No file under tests/ calls Deno.test. There are no tests.
+  #
+  # So the suite it guarded is empty, and ReScript is not the intended language
+  # for this layer — AffineScript is. See docs/lithoglyph/AFFINESCRIPT-PORT.adoc
+  # for the inventory and what has to exist before a real gate can go here.
+  #
+  # Deliberately left with NO replacement job rather than a permanently-red or
+  # always-green placeholder: per scripts/check-no-placeholders.sh, an
+  # unsatisfiable gate trains people to ignore CI. When the AffineScript
+  # toolchain can check these sources, add a job that genuinely fails.
