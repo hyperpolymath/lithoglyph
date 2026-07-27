@@ -1,0 +1,138 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Lithoglyph scripting layer: ReScript -> AffineScript
+:toc:
+:icons: font
+
+== Ruling
+
+Lithoglyph's scripting layer is to be **AffineScript**, not ReScript.
+
+This is not a local preference. Per the Hyperpolymath Standard, **ReScript and
+TypeScript are banned estate-wide**, and npm/bun are replaced by Deno. The
+estate-level plan and inventory live in the coordination repo:
+
+`nextgen-databases/docs/migration/RESCRIPT-TS-AFFINESCRIPT-MIGRATION.adoc`
+
+That document is the authority on strategy and target mapping — UI ->
+AffineScript (TEA), systems/perf -> Rust, `package.json` -> `deno.json`, with
+leaf-first ordering and a per-app ADR + PR. It counts 143 affected files across
+the whole coordination repo; this document covers only the Lithoglyph share and
+the CI consequences of it, so read that one first.
+
+What follows records the measured state of this repo and what has to exist
+before a real CI gate can replace the one removed on 2026-07-27. It is
+deliberately specific: a vague "we should port this one day" note would let the
+hole stay invisible, which is how it survived this long.
+
+== Why the ReScript CI job was deleted rather than fixed
+
+The `test-rescript` job in `.github/workflows/test-suite.yml` was removed. It was
+unrunnable and, had it run, could not have failed. Four independent faults:
+
+. **Unresolvable action pin.** It used
+  `denoland/setup-deno@5fae568d37c3b73e63e2911f55b8b3fbc76d26f8`, a SHA that does
+  not resolve. GitHub reported `Unable to resolve action ... unable to find
+  version` and the job never started. (The pin in `e2e.yml`,
+  `667a34cdef165d8d2b2e98dde39547c9daac7282`, does resolve — only this one was
+  dead.)
+. **Failure was swallowed.** Both steps ended
+  `|| echo "... (skipping for now)"`, so a genuine failure reported success.
+. **The suites are empty.** `deno test` reports `No test modules found` in
+  `tests/property`, `tests/fuzz`, `tests/integration` and `tests/e2e`.
+. **There are no tests to find.** No file anywhere under `tests/` calls
+  `Deno.test`.
+
+So the job guarded nothing, and could not have told anyone so.
+
+No replacement job was added. `scripts/check-no-placeholders.sh` states the
+estate rule this follows: an unsatisfiable gate is worse than no gate, because it
+trains people to ignore a red CI. A gate goes back when it can genuinely pass and
+genuinely fail.
+
+The matching `just` recipes — `test-property`, `test-fuzz`, `test-fuzz-quick`,
+`test-integration`, `test-e2e` — now exit 1 and say `NOT IMPLEMENTED`, pointing
+here. `test-all` no longer chains the empty suites; it is `test`.
+
+== What is actually in the tree
+
+71 `.res` files across 16 `rescript.json` projects. Only 4 `.res.js` build
+outputs are committed, so most of this has never been compiled in place.
+
+[cols="3,1,4"]
+|===
+| Area | `.res` | Note
+
+| `studio/` | 11 | Authoring UI — the largest single consumer
+| `clients/rescript/` | 7 | Published client library; has its own SPDX + package identity
+| `tests/integration/` | 6 | Empty suite
+| `tools/sdk-gen/` | 5 | Code generator
+| `tests/fuzz/` | 5 | Empty suite
+| `integrations/strapi/` | 5 | CMS integration
+| `tests/property/` | 4 | Empty suite
+| `stability/` | 4 | Soak tests
+| `perf/` | 4 | Performance tests
+| `distributed/` | 4 | Distributed-systems tests
+| `analytics/` | 4 | Analytics extension
+| `tests/e2e/` | 3 | Empty suite
+| `integrations/payload/` | 3 | CMS integration
+| `integrations/ghost/` | 3 | CMS integration
+| `integrations/directus/` | 2 | CMS integration
+| `normalizer/` | 1 | Canonicalisation layer
+|===
+
+The `tests/*` rows — 18 files — are the empty suites. They are the natural first
+target: porting them costs nothing in lost behaviour, because there is no
+behaviour to lose.
+
+== Blocked on the AffineScript toolchain
+
+This is not a mechanical rename. AffineScript is a different language with affine
+types, and the port cannot start in earnest until the toolchain is consumable
+here.
+
+Current state, as recorded in the `.affine` examples already in this tree
+(`examples/SafeDOMExample.affine` and its four siblings):
+
+* The examples are **parse-checked but not type-checked end to end**.
+* The `SafeDOM` stdlib surface they reference — `mount_safe`,
+  `mount_when_ready`, `mount_batch`, `proven_selector_validate`,
+  `proven_html_validate`, `mount` — **does not yet exist** in the published
+  stdlib. It is the target of `affinescript#56` (DOM+Pixi binding survey).
+* `affinescript check` reports `Resolve.UndefinedModule SafeDOM`, which is
+  expected today.
+* There is no AffineScript compiler on PATH in this environment, and none
+  installed by any workflow in this repo.
+
+The estate plan reaches the same conclusion independently: its Blockers section
+names "no compiler in CI / this container" and `affinescript#56` as the two
+things that must clear before any UI layer can land, and directs that the
+non-UI surface migrate first.
+
+So the gating sequence is:
+
+. `affinescript#56` lands the DOM bindings and the stdlib surface.
+. An AffineScript toolchain becomes installable in CI (pinned, like Zig 0.15.2
+  and Idris2 0.7.0 are).
+. Port `tests/*` first — 18 files, nothing to regress.
+. Add a CI job that runs the real checker and can fail.
+. Port the remaining 53 files by subsystem, `studio/` last, since it is both the
+  largest and the most user-visible.
+
+Note the estate plan splits the target by role, which this repo should follow:
+UI surfaces (`studio/`) go to AffineScript, while systems and performance code
+(`perf/`, `stability/`, `distributed/`, `normalizer/`) go to **Rust**, not
+AffineScript. The CMS integrations (`integrations/directus|ghost|payload|strapi`,
+13 files) bridge JS-only ecosystems and are flagged there as candidates for a
+documented exception rather than a rewrite — that decision is still open.
+
+== Do not
+
+* **Do not delete the `.res` files yet.** 53 of them outside `tests/` are the
+  current implementation of real subsystems. They are not covered by tests, so a
+  removal cannot be verified safe.
+* **Do not re-add a green-by-default CI job** to make the row reappear. That is
+  the exact failure this replaced.
+* **Do not treat `.res.js` as build output that can be regenerated.** Only 4 are
+  committed and the ReScript build has not been exercised here; assume the
+  toolchain state is unknown until proven.

@@ -28,7 +28,24 @@ jobs:
 
     strategy:
       matrix:
-        zig-version: ['0.13.0', '0.14.0', '0.15.2']
+        # 0.15.2 only. This was ['0.13.0', '0.14.0', '0.15.2'], which was
+        # aspirational rather than achieved: src/bridge.zig uses 0.15-era APIs
+        # and cannot compile on the older two —
+        #
+        #   src/bridge.zig:123:28: error: member function expected 0 argument(s), found 1
+        #   src/bridge.zig:294:28: error: missing struct field: items
+        #   src/bridge.zig:479:25: error: member function expected 1 argument(s), found 2
+        #
+        # (ArrayList moved to `append(allocator, item)` and changed shape.)
+        #
+        # Nobody saw this because until 2026-07-21 this file was malformed YAML
+        # and produced a startup_failure with no jobs — the matrix never ran at
+        # all. Repairing the YAML un-hid a real, pre-existing incompatibility.
+        #
+        # 0.15.2 is what ci.yml and test-suite.yml pin, and what the code
+        # targets. Widening this again is a support-policy decision that needs
+        # actual compatibility work in bridge.zig first, not just more entries.
+        zig-version: ['0.15.2']
 
     steps:
       - name: Checkout code

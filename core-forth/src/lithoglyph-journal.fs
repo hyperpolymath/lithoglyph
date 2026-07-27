@@ -41,6 +41,26 @@ $0063 constant OP-MIGRATION-ROLLBACK
 $0070 constant OP-CHECKPOINT
 $FF00 constant OP-IRREVERSIBLE
 
+\ Render an operation type. Defined here, immediately after the constants it
+\ renders, rather than in the Canonical Rendering section further down: Forth
+\ resolves names in a single forward pass, and replay-journal calls this word.
+\ With the definition below its first use the file did not load at all —
+\ `gforth lithoglyph-journal.fs` failed with "Undefined word", and
+\ lithoglyph-model.fs failed with it because it includes this file.
+: .op-type ( op -- )
+  case
+    OP-DOC-INSERT of ." DOC_INSERT" endof
+    OP-DOC-UPDATE of ." DOC_UPDATE" endof
+    OP-DOC-DELETE of ." DOC_DELETE" endof
+    OP-EDGE-INSERT of ." EDGE_INSERT" endof
+    OP-EDGE-DELETE of ." EDGE_DELETE" endof
+    OP-COLLECTION-CREATE of ." COLLECTION_CREATE" endof
+    OP-COLLECTION-DROP of ." COLLECTION_DROP" endof
+    OP-CHECKPOINT of ." CHECKPOINT" endof
+    OP-IRREVERSIBLE of ." IRREVERSIBLE" endof
+    ." UNKNOWN"
+  endcase ;
+
 \ Entry flags
 $01 constant EFLAG-COMMITTED
 $02 constant EFLAG-ROLLED-BACK
@@ -384,20 +404,8 @@ create entry-buffer MAX-ENTRY-SIZE allot
 \ Canonical Rendering
 \ ============================================================
 
-\ Render operation type
-: .op-type ( op -- )
-  case
-    OP-DOC-INSERT of ." DOC_INSERT" endof
-    OP-DOC-UPDATE of ." DOC_UPDATE" endof
-    OP-DOC-DELETE of ." DOC_DELETE" endof
-    OP-EDGE-INSERT of ." EDGE_INSERT" endof
-    OP-EDGE-DELETE of ." EDGE_DELETE" endof
-    OP-COLLECTION-CREATE of ." COLLECTION_CREATE" endof
-    OP-COLLECTION-DROP of ." COLLECTION_DROP" endof
-    OP-CHECKPOINT of ." CHECKPOINT" endof
-    OP-IRREVERSIBLE of ." IRREVERSIBLE" endof
-    ." UNKNOWN"
-  endcase ;
+\ `.op-type` is defined earlier, beside the OP-* constants it renders, because
+\ replay-journal calls it and Forth resolves names in a single forward pass.
 
 \ Render entry flags
 : .entry-flags ( flags -- )
