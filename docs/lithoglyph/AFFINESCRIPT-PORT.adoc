@@ -8,10 +8,22 @@
 
 Lithoglyph's scripting layer is to be **AffineScript**, not ReScript.
 
-This document records the decision, the measured state of what is there now, and
-what has to exist before a real CI gate can replace the one removed on
-2026-07-27. It is deliberately specific: a vague "we should port this one day"
-note would let the hole stay invisible, which is how it survived this long.
+This is not a local preference. Per the Hyperpolymath Standard, **ReScript and
+TypeScript are banned estate-wide**, and npm/bun are replaced by Deno. The
+estate-level plan and inventory live in the coordination repo:
+
+`nextgen-databases/docs/migration/RESCRIPT-TS-AFFINESCRIPT-MIGRATION.adoc`
+
+That document is the authority on strategy and target mapping — UI ->
+AffineScript (TEA), systems/perf -> Rust, `package.json` -> `deno.json`, with
+leaf-first ordering and a per-app ADR + PR. It counts 143 affected files across
+the whole coordination repo; this document covers only the Lithoglyph share and
+the CI consequences of it, so read that one first.
+
+What follows records the measured state of this repo and what has to exist
+before a real CI gate can replace the one removed on 2026-07-27. It is
+deliberately specific: a vague "we should port this one day" note would let the
+hole stay invisible, which is how it survived this long.
 
 == Why the ReScript CI job was deleted rather than fixed
 
@@ -92,6 +104,11 @@ Current state, as recorded in the `.affine` examples already in this tree
 * There is no AffineScript compiler on PATH in this environment, and none
   installed by any workflow in this repo.
 
+The estate plan reaches the same conclusion independently: its Blockers section
+names "no compiler in CI / this container" and `affinescript#56` as the two
+things that must clear before any UI layer can land, and directs that the
+non-UI surface migrate first.
+
 So the gating sequence is:
 
 . `affinescript#56` lands the DOM bindings and the stdlib surface.
@@ -101,6 +118,13 @@ So the gating sequence is:
 . Add a CI job that runs the real checker and can fail.
 . Port the remaining 53 files by subsystem, `studio/` last, since it is both the
   largest and the most user-visible.
+
+Note the estate plan splits the target by role, which this repo should follow:
+UI surfaces (`studio/`) go to AffineScript, while systems and performance code
+(`perf/`, `stability/`, `distributed/`, `normalizer/`) go to **Rust**, not
+AffineScript. The CMS integrations (`integrations/directus|ghost|payload|strapi`,
+13 files) bridge JS-only ecosystems and are flagged there as candidates for a
+documented exception rather than a rewrite — that decision is still open.
 
 == Do not
 
