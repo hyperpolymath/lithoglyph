@@ -1110,6 +1110,10 @@ test "database lifecycle" {
     var err_blob: LgBlob = undefined;
 
     const path = "test.lgh";
+    // These tests wrote a database into the build directory and left it there.
+    // Harmless-looking, but it makes the suite depend on the state of the tree
+    // it runs in, and CI caching can carry the file between runs.
+    defer std.fs.cwd().deleteFile(path) catch {};
     const status = lith_db_open(path.ptr, path.len, null, 0, &db, &err_blob);
 
     try std.testing.expectEqual(LgStatus.ok, status);
@@ -1125,6 +1129,7 @@ test "transaction lifecycle" {
 
     const path = "test_txn.lgh";
     _ = lith_db_open(path.ptr, path.len, null, 0, &db, &err_blob);
+    defer std.fs.cwd().deleteFile(path) catch {};
     defer _ = lith_db_close(db);
 
     var txn: ?*LgTxn = null;
