@@ -1,5 +1,5 @@
-# SPDX-License-Identifier: MPL-2.0
 # This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
 # GitHub Pages via casket-ssg (hyperpolymath's pure-Haskell static site generator).
 # Replaces the orphan one-off Pages deployment with a reproducible build.
 name: GitHub Pages
