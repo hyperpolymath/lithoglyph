@@ -1,5 +1,5 @@
-# This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
+# This workflow is managed by gh actions-lock.
 # Lithoglyph - Full Test Suite
 #
 # Runs Forth, Zig, C FFI, Lean, and ReScript tests.
