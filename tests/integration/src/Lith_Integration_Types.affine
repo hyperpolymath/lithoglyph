@@ -1,7 +1,85 @@
 // SPDX-License-Identifier: MPL-2.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
-// Ported via Harvard Engine bulk-processor
+// Ported via Harvard Engine (Semantic pass)
 
 module Lith_Integration_Types;
 
-// TODO: Complete semantic implementation
+// SPDX-License-Identifier: MPL-2.0
+
+/**
+ * Lith Integration Test Types
+ *
+ * Common structs for CMS integration testing
+ */
+
+/** Test result */
+struct testResult {
+  | Passed
+  | Failed({message: string})
+  | Skipped({reason: string})
+
+/** Test case */
+struct testCase { {
+  name: string,
+  run: unit => promise<testResult>,
+}
+
+/** Test suite */
+struct testSuite { {
+  name: string,
+  setup: unit => promise<unit>,
+  teardown: unit => promise<unit>,
+  tests: array<testCase>,
+}
+
+/** Mock HTTP response */
+struct mockResponse { {
+  status: int,
+  body: Js.Json.t,
+  headers: Js.Dict.t<string>,
+}
+
+/** Mock HTTP request record */
+struct mockRequest { {
+  method: string,
+  url: string,
+  headers: Js.Dict.t<string>,
+  body: option<Js.Json.t>,
+}
+
+/** Sync event structs */
+struct syncEvent {
+  | Created({collection: string, id: string, data: Js.Json.t})
+  | Updated({collection: string, id: string, data: Js.Json.t, previousData: option<Js.Json.t>})
+  | Deleted({collection: string, id: string})
+
+/** Sync direction */
+struct syncDirection {
+  | CmsToLith
+  | LithToCms
+  | Bidirectional
+
+/** Test assertions */
+fn assertEqual = (actual: 'a, expected: 'a, message: string): testResult => {
+  if actual == expected {
+    Passed
+  } else {
+    Failed({message})
+  }
+}
+
+fn assertTrue = (condition: bool, message: string): testResult => {
+  if condition {
+    Passed
+  } else {
+    Failed({message})
+  }
+}
+
+fn assertFalse = (condition: bool, message: string): testResult => {
+  if !condition {
+    Passed
+  } else {
+    Failed({message})
+  }
+}
+

@@ -1,7 +1,514 @@
 // SPDX-License-Identifier: MPL-2.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
-// Ported via Harvard Engine bulk-processor
+// Ported via Harvard Engine (Semantic pass)
 
 module Lith_Normalizer_Narrative;
 
-// TODO: Complete semantic implementation
+// SPDX-License-Identifier: MPL-2.0
+// Form.Normalizer - Narrative Template System
+//
+// Generates human-readable explanations for normalization operations.
+// Part of Lith's "database where the database is part of the story" philosophy.
+
+// ============================================================
+// Core Types
+// ============================================================
+
+struct attribute { string
+struct confidence { float
+
+struct functionalDependency { {
+  determinant: array<attribute>,
+  dependent: array<attribute>,
+  confidence: confidence,
+  discoveredAt: option<int>,
+  sampleSize: option<int>,
+}
+
+struct violationType {
+  | PartialDependency
+  | TransitiveDependency
+  | NonSuperkeyDeterminant
+  | MultiValuedDependency
+
+struct normalFormViolation { {
+  fd: functionalDependency,
+  violationType: violationType,
+  explanation: string,
+}
+
+struct normalForm {
+  | FirstNF
+  | SecondNF
+  | ThirdNF
+  | BCNF
+  | FourthNF
+  | FifthNF
+
+struct normalizationProposal { {
+  sourceSchema: array<attribute>,
+  targetSchemas: array<array<attribute>>,
+  transformation: string,
+  inverse: string,
+  equivalenceProof: string,
+}
+
+struct denormalizationProposal { {
+  sourceSchemas: array<array<attribute>>,
+  targetSchema: array<attribute>,
+  joinAttributes: array<attribute>,
+  performanceRationale: string,
+}
+
+struct migrationPhase {
+  | Announce
+  | Shadow
+  | Commit
+
+struct migrationState { {
+  phase: migrationPhase,
+  affectedQueries: int,
+  rewriteRules: int,
+  compatViews: int,
+  journalEntry: int,
+}
+
+struct discoveryResult { {
+  collection: string,
+  exactFDs: array<functionalDependency>,
+  probableFDs: array<functionalDependency>,
+  dataWarnings: array<functionalDependency>,
+  sampleRows: int,
+  sampleAttributes: int,
+}
+
+// ============================================================
+// Template Configuration
+// ============================================================
+
+struct verbosity {
+  | Minimal
+  | Standard
+  | Detailed
+  | Debug
+
+struct audience {
+  | Developer
+  | DBA
+  | BusinessAnalyst
+  | Agent
+
+struct templateConfig { {
+  verbosity: verbosity,
+  audience: audience,
+  includeProofs: bool,
+  includeMetrics: bool,
+  maxExamples: int,
+}
+
+fn defaultConfig: templateConfig = {
+  verbosity: Standard,
+  audience: Developer,
+  includeProofs: false,
+  includeMetrics: true,
+  maxExamples: 3,
+}
+
+// ============================================================
+// Helper Functions
+// ============================================================
+
+fn joinAttributes = (attrs: array<attribute>): string => {
+  switch attrs->Array.length {
+  | 0 => "(empty)"
+  | 1 => attrs[0]->Option.getOr("")
+  | _ => "{" ++ attrs->Array.join(", ") ++ "}"
+  }
+}
+
+fn confidenceLabel = (conf: confidence): string => {
+  if conf >= 0.99 {
+    "EXACT"
+  } else if conf >= 0.95 {
+    "PROBABLE"
+  } else if conf >= 0.80 {
+    "WEAK"
+  } else {
+    "DATA QUALITY WARNING"
+  }
+}
+
+fn confidenceEmoji = (conf: confidence): string => {
+  if conf >= 0.99 {
+    ""
+  } else if conf >= 0.95 {
+    ""
+  } else {
+    ""
+  }
+}
+
+fn normalFormName = (nf: normalForm): string => {
+  switch nf {
+  | FirstNF => "First Normal Form (1NF)"
+  | SecondNF => "Second Normal Form (2NF)"
+  | ThirdNF => "Third Normal Form (3NF)"
+  | BCNF => "Boyce-Codd Normal Form (BCNF)"
+  | FourthNF => "Fourth Normal Form (4NF)"
+  | FifthNF => "Fifth Normal Form (5NF)"
+  }
+}
+
+fn violationTypeName = (vt: violationType): string => {
+  switch vt {
+  | PartialDependency => "Partial Dependency"
+  | TransitiveDependency => "Transitive Dependency"
+  | NonSuperkeyDeterminant => "Non-Superkey Determinant"
+  | MultiValuedDependency => "Multi-Valued Dependency"
+  }
+}
+
+fn phaseName = (phase: migrationPhase): string => {
+  switch phase {
+  | Announce => "ANNOUNCE"
+  | Shadow => "SHADOW"
+  | Commit => "COMMIT"
+  }
+}
+
+// ============================================================
+// FD Narrative Templates
+// ============================================================
+
+fn fdNarrativeMinimal = (fd: functionalDependency): string => {
+  fn det = fd.determinant->joinAttributes
+  fn dep = fd.dependent->joinAttributes
+  `${det} -> ${dep}`
+}
+
+fn fdNarrativeStandard = (fd: functionalDependency): string => {
+  fn det = fd.determinant->joinAttributes
+  fn dep = fd.dependent->joinAttributes
+  fn confLabel = fd.confidence->confidenceLabel
+
+  if fd.confidence >= 0.99 {
+    `${det} uniquely determines ${dep}`
+  } else {
+    `${det} likely determines ${dep} [${confLabel}: ${(fd.confidence *. 100.0)->Float.toFixed(~digits=1)}%]`
+  }
+}
+
+fn fdNarrativeDetailed = (fd: functionalDependency): string => {
+  fn det = fd.determinant->joinAttributes
+  fn dep = fd.dependent->joinAttributes
+  fn confLabel = fd.confidence->confidenceLabel
+
+  fn base = `Functional Dependency: ${det} -> ${dep}\n`
+  fn confidence = `  Confidence: ${(fd.confidence *. 100.0)->Float.toFixed(~digits=2)}% (${confLabel})\n`
+
+  fn discovery = switch fd.discoveredAt {
+  | Some(seq) => `  Discovered at journal entry: #${seq->Int.toString}\n`
+  | None => ""
+  }
+
+  fn sample = switch fd.sampleSize {
+  | Some(n) => `  Sample size: ${n->Int.toString} records\n`
+  | None => ""
+  }
+
+  fn interpretation = if fd.confidence >= 0.99 {
+    `  Interpretation: Knowing ${det} always uniquely identifies ${dep}.\n`
+  } else if fd.confidence >= 0.95 {
+    `  Interpretation: ${det} strongly predicts ${dep}, but there may be exceptions.\n` ++
+    `  Recommendation: Review outliers before treating as exact FD.\n`
+  } else {
+    `  Interpretation: Weak correlation between ${det} and ${dep}.\n` ++
+    `  Recommendation: Investigate data quality issues.\n`
+  }
+
+  base ++ confidence ++ discovery ++ sample ++ interpretation
+}
+
+fn fdNarrative = (fd: functionalDependency, config: templateConfig): string => {
+  switch config.verbosity {
+  | Minimal => fd->fdNarrativeMinimal
+  | Standard => fd->fdNarrativeStandard
+  | Detailed | Debug => fd->fdNarrativeDetailed
+  }
+}
+
+// ============================================================
+// Violation Narrative Templates
+// ============================================================
+
+fn violationNarrativeStandard = (v: normalFormViolation): string => {
+  fn vstruct = v.violationType->violationTypeName
+  fn det = v.fd.determinant->joinAttributes
+  fn dep = v.fd.dependent->joinAttributes
+
+  switch v.violationType {
+  | PartialDependency =>
+    `2NF VIOLATION (${vstruct}): ${det} is a partial key that determines non-prime attribute(s) ${dep}`
+  | TransitiveDependency =>
+    `3NF VIOLATION (${vstruct}): Non-superkey ${det} determines non-prime ${dep}`
+  | NonSuperkeyDeterminant =>
+    `BCNF VIOLATION (${vstruct}): ${det} is not a superkey but determines ${dep}`
+  | MultiValuedDependency =>
+    `4NF VIOLATION (${vstruct}): Multi-valued dependency ${det} ->> ${dep}`
+  }
+}
+
+fn violationNarrativeDetailed = (v: normalFormViolation): string => {
+  fn base = v->violationNarrativeStandard ++ "\n"
+
+  fn explanation = `  Explanation: ${v.explanation}\n`
+
+  fn remedy = switch v.violationType {
+  | PartialDependency =>
+    `  Remedy: Decompose by extracting ${v.fd.determinant->joinAttributes} and ${v.fd.dependent->joinAttributes} into separate table.\n`
+  | TransitiveDependency =>
+    `  Remedy: Create separate table with ${v.fd.determinant->joinAttributes} as key determining ${v.fd.dependent->joinAttributes}.\n`
+  | NonSuperkeyDeterminant =>
+    `  Remedy: Decompose into (${v.fd.determinant->joinAttributes} ∪ ${v.fd.dependent->joinAttributes}) and (original - ${v.fd.dependent->joinAttributes}).\n`
+  | MultiValuedDependency =>
+    `  Remedy: Create separate table for the multi-valued relationship.\n`
+  }
+
+  base ++ explanation ++ remedy
+}
+
+fn violationNarrative = (v: normalFormViolation, config: templateConfig): string => {
+  switch config.verbosity {
+  | Minimal | Standard => v->violationNarrativeStandard
+  | Detailed | Debug => v->violationNarrativeDetailed
+  }
+}
+
+// ============================================================
+// Discovery Result Narrative
+// ============================================================
+
+fn discoveryNarrative = (result: discoveryResult, config: templateConfig): string => {
+  fn header = `FUNCTIONAL DEPENDENCY DISCOVERY REPORT\n` ++
+               `${"=".repeat(60)}\n\n` ++
+               `Collection: ${result.collection}\n\n`
+
+  fn metrics = if config.includeMetrics {
+    `Sample Information:\n` ++
+    `  Records analyzed: ${result.sampleRows->Int.toString}\n` ++
+    `  Attributes examined: ${result.sampleAttributes->Int.toString}\n\n`
+  } else {
+    ""
+  }
+
+  fn exactSection = if result.exactFDs->Array.length > 0 {
+    `EXACT FUNCTIONAL DEPENDENCIES (confidence >= 99%):\n` ++
+    result.exactFDs
+      ->Array.slice(~start=0, ~end=config.maxExamples)
+      ->Array.map(fd => `  - ${fd->fdNarrative(config)}`)
+      ->Array.join("\n") ++
+    (if result.exactFDs->Array.length > config.maxExamples {
+      `\n  ... and ${(result.exactFDs->Array.length - config.maxExamples)->Int.toString} more\n`
+    } else {
+      "\n"
+    }) ++ "\n"
+  } else {
+    `EXACT FUNCTIONAL DEPENDENCIES: (none discovered)\n\n`
+  }
+
+  fn probableSection = if result.probableFDs->Array.length > 0 {
+    `PROBABLE FUNCTIONAL DEPENDENCIES (95% <= confidence < 99%):\n` ++
+    `These require confirmation before use in schema design.\n` ++
+    result.probableFDs
+      ->Array.slice(~start=0, ~end=config.maxExamples)
+      ->Array.map(fd => `  - ${fd->fdNarrative(config)}`)
+      ->Array.join("\n") ++
+    (if result.probableFDs->Array.length > config.maxExamples {
+      `\n  ... and ${(result.probableFDs->Array.length - config.maxExamples)->Int.toString} more\n`
+    } else {
+      "\n"
+    }) ++ "\n"
+  } else {
+    ""
+  }
+
+  fn warningSection = if result.dataWarnings->Array.length > 0 {
+    `DATA QUALITY WARNINGS (confidence < 95%):\n` ++
+    `These indicate potential data quality issues.\n` ++
+    result.dataWarnings
+      ->Array.slice(~start=0, ~end=config.maxExamples)
+      ->Array.map(fd => `  - ${fd->fdNarrative(config)}`)
+      ->Array.join("\n") ++
+    (if result.dataWarnings->Array.length > config.maxExamples {
+      `\n  ... and ${(result.dataWarnings->Array.length - config.maxExamples)->Int.toString} more\n`
+    } else {
+      "\n"
+    }) ++ "\n"
+  } else {
+    ""
+  }
+
+  header ++ metrics ++ exactSection ++ probableSection ++ warningSection
+}
+
+// ============================================================
+// Normalization Proposal Narrative
+// ============================================================
+
+fn normalizationNarrative = (proposal: normalizationProposal, targetNF: normalForm, config: templateConfig): string => {
+  fn header = `NORMALIZATION PROPOSAL\n` ++
+               `${"=".repeat(60)}\n\n` ++
+               `Target: ${targetNF->normalFormName}\n\n`
+
+  fn sourceDesc = `Source Schema:\n` ++
+                   `  ${proposal.sourceSchema->joinAttributes}\n\n`
+
+  fn targetDesc = `Proposed Decomposition:\n` ++
+                   proposal.targetSchemas
+                     ->Array.mapWithIndex((schema, i) => `  Table ${(i + 1)->Int.toString}: ${schema->joinAttributes}`)
+                     ->Array.join("\n") ++
+                   "\n\n"
+
+  fn transformation = `Transformation:\n` ++
+                       `  Forward: ${proposal.transformation}\n` ++
+                       `  Inverse: ${proposal.inverse}\n\n`
+
+  fn proof = if config.includeProofs {
+    `Equivalence Proof:\n` ++
+    `  ${proposal.equivalenceProof}\n\n`
+  } else {
+    ""
+  }
+
+  fn narrative = switch config.audience {
+  | Developer | DBA =>
+    `Technical Summary:\n` ++
+    `  This decomposition eliminates redundancy while preserving all data.\n` ++
+    `  The original relation can be reconstructed via natural join on common attributes.\n`
+  | BusinessAnalyst =>
+    `Business Impact:\n` ++
+    `  This change improves data consistency by ensuring each fact is stored once.\n` ++
+    `  Query patterns may need adjustment, but data integrity will be stronger.\n`
+  | Agent =>
+    `Agent Instructions:\n` ++
+    `  Execute: APPLY NORMALIZATION <proposal-id> WITH ROLLBACK POINT "pre-normalization"\n` ++
+    `  Verify: Check dependent queries for compatibility\n`
+  }
+
+  header ++ sourceDesc ++ targetDesc ++ transformation ++ proof ++ narrative
+}
+
+// ============================================================
+// Denormalization Proposal Narrative
+// ============================================================
+
+fn denormalizationNarrative = (proposal: denormalizationProposal, config: templateConfig): string => {
+  fn header = `INTENTIONAL DENORMALIZATION PROPOSAL\n` ++
+               `${"=".repeat(60)}\n\n`
+
+  fn warning = `NOTE: This is an INTENTIONAL denormalization for performance reasons.\n` ++
+                `      The operation is fully reversible.\n\n`
+
+  fn sourceDesc = `Source Schemas (${proposal.sourceSchemas->Array.length->Int.toString} tables):\n` ++
+                   proposal.sourceSchemas
+                     ->Array.mapWithIndex((schema, i) => `  ${(i + 1)->Int.toString}. ${schema->joinAttributes}`)
+                     ->Array.join("\n") ++
+                   "\n\n"
+
+  fn targetDesc = `Merged Schema:\n` ++
+                   `  ${proposal.targetSchema->joinAttributes}\n\n`
+
+  fn joinDesc = `Join Attributes:\n` ++
+                 `  ${proposal.joinAttributes->joinAttributes}\n\n`
+
+  fn rationale = `Performance Rationale:\n` ++
+                  `  ${proposal.performanceRationale}\n\n`
+
+  fn tradeoffs = `Trade-offs:\n` ++
+                  `  + Faster reads: Single table scan instead of joins\n` ++
+                  `  + Simpler queries: No JOIN clauses needed\n` ++
+                  `  - More storage: Redundant data stored\n` ++
+                  `  - Update anomalies: Must update multiple rows for changes\n` ++
+                  `  - Write overhead: Triggers/logic needed to maintain consistency\n\n`
+
+  fn reversal = `Reversal:\n` ++
+                 `  Execute: SPLIT ${proposal.targetSchema->joinAttributes} ON ${proposal.joinAttributes->joinAttributes}\n` ++
+                 `  This recreates the original normalized structure.\n`
+
+  header ++ warning ++ sourceDesc ++ targetDesc ++ joinDesc ++ rationale ++ tradeoffs ++ reversal
+}
+
+// ============================================================
+// Migration State Narrative
+// ============================================================
+
+fn migrationNarrative = (state: migrationState, config: templateConfig): string => {
+  fn phaseEmoji = switch state.phase {
+  | Announce => ""
+  | Shadow => ""
+  | Commit => ""
+  }
+
+  fn header = `MIGRATION STATUS: ${phaseEmoji} ${state.phase->phaseName}\n` ++
+               `${"=".repeat(60)}\n\n` ++
+               `Journal Entry: #${state.journalEntry->Int.toString}\n\n`
+
+  fn phaseDesc = switch state.phase {
+  | Announce =>
+    `Phase: ANNOUNCE (Warning Period)\n` ++
+    `  All affected queries have been identified.\n` ++
+    `  No schema changes have been applied yet.\n` ++
+    `  Safe to abort without data loss.\n\n`
+  | Shadow =>
+    `Phase: SHADOW (Compatibility Layer Active)\n` ++
+    `  Both old and new schemas exist simultaneously.\n` ++
+    `  Queries are being automatically rewritten.\n` ++
+    `  Compatibility views provide backward compatibility.\n` ++
+    `  Still safe to abort (old schema intact).\n\n`
+  | Commit =>
+    `Phase: COMMIT (Migration Complete)\n` ++
+    `  Old schema has been removed.\n` ++
+    `  Query rewrites are now permanent.\n` ++
+    `  Rollback requires explicit restore operation.\n\n`
+  }
+
+  fn metrics = if config.includeMetrics {
+    `Metrics:\n` ++
+    `  Affected queries: ${state.affectedQueries->Int.toString}\n` ++
+    `  Rewrite rules: ${state.rewriteRules->Int.toString}\n` ++
+    `  Compatibility views: ${state.compatViews->Int.toString}\n\n`
+  } else {
+    ""
+  }
+
+  fn nextSteps = switch state.phase {
+  | Announce =>
+    `Next Steps:\n` ++
+    `  1. Review affected queries list\n` ++
+    `  2. Test query rewrites in staging\n` ++
+    `  3. Execute: ADVANCE MIGRATION TO SHADOW\n` ++
+    `  Or abort: ABORT MIGRATION #${state.journalEntry->Int.toString}\n`
+  | Shadow =>
+    `Next Steps:\n` ++
+    `  1. Monitor query performance during shadow period\n` ++
+    `  2. Verify no application errors\n` ++
+    `  3. Execute: ADVANCE MIGRATION TO COMMIT\n` ++
+    `  Or abort: ABORT MIGRATION #${state.journalEntry->Int.toString}\n`
+  | Commit =>
+    `Migration complete. Old structure is no longer accessible.\n` ++
+    `To restore: CREATE ROLLBACK POINT and restore from backup.\n`
+  }
+
+  header ++ phaseDesc ++ metrics ++ nextSteps
+}
+
+// ============================================================
+// Public API
+// ============================================================
+
+fn narrateFD = fdNarrative
+fn narrateViolation = violationNarrative
+fn narrateDiscovery = discoveryNarrative
+fn narrateNormalization = normalizationNarrative
+fn narrateDenormalization = denormalizationNarrative
+fn narrateMigration = migrationNarrative
+
