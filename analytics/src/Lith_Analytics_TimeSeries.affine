@@ -1,7 +1,297 @@
 // SPDX-License-Identifier: MPL-2.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
-// Ported via Harvard Engine bulk-processor
+// Ported via Harvard Engine (Semantic pass)
 
 module Lith_Analytics_TimeSeries;
 
-// TODO: Complete semantic implementation
+// SPDX-License-Identifier: MPL-2.0
+
+/**
+ * Lith Time Series Analytics
+ *
+ * Time-based data analysis and trend detection
+ */
+
+/** Time bucket granularity */
+struct timeGranularity {
+  | Second
+  | Minute
+  | Hour
+  | Day
+  | Week
+  | Month
+  | Quarter
+  | Year
+
+/** Time series data point */
+struct dataPoint { {
+  timestamp: float,
+  value: float,
+  metadata: option<Js.Dict.t<Js.Json.t>>,
+}
+
+/** Time bucket */
+struct timeBucket { {
+  start: float,
+  end_: float,
+  points: array<dataPoint>,
+  aggregatedValue: float,
+}
+
+/** Time series */
+struct timeSeries { {
+  name: string,
+  field: string,
+  granularity: timeGranularity,
+  buckets: array<timeBucket>,
+  startTime: float,
+  endTime: float,
+}
+
+/** Trend direction */
+struct trendDirection {
+  | Increasing
+  | Decreasing
+  | Stable
+  | Volatile
+
+/** Trend analysis result */
+struct trendAnalysis { {
+  direction: trendDirection,
+  slope: float,
+  rSquared: float,
+  changePercent: float,
+}
+
+/** Granularity to milliseconds */
+fn granularityToMs = (g: timeGranularity): float => {
+  switch g {
+  | Second => 1000.0
+  | Minute => 60000.0
+  | Hour => 3600000.0
+  | Day => 86400000.0
+  | Week => 604800000.0
+  | Month => 2592000000.0 // Approximation (30 days)
+  | Quarter => 7776000000.0 // Approximation (90 days)
+  | Year => 31536000000.0 // Approximation (365 days)
+  }
+}
+
+/** Get bucket start for timestamp */
+fn getBucketStart = (timestamp: float, granularity: timeGranularity): float => {
+  fn ms = granularityToMs(granularity)
+  Js.Math.floor(timestamp /. ms) *. ms
+}
+
+/** Create time series from data points */
+fn createTimeSeries = (
+  name: string,
+  field: string,
+  points: array<dataPoint>,
+  granularity: timeGranularity,
+): timeSeries => {
+  if Array.length(points) == 0 {
+    {
+      name,
+      field,
+      granularity,
+      buckets: [],
+      startTime: 0.0,
+      endTime: 0.0,
+    }
+  } else {
+    // Sort by timestamp
+    fn sorted = points->Array.toSorted((a, b) => a.timestamp -. b.timestamp)
+
+    // Find time range
+    fn startTime = switch sorted->Array.get(0) {
+    | Some(p) => getBucketStart(p.timestamp, granularity)
+    | None => 0.0
+    }
+    fn endTime = switch sorted->Array.get(Array.length(sorted) - 1) {
+    | Some(p) => getBucketStart(p.timestamp, granularity) +. granularityToMs(granularity)
+    | None => 0.0
+    }
+
+    // Group into buckets
+    fn bucketMap: Js.Dict.t<array<dataPoint>> = Js.Dict.empty()
+
+    sorted->Array.forEach(point => {
+      fn bucketStart = getBucketStart(point.timestamp, granularity)
+      fn key = Float.toString(bucketStart)
+      switch Js.Dict.get(bucketMap, key) {
+      | Some(arr) => arr->Array.push(point)->ignore
+      | None => Js.Dict.set(bucketMap, key, [point])
+      }
+    })
+
+    // Create buckets
+    fn ms = granularityToMs(granularity)
+    fn buckets: array<timeBucket> = []
+    fn numBuckets = Float.toInt((endTime -. startTime) /. ms)
+
+    for i in 0 to numBuckets - 1 {
+      fn start = startTime +. Int.toFloat(i) *. ms
+      fn key = Float.toString(start)
+      fn points = Js.Dict.get(bucketMap, key)->Option.getOr([])
+      fn values = points->Array.map(p => p.value)
+      fn aggregatedValue = if Array.length(values) == 0 {
+        0.0
+      } else {
+        values->Array.reduce(0.0, (a, b) => a +. b) /. Int.toFloat(Array.length(values))
+      }
+
+      buckets->Array.push({
+        start,
+        end_: start +. ms,
+        points,
+        aggregatedValue,
+      })->ignore
+    }
+
+    {name, field, granularity, buckets, startTime, endTime}
+  }
+}
+
+/** Calculate linear regression */
+fn linearRegression = (points: array<(float, float)>): (float, float, float) => {
+  fn n = Int.toFloat(Array.length(points))
+  if n < 2.0 {
+    (0.0, 0.0, 0.0)
+  } else {
+    fn sumX = points->Array.reduce(0.0, (acc, (x, _)) => acc +. x)
+    fn sumY = points->Array.reduce(0.0, (acc, (_, y)) => acc +. y)
+    fn sumXY = points->Array.reduce(0.0, (acc, (x, y)) => acc +. x *. y)
+    fn sumX2 = points->Array.reduce(0.0, (acc, (x, _)) => acc +. x *. x)
+    fn sumY2 = points->Array.reduce(0.0, (acc, (_, y)) => acc +. y *. y)
+
+    fn slope = (n *. sumXY -. sumX *. sumY) /. (n *. sumX2 -. sumX *. sumX)
+    fn intercept = (sumY -. slope *. sumX) /. n
+
+    // R-squared
+    fn ssTotal = sumY2 -. sumY *. sumY /. n
+    fn ssResidual = points->Array.reduce(0.0, (acc, (x, y)) => {
+      fn predicted = slope *. x +. intercept
+      fn residual = y -. predicted
+      acc +. residual *. residual
+    })
+    fn rSquared = if ssTotal == 0.0 {
+      1.0
+    } else {
+      1.0 -. ssResidual /. ssTotal
+    }
+
+    (slope, intercept, rSquared)
+  }
+}
+
+/** Analyze trend in time series */
+fn analyzeTrend = (series: timeSeries): trendAnalysis => {
+  if Array.length(series.buckets) < 2 {
+    {direction: Stable, slope: 0.0, rSquared: 0.0, changePercent: 0.0}
+  } else {
+    // Create points for regression (index, value)
+    fn points = series.buckets->Array.mapWithIndex((bucket, i) =>
+      (Int.toFloat(i), bucket.aggregatedValue)
+    )
+
+    fn (slope, _, rSquared) = linearRegression(points)
+
+    // Calculate change percent
+    fn firstValue = switch series.buckets->Array.get(0) {
+    | Some(b) => b.aggregatedValue
+    | None => 0.0
+    }
+    fn lastValue = switch series.buckets->Array.get(Array.length(series.buckets) - 1) {
+    | Some(b) => b.aggregatedValue
+    | None => 0.0
+    }
+    fn changePercent = if firstValue == 0.0 {
+      0.0
+    } else {
+      (lastValue -. firstValue) /. firstValue *. 100.0
+    }
+
+    // Determine direction
+    fn direction = if rSquared < 0.3 {
+      Volatile
+    } else if slope > 0.01 {
+      Increasing
+    } else if slope < -0.01 {
+      Decreasing
+    } else {
+      Stable
+    }
+
+    {direction, slope, rSquared, changePercent}
+  }
+}
+
+/** Moving average */
+fn movingAverage = (series: timeSeries, windowSize: int): array<float> => {
+  fn values = series.buckets->Array.map(b => b.aggregatedValue)
+  fn len = Array.length(values)
+
+  if len < windowSize {
+    values
+  } else {
+    fn result: array<float> = []
+    for i in 0 to len - windowSize {
+      fn sum = ref(0.0)
+      for j in 0 to windowSize - 1 {
+        switch values->Array.get(i + j) {
+        | Some(v) => sum := sum.contents +. v
+        | None => ()
+        }
+      }
+      result->Array.push(sum.contents /. Int.toFloat(windowSize))->ignore
+    }
+    result
+  }
+}
+
+/** Detect anomalies using standard deviation */
+fn detectAnomalies = (series: timeSeries, threshold: float): array<timeBucket> => {
+  fn values = series.buckets->Array.map(b => b.aggregatedValue)
+  fn len = Array.length(values)
+
+  if len < 2 {
+    []
+  } else {
+    fn mean = values->Array.reduce(0.0, (a, b) => a +. b) /. Int.toFloat(len)
+    fn variance = values->Array.reduce(0.0, (acc, v) => {
+      fn diff = v -. mean
+      acc +. diff *. diff
+    }) /. Int.toFloat(len)
+    fn stddev = Js.Math.sqrt(variance)
+
+    series.buckets->Array.filter(bucket => {
+      fn deviation = Js.Math.abs_float(bucket.aggregatedValue -. mean)
+      deviation > threshold *. stddev
+    })
+  }
+}
+
+/** Granularity to string */
+fn granularityToString = (g: timeGranularity): string => {
+  switch g {
+  | Second => "second"
+  | Minute => "minute"
+  | Hour => "hour"
+  | Day => "day"
+  | Week => "week"
+  | Month => "month"
+  | Quarter => "quarter"
+  | Year => "year"
+  }
+}
+
+/** Trend direction to string */
+fn trendDirectionToString = (d: trendDirection): string => {
+  switch d {
+  | Increasing => "increasing"
+  | Decreasing => "decreasing"
+  | Stable => "stable"
+  | Volatile => "volatile"
+  }
+}
+

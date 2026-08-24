@@ -1,7 +1,161 @@
 // SPDX-License-Identifier: MPL-2.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
-// Ported via Harvard Engine bulk-processor
+// Ported via Harvard Engine (Semantic pass)
 
 module Lith_Ghost_Types;
 
-// TODO: Complete semantic implementation
+// SPDX-License-Identifier: MPL-2.0
+
+/**
+ * Lith Ghost Integration Types
+ *
+ * Type definitions for Ghost webhook integration
+ */
+
+/** Ghost webhook event structs */
+struct webhookEvent {
+  | PostPublished
+  | PostUpdated
+  | PostDeleted
+  | PostScheduled
+  | PagePublished
+  | PageUpdated
+  | PageDeleted
+  | MemberCreated
+  | MemberUpdated
+  | MemberDeleted
+
+/** Ghost post */
+struct ghostPost { {
+  id: string,
+  uuid: string,
+  title: string,
+  slug: string,
+  html: option<string>,
+  plaintext: option<string>,
+  featureImage: option<string>,
+  featured: bool,
+  status: string,
+  visibility: string,
+  createdAt: string,
+  updatedAt: string,
+  publishedAt: option<string>,
+  customExcerpt: option<string>,
+  authors: array<ghostAuthor>,
+  tags: array<ghostTag>,
+  primaryAuthor: option<ghostAuthor>,
+  primaryTag: option<ghostTag>,
+}
+and ghostAuthor = {
+  id: string,
+  name: string,
+  slug: string,
+  email: option<string>,
+  profileImage: option<string>,
+}
+and ghostTag = {
+  id: string,
+  name: string,
+  slug: string,
+  description: option<string>,
+}
+
+/** Ghost page */
+struct ghostPage { {
+  id: string,
+  uuid: string,
+  title: string,
+  slug: string,
+  html: option<string>,
+  status: string,
+  createdAt: string,
+  updatedAt: string,
+  publishedAt: option<string>,
+}
+
+/** Ghost member */
+struct ghostMember { {
+  id: string,
+  uuid: string,
+  email: string,
+  name: option<string>,
+  status: string,
+  createdAt: string,
+  updatedAt: string,
+}
+
+/** Webhook payload */
+struct webhookPayload { {
+  post: option<webhookPostPayload>,
+  page: option<webhookPagePayload>,
+  member: option<webhookMemberPayload>,
+}
+and webhookPostPayload = {
+  current: ghostPost,
+  previous: option<ghostPost>,
+}
+and webhookPagePayload = {
+  current: ghostPage,
+  previous: option<ghostPage>,
+}
+and webhookMemberPayload = {
+  current: ghostMember,
+  previous: option<ghostMember>,
+}
+
+/** Integration configuration */
+struct integrationConfig { {
+  lithUrl: string,
+  apiKey: option<string>,
+  webhookSecret: option<string>,
+  syncPosts: bool,
+  syncPages: bool,
+  syncMembers: bool,
+  postsCollection: string,
+  pagesCollection: string,
+  membersCollection: string,
+}
+
+/** Default configuration */
+fn defaultConfig: integrationConfig = {
+  lithUrl: "http://localhost:8080",
+  apiKey: None,
+  webhookSecret: None,
+  syncPosts: true,
+  syncPages: true,
+  syncMembers: false,
+  postsCollection: "ghost_posts",
+  pagesCollection: "ghost_pages",
+  membersCollection: "ghost_members",
+}
+
+/** Parse webhook event from string */
+fn parseWebhookEvent = (event: string): option<webhookEvent> =>
+  switch event {
+  | "post.published" => Some(PostPublished)
+  | "post.updated" => Some(PostUpdated)
+  | "post.deleted" => Some(PostDeleted)
+  | "post.scheduled" => Some(PostScheduled)
+  | "page.published" => Some(PagePublished)
+  | "page.updated" => Some(PageUpdated)
+  | "page.deleted" => Some(PageDeleted)
+  | "member.created" => Some(MemberCreated)
+  | "member.updated" => Some(MemberUpdated)
+  | "member.deleted" => Some(MemberDeleted)
+  | _ => None
+  }
+
+/** Webhook event to string */
+fn webhookEventToString = (event: webhookEvent): string =>
+  switch event {
+  | PostPublished => "post.published"
+  | PostUpdated => "post.updated"
+  | PostDeleted => "post.deleted"
+  | PostScheduled => "post.scheduled"
+  | PagePublished => "page.published"
+  | PageUpdated => "page.updated"
+  | PageDeleted => "page.deleted"
+  | MemberCreated => "member.created"
+  | MemberUpdated => "member.updated"
+  | MemberDeleted => "member.deleted"
+  }
+

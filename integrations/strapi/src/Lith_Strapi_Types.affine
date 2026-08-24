@@ -1,7 +1,110 @@
 // SPDX-License-Identifier: MPL-2.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
-// Ported via Harvard Engine bulk-processor
+// Ported via Harvard Engine (Semantic pass)
 
 module Lith_Strapi_Types;
 
-// TODO: Complete semantic implementation
+// SPDX-License-Identifier: MPL-2.0
+
+/**
+ * Lith Strapi Plugin Types
+ *
+ * Type definitions for Strapi integration
+ */
+
+/** Strapi context */
+struct strapiContext { {
+  strapi: strapi,
+}
+and strapi = {
+  plugin: string => pluginApi,
+  config: configApi,
+  log: logApi,
+}
+and pluginApi = {
+  service: string => serviceApi,
+  controller: string => controllerApi,
+}
+and serviceApi
+and controllerApi
+and configApi = {
+  get: string => option<Js.Json.t>,
+}
+and logApi = {
+  info: string => unit,
+  warn: string => unit,
+  error: string => unit,
+  debug: string => unit,
+}
+
+/** Plugin configuration */
+struct pluginConfig { {
+  enabled: bool,
+  lithUrl: string,
+  apiKey: option<string>,
+  collections: array<collectionMapping>,
+}
+and collectionMapping = {
+  strapiModel: string,
+  lithCollection: string,
+  syncMode: syncMode,
+}
+and syncMode =
+  | Bidirectional
+  | StrapiToLith
+  | LithToStrapi
+
+/** Sync event */
+struct syncEvent { {
+  model: string,
+  action: syncAction,
+  data: Js.Json.t,
+  timestamp: string,
+}
+and syncAction =
+  | Create
+  | Update
+  | Delete
+
+/** Lith client for Strapi */
+struct lithClient { {
+  query: string => promise<queryResult>,
+  insert: (string, Js.Json.t) => promise<queryResult>,
+  update: (string, Js.Json.t, string) => promise<queryResult>,
+  delete: (string, string) => promise<queryResult>,
+  health: unit => promise<healthResponse>,
+}
+and queryResult = {
+  rows: array<Js.Json.t>,
+  rowCount: int,
+  affectedCount: option<int>,
+}
+and healthResponse = {
+  status: string,
+  version: string,
+}
+
+/** Parse sync mode from string */
+fn parseSyncMode = (str: string): syncMode =>
+  switch String.toLowerCase(str) {
+  | "bidirectional" => Bidirectional
+  | "strapi-to-lith" | "strapitolith" => StrapiToLith
+  | "lith-to-strapi" | "lithtostrapi" => LithToStrapi
+  | _ => Bidirectional
+  }
+
+/** Sync mode to string */
+fn syncModeToString = (mode: syncMode): string =>
+  switch mode {
+  | Bidirectional => "bidirectional"
+  | StrapiToLith => "strapi-to-lith"
+  | LithToStrapi => "lith-to-strapi"
+  }
+
+/** Sync action to string */
+fn syncActionToString = (action: syncAction): string =>
+  switch action {
+  | Create => "create"
+  | Update => "update"
+  | Delete => "delete"
+  }
+
