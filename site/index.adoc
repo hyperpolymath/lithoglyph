@@ -1,0 +1,27 @@
+== Lithoglyph
+
+The public web home for this project is
+https://lithoglyph.org[lithoglyph.org].
+
+Stone-carved data for the ages.
+
+Lithoglyph (from Greek lithos "`stone`" + glyphein "`to carve`") is a
+narrative-first, reversible, audit-grade database core. Like ancient
+glyphs carved in stone, Lithoglyph treats schemas, constraints,
+migrations, blocks, and journals as permanent narrative artefacts—the
+database is part of the story, not an opaque substrate.
+
+=== Project Links
+
+* Website: https://lithoglyph.org[lithoglyph.org]
+* Source:
+https://github.com/hyperpolymath/nextgen-databases/tree/main/lithoglyph
+* README:
+https://github.com/hyperpolymath/nextgen-databases/blob/main/lithoglyph/README.adoc[project
+overview]
+* Docs:
+https://github.com/hyperpolymath/nextgen-databases/tree/main/lithoglyph/docs[documentation
+directory]
+
+This page is a lightweight landing point for the repository and will
+grow with the project.
