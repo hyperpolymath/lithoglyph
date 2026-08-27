@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This workflow is managed by gh actions-lock.
+# This workflow is managed by gh actions-lock.
 name: Code Quality
 on:
   push:
@@ -22,12 +23,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - name: Check file permissions
         run: |
           find . -type f -perm /111 -name "*.sh" | head -10 || true
       - name: Check for secrets
-        uses: trufflesecurity/trufflehog@bcfcf73aaf4759d4dadc2783177c245a02792318 # v3.97.0
+        uses: trufflesecurity/trufflehog@v3.97.0
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -41,7 +42,7 @@ jobs:
         run: |
           find . -type f -size +1M -not -path "./.git/*" | head -10 || echo "No large files"
       - name: EditorConfig check
-        uses: editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c # v2.2.0
+        uses: editorconfig-checker/action-editorconfig-checker@v2.2.0
         continue-on-error: true
   docs:
     runs-on: ubuntu-latest
@@ -49,7 +50,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - name: Check documentation
         run: |
           MISSING=""
