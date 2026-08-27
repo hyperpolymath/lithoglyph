@@ -3,12 +3,6 @@
 # Docs: https://gh.io/actions-lockfile
 version: 'v0.0.2'
 workflows:
-    '.github/workflows/governance.yml': []
-    '.github/workflows/hypatia-scan.yml': []
-    '.github/workflows/mirror.yml': []
-    '.github/workflows/rust-ci.yml': []
-    '.github/workflows/scorecard.yml': []
-    '.github/workflows/secret-scanner.yml': []
     '.github/workflows/boj-build.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/ci.yml':
@@ -28,8 +22,11 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/estate-rules.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/governance.yml': []
     '.github/workflows/guix-policy.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/hypatia-scan.yml': []
+    '.github/workflows/mirror.yml': []
     '.github/workflows/openssf-compliance.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/pages.yml':
@@ -52,6 +49,9 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/runtime-policy.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/rust-ci.yml': []
+    '.github/workflows/scorecard.yml': []
+    '.github/workflows/secret-scanner.yml': []
     '.github/workflows/security-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/sonarqube.yml':
