@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This workflow is managed by gh actions-lock.
 # This workflow is managed by gh actions-lock.
+# This workflow is managed by gh actions-lock.
 name: Governance
 
 on:
@@ -14,6 +15,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions:
+  actions: read
   contents: read
 
 jobs:
