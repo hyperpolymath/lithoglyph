@@ -303,7 +303,7 @@ test "websocket accept key computation" {
     const allocator = std.testing.allocator;
 
     // Example from RFC 6455
-    const key = "dGhlIHNhbXBsZSBub25jZQ==";
+    const key = "dGhlIHNhbXBsZSBub25jZQ=="; // gitleaks:allow -- public RFC 6455 Section 1.3 nonce
     const accept = try computeAcceptKey(allocator, key);
     defer allocator.free(accept);
 

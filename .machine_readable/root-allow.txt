@@ -24,6 +24,9 @@ SECURITY.md                # Accepted at root OR .github/ — see CONTRIBUTING.m
 LICENSE
 LICENSES/                  # REUSE licence texts (MPL-2.0.txt + CC-BY-SA-4.0.txt) for the dual-licence model (code MPL-2.0 / docs CC-BY-SA-4.0)
 CHANGELOG.md
+CHANGELOG.adoc            # Current changelog after the AsciiDoc migration.
+CONTRIBUTING.adoc         # Current contributor guide after the AsciiDoc migration.
+SECURITY.adoc             # Current security policy after the AsciiDoc migration.
 CITATION.cff               # citation metadata (surfaced at root by #96)
 RSR-PHILOSOPHY.adoc        # RSR philosophy statement (root authority file; was drift until 2026-07-07)
 

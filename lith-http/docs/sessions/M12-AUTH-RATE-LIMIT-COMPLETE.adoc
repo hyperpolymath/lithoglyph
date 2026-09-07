@@ -37,7 +37,7 @@ Claims validation (exp, iat, nbf, iss, aud) - Configurable expiration
 [source,elixir]
 ----
 config :lith_http,
-  jwt_secret: "your-secret-key-here",
+  jwt_secret: System.fetch_env!("LITH_AUTH_JWT_SECRET"),
   jwt_algorithm: "HS256",
   jwt_issuer: "lith-http",
   jwt_expiration: 3600  # seconds

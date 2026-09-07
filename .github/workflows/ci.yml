@@ -1,3 +1,4 @@
+# This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
 # This workflow is managed by gh actions-lock.
 # This workflow is managed by gh actions-lock.
@@ -31,10 +32,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v2.2.1
+        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
         with:
           version: '0.15.2'
 
@@ -47,7 +48,7 @@ jobs:
         run: zig build test
 
       - name: Upload Zig build artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: zig-build
           path: |
@@ -65,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install gforth
         run: sudo apt-get update && sudo apt-get install -y gforth
@@ -85,7 +86,7 @@ jobs:
   # Job 3: C FFI integration tests (depends on Zig build)
   # ===========================================================================
   test-ffi:
-    name: C FFI Integration Tests
+    name: C ABI regression tests
     runs-on: ubuntu-latest
     needs: build-zig
     permissions:
@@ -93,10 +94,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v2.2.1
+        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
         with:
           version: '0.15.2'
 
