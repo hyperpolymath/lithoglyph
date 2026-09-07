@@ -971,7 +971,7 @@ pub export fn lith_proof_unregister_verifier(
 
 /// Verify a proof using registered verifiers
 ///
-/// @param proof_ptr CBOR-encoded proof blob
+/// @param proof_ptr JSON envelope {"type": string, "data": string}
 /// @param proof_len Length of proof
 /// @param out_valid Output: true if proof is valid
 /// @param out_err Output parameter for error blob
@@ -982,6 +982,9 @@ pub export fn lith_proof_verify(
     out_valid: *bool,
     out_err: *LgBlob,
 ) LgStatus {
+    // A reused output must never retain a successful verdict on an error path.
+    out_valid.* = false;
+    out_err.* = LgBlob.empty();
     const proof_data = proof_ptr[0..proof_len];
 
     // Parse JSON proof to extract type and data
@@ -1034,50 +1037,19 @@ pub export fn lith_proof_verify(
     const verify_data = data_value.string;
     const status = entry.callback(verify_data.ptr, verify_data.len, entry.context);
 
-    out_valid.* = (status == .ok);
-    out_err.* = LgBlob.empty();
+    if (status != .ok) {
+        out_err.* = createErrorBlob(status, "Registered proof verifier rejected the proof or could not verify it");
+        return status;
+    }
+    out_valid.* = true;
     return .ok;
 }
 
-/// Built-in verifier for FD-holds proofs (always accepts for PoC)
-fn builtin_fd_verifier(
-    _: [*]const u8,
-    _: usize,
-    _: ?*anyopaque,
-) callconv(.c) LgStatus {
-    // In production, this would actually verify the proof
-    // For PoC, we accept all well-formed proofs
-    return .ok;
-}
-
-/// Built-in verifier for normalization proofs
-fn builtin_normalization_verifier(
-    _: [*]const u8,
-    _: usize,
-    _: ?*anyopaque,
-) callconv(.c) LgStatus {
-    // In production, this would verify losslessness and dependency preservation
-    // For PoC, we accept all well-formed proofs
-    return .ok;
-}
-
-/// Initialize built-in proof verifiers
+/// Built-in mathematical verifiers are not implemented. Keep the ABI symbol,
+/// report that fact, and leave registered verifiers untouched. Consumers must
+/// explicitly install a real verifier with lith_proof_register_verifier.
 pub export fn lith_proof_init_builtins() LgStatus {
-    // Register FD-holds verifier
-    const fd_type = "fd-holds";
-    var status = lith_proof_register_verifier(fd_type.ptr, fd_type.len, builtin_fd_verifier, null);
-    if (status != .ok) return status;
-
-    // Register normalization verifier
-    const norm_type = "normalization";
-    status = lith_proof_register_verifier(norm_type.ptr, norm_type.len, builtin_normalization_verifier, null);
-    if (status != .ok) return status;
-
-    // Register denormalization verifier (same logic)
-    const denorm_type = "denormalization";
-    status = lith_proof_register_verifier(denorm_type.ptr, denorm_type.len, builtin_normalization_verifier, null);
-
-    return status;
+    return .err_not_implemented;
 }
 
 // ============================================================
@@ -1147,4 +1119,53 @@ test "transaction lifecycle" {
 test "version" {
     const version = lith_version();
     try std.testing.expectEqual(@as(u32, 100), version); // 0.1.0
+}
+
+test "unimplemented builtins cannot certify a proof" {
+    try std.testing.expectEqual(LgStatus.err_not_implemented, lith_proof_init_builtins());
+    const proofs = [_][]const u8{
+        "{\"type\":\"fd-holds\",\"data\":\"not a proof\"}",
+        "{\"type\":\"normalization\",\"data\":\"not a proof\"}",
+        "{\"type\":\"denormalization\",\"data\":\"not a proof\"}",
+    };
+    for (proofs) |proof| {
+        var valid = true;
+        var err = LgBlob.empty();
+        const status = lith_proof_verify(proof.ptr, proof.len, &valid, &err);
+        defer lith_blob_free(&err);
+        try std.testing.expectEqual(LgStatus.err_not_found, status);
+        try std.testing.expect(!valid);
+    }
+}
+
+test "malformed proof clears a previous successful verdict" {
+    const proof = "not JSON";
+    var valid = true;
+    var err = LgBlob.empty();
+    defer lith_blob_free(&err);
+    try std.testing.expectEqual(LgStatus.err_invalid_argument, lith_proof_verify(proof.ptr, proof.len, &valid, &err));
+    try std.testing.expect(!valid);
+}
+
+test "registered verifier controls the verdict and failures propagate" {
+    // A test protocol, not a mathematical proof verifier. This positive control
+    // shows that denying unavailable builtins does not disable registration.
+    const TestVerifier = struct {
+        fn check(ptr: [*]const u8, len: usize, _: ?*anyopaque) callconv(.c) LgStatus {
+            return if (std.mem.eql(u8, ptr[0..len], "accepted-witness")) .ok else .err_invalid_argument;
+        }
+    };
+    const kind = "test-protocol";
+    try std.testing.expectEqual(LgStatus.ok, lith_proof_register_verifier(kind.ptr, kind.len, TestVerifier.check, null));
+    defer _ = lith_proof_unregister_verifier(kind.ptr, kind.len);
+    const good = "{\"type\":\"test-protocol\",\"data\":\"accepted-witness\"}";
+    const bad = "{\"type\":\"test-protocol\",\"data\":\"forged-witness\"}";
+    var valid = false;
+    var err = LgBlob.empty();
+    defer lith_blob_free(&err);
+    try std.testing.expectEqual(LgStatus.ok, lith_proof_verify(good.ptr, good.len, &valid, &err));
+    try std.testing.expect(valid);
+    try std.testing.expectEqual(LgStatus.err_invalid_argument, lith_proof_verify(bad.ptr, bad.len, &valid, &err));
+    try std.testing.expect(!valid);
+    try std.testing.expect(err.len > 0);
 }
