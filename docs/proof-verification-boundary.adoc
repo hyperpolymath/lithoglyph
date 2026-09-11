@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Lithoglyph proof verification boundary
+
+The bridge can dispatch a proof envelope to an explicitly registered verifier.
+It does not currently implement mathematical verifiers for functional
+dependencies, lossless normalisation, or dependency preservation.
+
+`lith_proof_init_builtins()` returns `err_not_implemented` and leaves the
+registry unchanged. Applications must check that status. Registering a callback
+with `lith_proof_register_verifier` is an explicit trust decision: the callback
+must actually validate the claimed proposition against its evidence and context.
+
+`lith_proof_verify` accepts a JSON envelope with string fields `type` and `data`.
+The callback defines the payload protocol. The bridge clears `out_valid` before
+parsing, returns an error for an unknown verifier, and propagates a callback's
+failure status. Only a callback returning `ok` sets `out_valid` to true.
+Envelope parsing, provenance recording, and a successful storage operation do
+not establish the proposition in a proof payload.
+
+== Executable checks
+
+With the repository's pinned Zig 0.15.2:
+
+[source,shell]
+----
+cd core-zig
+zig build test
+----
+
+The bridge suite checks that all three unavailable built-in proof types refuse
+arbitrary payloads, that malformed input cannot retain an earlier successful
+verdict, and that an explicitly registered test verifier controls acceptance and
+rejection. The test verifier is a positive control for dispatch, not a
+mathematical proof checker.
+
+Before this change, each of those three regression tests failed against the
+accepting callbacks and stale-output behaviour. After the change, all 27 test
+executions in the bridge, block, and crypto build passed locally on 2026-09-07.
+
+== Remaining obligation
+
+A deployed proof-bearing operation needs a verifier for its concrete proposition,
+a binding to the exact data and transition being authorised, and rejection tests
+for forged, stale, or mismatched evidence. The registration ABI alone supplies
+none of those guarantees.
