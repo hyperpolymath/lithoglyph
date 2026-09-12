@@ -182,7 +182,7 @@ test "WebSocket accept key computation follows RFC 6455" {
     const allocator = createTestAllocator();
 
     // Example from RFC 6455 Section 1.3
-    const key = "dGhlIHNhbXBsZSBub25jZQ==";
+    const key = "dGhlIHNhbXBsZSBub25jZQ=="; // gitleaks:allow -- public RFC 6455 Section 1.3 nonce
     const expected = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=";
 
     const accept = try websocket.computeAcceptKey(allocator, key);

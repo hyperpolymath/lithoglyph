@@ -1216,9 +1216,10 @@ rotation_period = "1h"
 [source,bash]
 ----
 # Secrets should be injected via environment
-export LITH_AUTH_JWT_SECRET="..."
-export LITH_ENCRYPTION_MASTER_KEY="..."
-export LITH_OIDC_CLIENT_SECRET="..."
+: "${LITH_AUTH_JWT_SECRET:?inject the JWT signing secret}"
+: "${LITH_ENCRYPTION_MASTER_KEY:?inject the encryption master key}"
+: "${LITH_OIDC_CLIENT_SECRET:?inject the OIDC client secret}"
+export LITH_AUTH_JWT_SECRET LITH_ENCRYPTION_MASTER_KEY LITH_OIDC_CLIENT_SECRET
 ----
 
 === HashiCorp Vault Integration 🚧
@@ -1239,8 +1240,8 @@ kubernetes_mount = "kubernetes"
 # Secret paths
 [secrets.vault.paths]
 master_key = "secret/data/lith/master-key"
-jwt_secret = "secret/data/lith/jwt-secret"
-oidc_secret = "secret/data/lith/oidc-client"
+jwt_secret = "secret/data/lith/jwt-secret" # hypatia: allow security_errors/secret_detected -- Vault lookup path, not the secret value
+oidc_secret = "secret/data/lith/oidc-client" # hypatia: allow security_errors/secret_detected -- Vault lookup path, not the secret value
 
 # Dynamic secrets for database connections
 # postgres_creds = "database/creds/lith-role"
@@ -1258,8 +1259,8 @@ region = "us-east-1"
 
 [secrets.aws.paths]
 master_key = "lith/master-key"
-jwt_secret = "lith/jwt-secret"
-oidc_secret = "lith/oidc-client"
+jwt_secret = "lith/jwt-secret" # hypatia: allow security_errors/secret_detected -- AWS lookup path, not the secret value
+oidc_secret = "lith/oidc-client" # hypatia: allow security_errors/secret_detected -- AWS lookup path, not the secret value
 ----
 
 == Security Hardening

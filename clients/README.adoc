@@ -75,6 +75,7 @@ All clients support:
 [source,rescript]
 ----
 // ReScript - API Key
+// hypatia: allow security_errors/secret_detected -- illustrative placeholder, not a credential
 let client = make(~baseUrl="http://localhost:8080", ~apiKey="your-api-key")
 
 // ReScript - Bearer Token

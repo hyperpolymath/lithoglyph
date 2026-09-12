@@ -444,7 +444,7 @@ static int test_introspection(void) {
 static int test_proof_init_builtins(void) {
     LithStatus s = lith_proof_init_builtins();
     printf("  init_builtins status: %d\n", s);
-    return (s == LITH_OK) ? 0 : 1;
+    return (s == LITH_ERR_NOT_IMPLEMENTED) ? 0 : 1;
 }
 
 /* ============================================================
@@ -482,11 +482,11 @@ static int test_proof_register_unregister(void) {
  * Test 15: Proof verify
  * ============================================================ */
 static int test_proof_verify(void) {
-    /* Ensure builtins are registered */
-    lith_proof_init_builtins();
+    /* Unimplemented builtins must never certify a placeholder payload. */
+    if (lith_proof_init_builtins() != LITH_ERR_NOT_IMPLEMENTED) return 1;
 
     const char* proof_json = "{\"type\":\"fd-holds\",\"data\":\"dGVzdA==\"}";
-    bool valid = false;
+    bool valid = true; /* Refusal must clear a previous verdict. */
     LgBlob err = {0};
 
     LithStatus s = lith_proof_verify(
@@ -496,7 +496,40 @@ static int test_proof_verify(void) {
     printf("  verify status: %d, valid: %s\n", s, valid ? "true" : "false");
     free_blob(&err);
 
-    return (s == LITH_OK && valid) ? 0 : 1;
+    return (s == LITH_ERR_NOT_FOUND && !valid) ? 0 : 1;
+}
+
+/* Test-only witness protocol: exercises the C callback ABI, not a proof checker. */
+static LithStatus witness_verifier(const uint8_t* proof, size_t len, void* ctx) {
+    (void)ctx;
+    const char* accepted = "accepted-witness";
+    return len == strlen(accepted) && memcmp(proof, accepted, len) == 0
+        ? LITH_OK : LITH_ERR_INVALID_ARGUMENT;
+}
+
+static int test_proof_registered_verdict(void) {
+    const char* kind = "test-protocol";
+    if (lith_proof_register_verifier((const uint8_t*)kind, strlen(kind),
+                                    witness_verifier, NULL) != LITH_OK) return 1;
+    const char* inputs[] = {
+        "{\"type\":\"test-protocol\",\"data\":\"accepted-witness\"}",
+        "{\"type\":\"test-protocol\",\"data\":\"forged-witness\"}",
+        "not JSON"
+    };
+    const LithStatus expected[] = {LITH_OK, LITH_ERR_INVALID_ARGUMENT,
+                                   LITH_ERR_INVALID_ARGUMENT};
+    bool valid = false;
+    int ok = 1;
+    for (size_t i = 0; i < 3; ++i) {
+        LgBlob err = {0};
+        if (i == 2) valid = true;
+        LithStatus s = lith_proof_verify((const uint8_t*)inputs[i], strlen(inputs[i]),
+                                        &valid, &err);
+        ok = ok && s == expected[i] && valid == (i == 0);
+        free_blob(&err);
+    }
+    ok = lith_proof_unregister_verifier((const uint8_t*)kind, strlen(kind)) == LITH_OK && ok;
+    return ok ? 0 : 1;
 }
 
 /* ============================================================
@@ -561,6 +594,7 @@ int main(void) {
     RUN_TEST(test_proof_init_builtins);
     RUN_TEST(test_proof_register_unregister);
     RUN_TEST(test_proof_verify);
+    RUN_TEST(test_proof_registered_verdict);
     RUN_TEST(test_blob_free_null);
     RUN_TEST(test_apply_readonly_rejected);
 
