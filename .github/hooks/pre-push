@@ -11,8 +11,8 @@
 # refreshed by the estate `refresh-githooks` sweep.
 #
 # Enable once per clone:
-#     git config core.hooksPath .githooks
-#   (or run: .githooks/install.sh)
+#     git config core.hooksPath .github/hooks
+#   (or run: .github/hooks/install.sh)
 #
 # Override for an emergency push:  git push --no-verify
 #

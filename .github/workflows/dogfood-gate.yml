@@ -48,14 +48,14 @@ jobs:
       # That action repository does not exist — `gh api repos/...` returns 404
       # and the job failed at Set up job with "Unable to resolve action ...,
       # repository not found", so it never ran. Meanwhile the real
-      # implementation ships here as .githooks/validate-a2ml.sh and takes the
+      # implementation ships here as .github/hooks/validate-a2ml.sh and takes the
       # same INPUT_PATH / INPUT_STRICT interface the action was passed.
       - name: Validate A2ML manifests
         if: steps.detect.outputs.count > 0
         env:
           INPUT_PATH: '.'
           INPUT_STRICT: 'false'
-        run: bash .githooks/validate-a2ml.sh
+        run: bash .github/hooks/validate-a2ml.sh
 
       - name: Write summary
         run: |
@@ -106,7 +106,7 @@ jobs:
         env:
           INPUT_PATH: '.'
           INPUT_STRICT: 'false'
-        run: bash .githooks/validate-k9.sh
+        run: bash .github/hooks/validate-k9.sh
 
       - name: Write summary
         run: |
