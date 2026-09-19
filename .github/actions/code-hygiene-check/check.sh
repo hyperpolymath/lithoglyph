@@ -26,7 +26,7 @@ fi
 # machine-readable templates, packaging recipes, and container templates are
 # not silently relabelled as application source.
 exclude_paths=(
-  ':(exclude).github/**' ':(exclude).githooks/**'
+  ':(exclude).github/**' ':(exclude).github/hooks/**'
   ':(exclude).machine_readable/**' ':(exclude)docs/**'
   ':(exclude)packaging/**' ':(exclude)container/**'
   ":(exclude)$allow_file"

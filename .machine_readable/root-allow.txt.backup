@@ -45,7 +45,7 @@
 ?generated/
 ?geo/
 ?.gitattributes
-?.githooks/
+?.github/hooks/
 ?.github/
 ?.gitignore
 ?.gitlab-ci.yml
