@@ -139,7 +139,7 @@ dependencies:
         repo_id: 513659658
 
     'actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346':
-        ref: 'v5.0.1'
+        ref: '368f82528645a54fb793d4d04e342629a3f51346'
         commit: 'sha1-368f82528645a54fb793d4d04e342629a3f51346'
         owner_id: 44036562
         repo_id: 438112499
