@@ -140,7 +140,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install elan (Lean version manager)
-        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596 # v1.6.0
+        uses: leanprover/lean-action@f061402b660e0c34644504b324e830f2991d4865 # v1.6.1
         with:
           auto-config: false
           build: false
