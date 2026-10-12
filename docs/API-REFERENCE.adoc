@@ -1204,7 +1204,7 @@ https://lith.example.com/v1
 [source,bash]
 ----
 # API Key (header)
-curl -H "X-Lith-API-Key: lith_sk_live_abc123" \
+curl -H "X-Lith-API-Key: ${LITH_API_KEY:?set your API key}" \
   https://lith.example.com/v1/query
 
 # JWT Bearer token
