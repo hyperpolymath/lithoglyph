@@ -65,10 +65,12 @@ svalinn (TLS) → lith-http (Elixir :4000) → BEAM NIFs → core-zig (C ABI) �
 - **Elixir** — OTP control plane, HTTP API
 - **Rust** — BEAM NIF (Rustler), studio backend
 - **ReScript** — Client libraries (if needed)
+- **Bun** — JavaScript runtime and package management
 - **Nickel** — Configuration
 
 ### BANNED
 - TypeScript, Python, Go, Java, Node.js, npm
+- Deno (use Bun)
 
 ## Build Commands
 

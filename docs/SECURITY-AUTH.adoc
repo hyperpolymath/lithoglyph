@@ -238,27 +238,29 @@ lith auth create-key \
   --expires "2025-12-31"
 
 # Output:
-# API Key: lith_sk_live_abc123...xyz789
-# Key ID: key_01234567
+# API Key: <generated-api-key>
+# Key ID: <generated-key-id>
 # WARNING: This key will only be shown once. Store it securely.
 
 # List keys (shows metadata only, not secrets)
 lith auth list-keys
 
 # Revoke a key
-lith auth revoke-key key_01234567 --reason "Rotation"
+lith auth revoke-key "${LITH_KEY_ID:?set the key ID to revoke}" --reason "Rotation"
 ----
 
 ==== Usage
 
+Supply the generated API key through the `LITH_API_KEY` environment variable.
+
 [source,bash]
 ----
 # HTTP header (preferred)
-curl -H "X-Lith-API-Key: lith_sk_live_abc123...xyz789" \
+curl -H "X-Lith-API-Key: ${LITH_API_KEY:?set your API key}" \
   https://lith.example.com/v1/query
 
 # In GQL session
-lith shell --api-key "lith_sk_live_abc123...xyz789"
+lith shell --api-key "${LITH_API_KEY:?set your API key}"
 ----
 
 ==== Key Scopes
