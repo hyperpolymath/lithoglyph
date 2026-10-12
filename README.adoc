@@ -142,7 +142,7 @@ Lithoglyph is structured in layers, each with a specific language and responsibi
 
 == Core Invariants
 
-These are *non-negotiable* guarantees:
+These are *non-negotiable* invariants (_status: enforced by the engine; reversibility theorem intended_):
 
 [horizontal]
 Truth Ownership:: On-disk truth is owned by the block/journal layer; higher layers do not bypass it.
