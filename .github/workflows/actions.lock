@@ -11,7 +11,7 @@ workflows:
         - 'goto-bus-stop/setup-zig@v2.2.1'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@v7.0.1'
-        - 'github/codeql-action@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee'
+        - 'github/codeql-action@9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
     '.github/workflows/container-build.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/dependabot-automerge.yml':
@@ -41,7 +41,7 @@ workflows:
     '.github/workflows/quality.yml':
         - 'actions/checkout@v7.0.1'
         - 'editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393'
-        - 'trufflesecurity/trufflehog@v3.97.5'
+        - 'trufflesecurity/trufflehog@v3.99.7'
     '.github/workflows/release.yml':
         - 'actions/attest-build-provenance@v4.2.2'
         - 'actions/checkout@v7.0.1'
@@ -141,7 +141,7 @@ dependencies:
         owner_id: 27347476
         repo_id: 371068214
     'editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393':
-        ref: '51f63319f592f97930c73d9c46184d20bd206393'
+        ref: 'v3.0.0'
         commit: 'sha1-51f63319f592f97930c73d9c46184d20bd206393'
         owner_id: 26415196
         repo_id: 297874902
@@ -150,9 +150,9 @@ dependencies:
         commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
         owner_id: 47606891
         repo_id: 331103973
-    'github/codeql-action@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee':
-        ref: 'v4.39.0'
-        commit: 'sha1-6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee'
+    'github/codeql-action@9b3254085494b55a0f7c4c2b3d2d52cc712ce370':
+        ref: 'v4.39.1'
+        commit: 'sha1-9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
         owner_id: 9919
         repo_id: 259445878
     'goto-bus-stop/setup-zig@v2.2.1':
@@ -182,8 +182,8 @@ dependencies:
         commit: 'sha1-ba9859eae8dd6bd29e412f25ddbbef3d032000f4'
         owner_id: 545988
         repo_id: 366408409
-    'trufflesecurity/trufflehog@v3.97.5':
-        ref: 'v3.97.5'
-        commit: 'sha1-f714bf454f350590f4a24c3ddb1aef02c35bf5b6'
+    'trufflesecurity/trufflehog@v3.99.7':
+        ref: 'v3.99.7'
+        commit: 'sha1-31ce31ee1abbcc7dc8eee5764c17121c3044c8b2'
         owner_id: 79229934
         repo_id: 77726177
