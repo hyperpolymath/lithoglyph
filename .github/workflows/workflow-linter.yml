@@ -12,9 +12,13 @@ on:
       - main
     paths:
       - '.github/workflows/**'
+      - 'scripts/check-action-pinning.js'
+      - 'scripts/tests/check-action-pinning-test.sh'
   pull_request:
     paths:
       - '.github/workflows/**'
+      - 'scripts/check-action-pinning.js'
+      - 'scripts/tests/check-action-pinning-test.sh'
   workflow_dispatch:
 
 concurrency:
@@ -83,32 +87,19 @@ jobs:
           unzip -q "$RUNNER_TEMP/bun.zip" -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/bun-linux-x64" >> "$GITHUB_PATH"
 
+      # The checker is tested before it judges anything: a gate that has
+      # regressed to passing everything must fail here, not go green below.
+      - name: Self-test the pinning checker
+        run: bash scripts/tests/check-action-pinning-test.sh
+
       - name: Check SHA-Pinned Actions
         run: |
           echo "=== Checking Action Pinning ==="
-          # Find any uses: lines that don't have @SHA format
-          # Pattern: uses: owner/repo@<40-char-hex>
-          # Delegated to scripts/check-action-pinning.js. The rule it enforces is
-          # unchanged in spirit — every action ref must resolve to an immutable
-          # commit — but "pinned" now includes refs the workflow lockfile
-          # resolves, which is how this repo pins them. Kept as a script rather
-          # than inline because the inline form needs a heredoc inside a YAML
-          # block scalar, and that is a well-known way to ship a gate that
-          # silently does nothing.
-          if ! bun scripts/check-action-pinning.js; then
-            unpinned="see above"
-          else
-            unpinned=""
-          fi
-
-          if [ -n "$unpinned" ]; then
-            echo "ERROR: Found unpinned actions:"
-            echo ""
-            echo "Replace version tags with SHA pins, e.g.:"
-            echo "  uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.1"
-            exit 1
-          fi
-          echo "All actions are SHA-pinned"
+          # Every step-level ref must be an inline 40-hex SHA, or be listed
+          # under its own workflow in actions.lock with a dependency record
+          # that resolves to a commit (the check GitHub applies at run start).
+          # Job-level reusable calls must be SHA-pinned. See the script header.
+          bun scripts/check-action-pinning.js
 
       - name: Check for Duplicate Workflows
         run: |
