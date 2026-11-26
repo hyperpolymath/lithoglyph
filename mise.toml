@@ -1,38 +1,25 @@
 [tools]
 # Language runtimes
-node = "latest"
-python = "latest"
 rust = "latest"
-go = "latest"
 # Pinned, not "latest". The workflows pin 0.15.2 and src/bridge.zig uses
 # 0.15-era APIs; "latest" resolves to 0.16.0 locally, where std.fs.cwd() is gone
 # and a local `zig build test` fails in ways CI never sees. A local toolchain
 # that disagrees with CI turns every build into a guess about which one is right.
 zig = "0.15.2"
-java = "latest"
 bun = "latest"
 denojs = "latest"
 
 # Package managers
-npm = "latest"
-yarn = "latest"
 pnpm = "latest"
-pip = "latest"
 cargo = "latest"
 go-task = "latest"
 
 # Formatting & Linting
-gofmt = "latest"
-black = "latest"
-isort = "latest"
-ruff = "latest"
-prettier = "latest"
 shfmt = "latest"
 stylua = "latest"
 
 # Build tools
 cmake = "latest"
-make = "latest"
 ninja = "latest"
 
 # Shell tools
@@ -42,20 +29,14 @@ gnu-tar = "latest"
 gnu-grep = "latest"
 
 # Testing
-vitest = "latest"
-pytest = "latest"
-jest = "latest"
 
 [env]
 # Common environment variables
-NODE_ENV = "development"
-PYTHONDONTWRITEBYTECODE = "1"
-PYTHONUNBUFFERED = "1"
 
 # Task runner alias
 [alias]
 task = "go-task"
-build = "cargo build --release || npm run build || go build"
-test = "cargo test || npm test || go test ./..."
-lint = "ruff check . || prettier --check . || black --check ."
-fmt = "ruff format . || prettier --write . || black ."
+build = "cargo build --release"
+test = "cargo test"
+lint = "bunx --no-install --bun prettier --check ."
+fmt = "bunx --no-install --bun prettier --write ."
