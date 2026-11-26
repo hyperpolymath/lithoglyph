@@ -13,10 +13,11 @@ work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 pass=0; fail=0
 SHA=3d3c42e5aac5ba805825da76410c181273ba90b1
 
-# tree <name> <workflow-yaml> [lock-yaml] — workflow lands at a.yml.
+# tree <name> <workflow-yaml> [lock-yaml] [workflow-file] — workflow lands at
+# a.yml unless a fourth argument names another file.
 tree() {
   mkdir -p "$work/$1/.github/workflows"
-  printf '%s\n' "$2" > "$work/$1/.github/workflows/a.yml"
+  printf '%s\n' "$2" > "$work/$1/.github/workflows/${4:-a.yml}"
   [ -n "${3:-}" ] && printf '%s\n' "$3" > "$work/$1/.github/workflows/actions.lock"
   return 0
 }
@@ -25,8 +26,8 @@ expect() { # expect <label> <want-exit> <name>
   if [ "$rc" -eq "$2" ]; then pass=$((pass+1)); echo "ok   $1"
   else fail=$((fail+1)); echo "FAIL $1 (want $2, got $rc)"; sed 's/^/     /' "$work/$3.out"; fi
 }
-lock() { # lock <workflow-list-entry> <dep-key> <ref> <commit>
-  printf "version: 'v0.0.3'\nworkflows:\n    '.github/workflows/a.yml':\n        - '%s'\ndependencies:\n    '%s':\n        ref: '%s'\n        commit: 'sha1-%s'\n        owner_id: 1\n        repo_id: 2\n" "$1" "$2" "$3" "$4"
+lock() { # lock <workflow-list-entry> <dep-key> <ref> <commit> [workflow-file]
+  printf "version: 'v0.0.3'\nworkflows:\n    '.github/workflows/%s':\n        - '%s'\ndependencies:\n    '%s':\n        ref: '%s'\n        commit: 'sha1-%s'\n        owner_id: 1\n        repo_id: 2\n" "${5:-a.yml}" "$1" "$2" "$3" "$4"
 }
 LOCKED="$(lock actions/checkout@v7.0.1 actions/checkout@v7.0.1 v7.0.1 $SHA)"
 step() { printf 'on: push\njobs:\n  j:\n    runs-on: ubuntu-24.04\n    steps:\n      %s\n' "$1"; }
@@ -49,6 +50,8 @@ tree script2    "$(step "- uses: actions/github-script@main")"
 expect "no github-script name exemption (actions): fail" 1 script2
 tree otherwf    "$(step "- uses: actions/checkout@v7.0.1")" "$(lock actions/cache@v6.1.0 actions/checkout@v7.0.1 v7.0.1 $SHA)"
 expect "record exists but not listed under this workflow: fail" 1 otherwf
+tree crosswf    "$(step "- uses: actions/checkout@v7.0.1")" "$(lock actions/checkout@v7.0.1 actions/checkout@v7.0.1 v7.0.1 $SHA b.yml)"
+expect "resolved record listed only under another workflow: fail" 1 crosswf
 tree norecord   "$(step "- uses: actions/checkout@v7.0.1")" "$(lock actions/checkout@v7.0.1 actions/cache@v6.1.0 v6.1.0 $SHA)"
 expect "listed but no dependency record: fail" 1 norecord
 tree badcommit  "$(step "- uses: actions/checkout@v7.0.1")" "$(lock actions/checkout@v7.0.1 actions/checkout@v7.0.1 v7.0.1 not-a-sha)"
