@@ -64,7 +64,7 @@ svalinn (TLS) → lith-http (Elixir :4000) → BEAM NIFs → core-zig (C ABI) �
 - **Factor** — GQL runtime (concatenative)
 - **Elixir** — OTP control plane, HTTP API
 - **Rust** — BEAM NIF (Rustler), studio backend
-- **ReScript** — Client libraries (if needed)
+- **AffineScript** — Client libraries (if needed)
 - **Bun** — JavaScript runtime and package management
 - **Nickel** — Configuration
 
