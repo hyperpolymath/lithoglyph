@@ -9,7 +9,8 @@
 Lithoglyph's scripting layer is to be **AffineScript**, not ReScript.
 
 This is not a local preference. Per the Hyperpolymath Standard, **ReScript and
-TypeScript are banned estate-wide**, and npm/bun are replaced by Deno. The
+TypeScript are banned estate-wide**, and the JS runtime is Bun first (Deno,
+pnpm, npm as fallbacks; Node.js and yarn stay banned). The
 estate-level plan and inventory live in the coordination repo:
 
 `nextgen-databases/docs/migration/RESCRIPT-TS-AFFINESCRIPT-MIGRATION.adoc`
