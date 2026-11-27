@@ -6,7 +6,8 @@ rust = "latest"
 # and a local `zig build test` fails in ways CI never sees. A local toolchain
 # that disagrees with CI turns every build into a guess about which one is right.
 zig = "0.15.2"
-bun = "latest"
+bun = "1.4"
+just = "latest"
 denojs = "latest"
 
 # Package managers
@@ -42,10 +43,10 @@ description = "Install pinned JS dev tools (Prettier) from bun.lock"
 run = "bun install --frozen-lockfile"
 
 [tasks.build]
-run = "cargo build --release"
+run = "just build"
 
 [tasks.test]
-run = "cargo test"
+run = "just test"
 
 [tasks.lint]
 depends = ["setup"]
