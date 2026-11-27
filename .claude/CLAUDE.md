@@ -69,8 +69,8 @@ svalinn (TLS) → lith-http (Elixir :4000) → BEAM NIFs → core-zig (C ABI) �
 - **Nickel** — Configuration
 
 ### BANNED
-- TypeScript, Python, Go, Java, Node.js, npm
-- Deno (use Bun)
+- TypeScript, Python, Go, Java, Node.js, yarn
+- JS runtime/package manager: Bun first; Deno, pnpm, npm as fallbacks
 
 ## Build Commands
 
